@@ -1,19 +1,6 @@
-/* combined headers for Marxan */
+// headers for Marxan with Zones
 
-/*    Marxan and this unit was coded by Ian Ball
-    and written by Ian Ball and Hugh Possingham
-
-    ian_bal@antdiv.gov.au
-    hpossing@zen.uq.edu.au
-
-      Modified by Matthew Watts  4 Nov 2005
-
-        m.watts@uq.edu.au
-    */
-
-
-/* SPEX.H start */
-#define DebugFree(x) /*Blank)*/
+#define DebugFree(x)
 
     int *bestyet;
     double delta;

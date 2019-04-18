@@ -1,23 +1,4 @@
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
 // C file for Marxan with Zones
-
-//   Marine Reserve Design with Zoning and Annealing
-
-//   Marxan with Zones coded by Matthew Watts
-//   Written by Ian Ball, Hugh Possingham and Matthew Watts
-
-//   Based on Marxan coded by Ian Ball, modified by Matthew Watts
-//   Written by Ian Ball and Hugh Possingham
-
-//   ian.ball@aad.gov.au
-//   hpossingham@zen.uq.edu.au
-//   m.watts@uq.edu.au
 
 #include <ctype.h>
 #include <math.h>
@@ -65,13 +46,6 @@
 
 #include "marzone.h"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
 jmp_buf jmpbuf;
 int iMemoryUsed=0;
 int iCostCount = 0;
@@ -88,9 +62,9 @@ char sVersionString[50] = "Marxan with Zones v 2.03";
 //   asymmetric connectivity
 //   multiple connectivity files
 char sIanBallEmail[50] = "ian.ball@aad.gov.au";
-char sHughPossinghamEmail[50] = "h.possingham@uq.edu.au";
-char sMattWattsEmail[50] = "m.watts@uq.edu.au";
-char sMarxanWebSite[50] = "http://www.uq.edu.au/marxan";
+char sHughPossinghamEmail[50] = "hugh.possingham@tnc.org";
+char sMattWattsEmail[50] = "matt.watts@une.edu.au";
+char sMarxanWebSite[50] = "http://marxan.net";
 char sDebugTraceFileName[50] = "DebugTraceFile_Marxan_with_Zones.txt";
 int iAvailableZoneInput;
 int iVerbosity;
@@ -131,7 +105,7 @@ int MarZone(char sInputFileName[],int style)
 
     // Handle Error driven termination
     if (setjmp(jmpbuf))
-       return 1;
+        return 1;
 
     ShowStartupScreen();
 
@@ -170,8 +144,8 @@ int MarZone(char sInputFileName[],int style)
 
     if (fnames.savelog)
     {
-       sprintf(tempname2,"%s_log.dat",savename);
-       SetLogFile(fnames.savelog,tempname2);
+        sprintf(tempname2,"%s_log.dat",savename);
+        SetLogFile(fnames.savelog,tempname2);
     }
 
     delta = 1e-14;  // This would more elegantly be done as a constant
@@ -197,195 +171,195 @@ int MarZone(char sInputFileName[],int style)
     // read in the MarZone files
     if (strcmp("NULL",fnames.zonesname) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before LoadZones\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before LoadZones\n");
+        #endif
 
-       LoadZones(&iZoneCount,&Zones,fnames);
+        LoadZones(&iZoneCount,&Zones,fnames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after LoadZones\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after LoadZones\n");
+        #endif
     }
     else
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before DefaultZones\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before DefaultZones\n");
+        #endif
 
-       DefaultZones(&iZoneCount,&Zones);
+        DefaultZones(&iZoneCount,&Zones);
 
-       iAvailableZoneInput = 1;
+        iAvailableZoneInput = 1;
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after DefaultZones\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after DefaultZones\n");
+        #endif
     }
 
     if (strcmp("NULL",fnames.costsname) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before LoadCostNames\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before LoadCostNames\n");
+        #endif
 
-       LoadCostNames(&iCostCount,&CostNames,fnames);
+        LoadCostNames(&iCostCount,&CostNames,fnames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after LoadCostNames\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after LoadCostNames\n");
+        #endif
     }
     else
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before DefaultCostNames\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before DefaultCostNames\n");
+        #endif
 
-       DefaultCostNames(&iCostCount,&CostNames);
+        DefaultCostNames(&iCostCount,&CostNames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after DefaultCostNames\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after DefaultCostNames\n");
+        #endif
     }
 
     if (strcmp("NULL",fnames.zonecontribname) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before LoadZoneContrib\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before LoadZoneContrib\n");
+        #endif
 
-       LoadZoneContrib(&iZoneContribCount,&ZoneContrib,fnames);
+        LoadZoneContrib(&iZoneContribCount,&ZoneContrib,fnames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after LoadZoneContrib\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after LoadZoneContrib\n");
+        #endif
     }
     if (strcmp("NULL",fnames.zonecontrib2name) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before LoadZoneContrib2\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before LoadZoneContrib2\n");
+        #endif
 
-       LoadZoneContrib2(&iZoneContrib2Count,&ZoneContrib2,fnames);
+        LoadZoneContrib2(&iZoneContrib2Count,&ZoneContrib2,fnames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after LoadZoneContrib2\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after LoadZoneContrib2\n");
+        #endif
     }
     if (strcmp("NULL",fnames.zonecontrib3name) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before LoadZoneContrib3\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before LoadZoneContrib3\n");
+        #endif
 
-       LoadZoneContrib3(&iZoneContrib3Count,&ZoneContrib3,fnames);
+        LoadZoneContrib3(&iZoneContrib3Count,&ZoneContrib3,fnames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after LoadZoneContrib3\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after LoadZoneContrib3\n");
+        #endif
     }
     if (strcmp("NULL",fnames.zonetargetname) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before LoadZoneTarget\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before LoadZoneTarget\n");
+        #endif
 
-       LoadZoneTarget(&iZoneTargetCount,&ZoneTarget,fnames);
+        LoadZoneTarget(&iZoneTargetCount,&ZoneTarget,fnames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after LoadZoneTarget\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after LoadZoneTarget\n");
+        #endif
     }
     if (strcmp("NULL",fnames.zonetarget2name) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before LoadZoneTarget2\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before LoadZoneTarget2\n");
+        #endif
 
-       LoadZoneTarget2(&iZoneTarget2Count,&ZoneTarget2,fnames);
+        LoadZoneTarget2(&iZoneTarget2Count,&ZoneTarget2,fnames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after LoadZoneTarget2\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after LoadZoneTarget2\n");
+        #endif
     }
     if (strcmp("NULL",fnames.zonecostname) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before LoadZoneCost\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before LoadZoneCost\n");
+        #endif
 
-       LoadZoneCost(&iZoneCostCount,&ZoneCost,fnames);
+        LoadZoneCost(&iZoneCostCount,&ZoneCost,fnames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after LoadZoneCost\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after LoadZoneCost\n");
+        #endif
     }
     else
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before DefaultZoneCost\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before DefaultZoneCost\n");
+        #endif
 
-       DefaultZoneCost(&iZoneCostCount,&ZoneCost);
+        DefaultZoneCost(&iZoneCostCount,&ZoneCost);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after DefaultZoneCost\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after DefaultZoneCost\n");
+        #endif
     }
 
     if (strcmp("NULL",fnames.pulockname) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before LoadPuLock\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before LoadPuLock\n");
+        #endif
 
-       LoadPuLock(&iPuLockCount,&PuLock,fnames);
+        LoadPuLock(&iPuLockCount,&PuLock,fnames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after LoadPuLock\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after LoadPuLock\n");
+        #endif
     }
     if (strcmp("NULL",fnames.puzonename) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before LoadPuZone\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before LoadPuZone\n");
+        #endif
 
-       LoadPuZone(&iPuZoneCount,&PuZone,fnames);
+        LoadPuZone(&iPuZoneCount,&PuZone,fnames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after LoadPuZone\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after LoadPuZone\n");
+        #endif
     }
     if (strcmp("NULL",fnames.relconnectioncostname) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before LoadZoneConnectionCost\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before LoadZoneConnectionCost\n");
+        #endif
 
-       LoadRelConnectionCost(&iRelConnectionCostCount,&RelConnectionCost,fnames);
+        LoadRelConnectionCost(&iRelConnectionCostCount,&RelConnectionCost,fnames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after LoadZoneConnectionCost\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after LoadZoneConnectionCost\n");
+        #endif
     }
 
     #ifdef DEBUGTRACEFILE
     if (iVerbosity > 3)
     {
-       DumpZoneNames(iZoneCount,Zones,fnames);
-       DumpCostNames(iCostCount,CostNames,fnames);
-       DumpZoneContrib(iZoneContribCount,ZoneContrib,fnames);
-       DumpZoneContrib2(iZoneContrib2Count,ZoneContrib2,fnames);
-       DumpZoneContrib3(iZoneContrib3Count,ZoneContrib3,fnames);
-       DumpZoneTarget(iZoneTargetCount,ZoneTarget,fnames);
-       DumpZoneTarget2(iZoneTarget2Count,ZoneTarget2,fnames);
-       DumpZoneCost(iZoneCostCount,ZoneCost,fnames);
-       if (strcmp("NULL",fnames.pulockname) != 0)
-          DumpPuLock(iPuLockCount,PuLock,fnames);
-       if (strcmp("NULL",fnames.puzonename) != 0)
-          DumpPuZone(iPuZoneCount,PuZone,fnames);
-       if (strcmp("NULL",fnames.relconnectioncostname) != 0)
-          DumpRelConnectionCost(iRelConnectionCostCount,RelConnectionCost,fnames);
+        DumpZoneNames(iZoneCount,Zones,fnames);
+        DumpCostNames(iCostCount,CostNames,fnames);
+        DumpZoneContrib(iZoneContribCount,ZoneContrib,fnames);
+        DumpZoneContrib2(iZoneContrib2Count,ZoneContrib2,fnames);
+        DumpZoneContrib3(iZoneContrib3Count,ZoneContrib3,fnames);
+        DumpZoneTarget(iZoneTargetCount,ZoneTarget,fnames);
+        DumpZoneTarget2(iZoneTarget2Count,ZoneTarget2,fnames);
+        DumpZoneCost(iZoneCostCount,ZoneCost,fnames);
+        if (strcmp("NULL",fnames.pulockname) != 0)
+            DumpPuLock(iPuLockCount,PuLock,fnames);
+        if (strcmp("NULL",fnames.puzonename) != 0)
+            DumpPuZone(iPuZoneCount,PuZone,fnames);
+        if (strcmp("NULL",fnames.relconnectioncostname) != 0)
+            DumpRelConnectionCost(iRelConnectionCostCount,RelConnectionCost,fnames);
     }
     #endif
 
@@ -395,7 +369,7 @@ int MarZone(char sInputFileName[],int style)
 
     ShowDetProg("    Reading in the Planning Unit names \n");
     if (style == 1)
-       itemp = ReadNameList(&puno,&pu,fnames.inputdir);
+        itemp = ReadNameList(&puno,&pu,fnames.inputdir);
     else
         itemp = ReadPUData(&puno,&pu,iCostCount,CostNames,fnames);
 
@@ -407,26 +381,26 @@ int MarZone(char sInputFileName[],int style)
 
     if (iCostCount)
     {
-       // create the costs array
-       CostValues = (double **) calloc(puno,sizeof(double *));
-       for (itemp = 0;itemp<puno;itemp++)
-           CostValues[itemp] = (double *) calloc(iCostCount,sizeof(double));
+        // create the costs array
+        CostValues = (double **) calloc(puno,sizeof(double *));
+        for (itemp = 0;itemp<puno;itemp++)
+            CostValues[itemp] = (double *) calloc(iCostCount,sizeof(double));
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before LoadCostValues\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before LoadCostValues\n");
+        #endif
 
-       // read the costs into the array
-       LoadCostValues(iCostCount,CostValues,CostNames,fnames,puno);
+        // read the costs into the array
+        LoadCostValues(iCostCount,CostValues,CostNames,fnames,puno);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after LoadCostValues\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after LoadCostValues\n");
+        #endif
 
-       #ifdef DEBUGTRACEFILE
-       if (iVerbosity > 3)
-          DumpCostValues(iCostCount,puno,CostValues,fnames);
-       #endif
+        #ifdef DEBUGTRACEFILE
+        if (iVerbosity > 3)
+            DumpCostValues(iCostCount,puno,CostValues,fnames);
+        #endif
     }
 
     ShowDetProg("    Reading in the species file \n");
@@ -436,7 +410,7 @@ int MarZone(char sInputFileName[],int style)
     #endif
 
     if (style == 1)
-       itemp = ReadSpeciesData(&spno,&spec,&aggexist,&sepexist,fnames.inputdir);
+        itemp = ReadSpeciesData(&spno,&spec,&aggexist,&sepexist,fnames.inputdir);
     else
         itemp = ReadSpeciesData2(&spno,&spec,fnames);
 
@@ -460,167 +434,163 @@ int MarZone(char sInputFileName[],int style)
 
     if (strcmp("NULL",fnames.zonecontribname) != 0)
     {
-       if (strcmp("NULL",fnames.zonecontrib2name) != 0)
-       {
-          // error condition exists, both zonecontrib & zonecontrib2 are defined
-          WriteStopErrorFile("both zonecontrib & zonecontrib2 are defined\n");
-          #ifdef DEBUGTRACEFILE
-          AppendDebugTraceFile("both zonecontrib & zonecontrib2 are defined\n");
-          #endif
-          ShowGenProg("both zonecontrib & zonecontrib2 are defined\n");
-          ShowGenProgInfo("both zonecontrib & zonecontrib2 are defined\n");
-          ShowShutdownScreen();
-          return 0;
-       }
-       else
-       {
+        if (strcmp("NULL",fnames.zonecontrib2name) != 0)
+        {
+            // error condition exists, both zonecontrib & zonecontrib2 are defined
+            WriteStopErrorFile("both zonecontrib & zonecontrib2 are defined\n");
+            #ifdef DEBUGTRACEFILE
+            AppendDebugTraceFile("both zonecontrib & zonecontrib2 are defined\n");
+            #endif
+            ShowGenProg("both zonecontrib & zonecontrib2 are defined\n");
+            ShowGenProgInfo("both zonecontrib & zonecontrib2 are defined\n");
+            ShowShutdownScreen();
+            return 0;
+        }
+        else
+        {
            if (strcmp("NULL",fnames.zonecontrib3name) != 0)
            {
-              // error condition exists, both zonecontrib & zonecontrib3 are defined
-              WriteStopErrorFile("both zonecontrib & zonecontrib3 are defined\n");
-              #ifdef DEBUGTRACEFILE
-              AppendDebugTraceFile("both zonecontrib & zonecontrib3 are defined\n");
-              #endif
-              ShowGenProg("both zonecontrib & zonecontrib3 are defined\n");
-              ShowGenProgInfo("both zonecontrib & zonecontrib3 are defined\n");
-              ShowShutdownScreen();
-              return 0;
+                // error condition exists, both zonecontrib & zonecontrib3 are defined
+                WriteStopErrorFile("both zonecontrib & zonecontrib3 are defined\n");
+                #ifdef DEBUGTRACEFILE
+                AppendDebugTraceFile("both zonecontrib & zonecontrib3 are defined\n");
+                #endif
+                ShowGenProg("both zonecontrib & zonecontrib3 are defined\n");
+                ShowGenProgInfo("both zonecontrib & zonecontrib3 are defined\n");
+                ShowShutdownScreen();
+                return 0;
            }
            else
            {
-               #ifdef DEBUGTRACEFILE
-               AppendDebugTraceFile("before Build_ZoneContrib\n");
-               #endif
+                #ifdef DEBUGTRACEFILE
+                AppendDebugTraceFile("before Build_ZoneContrib\n");
+                #endif
 
-               Build_ZoneContrib(spno,iZoneCount,iZoneContribCount,ZoneContrib,&_ZoneContrib);
-               free(ZoneContrib);
+                Build_ZoneContrib(spno,iZoneCount,iZoneContribCount,ZoneContrib,&_ZoneContrib);
+                free(ZoneContrib);
 
-               #ifdef DEBUGTRACEFILE
-               AppendDebugTraceFile("after Build_ZoneContrib\n");
-               #endif
+                #ifdef DEBUGTRACEFILE
+                AppendDebugTraceFile("after Build_ZoneContrib\n");
+                #endif
            }
-       }
+        }
     }
     if (strcmp("NULL",fnames.zonecontrib2name) != 0)  // if zonecontrib2name is not null
     {
-       if (strcmp("NULL",fnames.zonecontribname) != 0)
-       {
-          // error condition exists, both zonecontrib & zonecontrib2 are defined
-          WriteStopErrorFile("both zonecontrib & zonecontrib2 are defined\n");
-          #ifdef DEBUGTRACEFILE
-          AppendDebugTraceFile("both zonecontrib & zonecontrib2 are defined\n");
-          #endif
-          ShowGenProg("both zonecontrib & zonecontrib2 are defined\n");
-          ShowGenProgInfo("both zonecontrib & zonecontrib2 are defined\n");
-          ShowShutdownScreen();
-          return 0;
+        if (strcmp("NULL",fnames.zonecontribname) != 0)
+        {
+            // error condition exists, both zonecontrib & zonecontrib2 are defined
+            WriteStopErrorFile("both zonecontrib & zonecontrib2 are defined\n");
+            #ifdef DEBUGTRACEFILE
+            AppendDebugTraceFile("both zonecontrib & zonecontrib2 are defined\n");
+            #endif
+            ShowGenProg("both zonecontrib & zonecontrib2 are defined\n");
+            ShowGenProgInfo("both zonecontrib & zonecontrib2 are defined\n");
+            ShowShutdownScreen();
+            return 0;
+        }
+        else
+        {
+            if (strcmp("NULL",fnames.zonecontrib3name) != 0)
+            {
+                // error condition exists, both zonecontrib2 & zonecontrib3 are defined
+                WriteStopErrorFile("both zonecontrib2 & zonecontrib3 are defined\n");
+                #ifdef DEBUGTRACEFILE
+                AppendDebugTraceFile("both zonecontrib2 & zonecontrib3 are defined\n");
+                #endif
+                ShowGenProg("both zonecontrib2 & zonecontrib3 are defined\n");
+                ShowGenProgInfo("both zonecontrib2 & zonecontrib3 are defined\n");
+                ShowShutdownScreen();
+                return 0;
+            }
+            else
+            {
+                #ifdef DEBUGTRACEFILE
+                AppendDebugTraceFile("before Build_ZoneContrib2\n");
+                #endif
 
-          //#ifdef DEBUGTRACEFILE
-          //AppendDebugTraceFile("before Update_ZoneContrib2\n");
-          //#endif
+                Build_ZoneContrib2(spno,iZoneCount,iZoneContrib2Count,ZoneContrib2,&_ZoneContrib);  // zonecontribname is null
 
-          //Update_ZoneContrib2(spno,iZoneCount,iZoneContrib2Count,ZoneContrib2,_ZoneContrib);  // zonecontribname is not null
-
-          //#ifdef DEBUGTRACEFILE
-          //AppendDebugTraceFile("after Update_ZoneContrib2\n");
-          //#endif
-       }
-       else
-       {
-           if (strcmp("NULL",fnames.zonecontrib3name) != 0)
-           {
-              // error condition exists, both zonecontrib2 & zonecontrib3 are defined
-              WriteStopErrorFile("both zonecontrib2 & zonecontrib3 are defined\n");
-              #ifdef DEBUGTRACEFILE
-              AppendDebugTraceFile("both zonecontrib2 & zonecontrib3 are defined\n");
-              #endif
-              ShowGenProg("both zonecontrib2 & zonecontrib3 are defined\n");
-              ShowGenProgInfo("both zonecontrib2 & zonecontrib3 are defined\n");
-              ShowShutdownScreen();
-              return 0;
-           }
-           else
-           {
-               #ifdef DEBUGTRACEFILE
-               AppendDebugTraceFile("before Build_ZoneContrib2\n");
-               #endif
-
-               Build_ZoneContrib2(spno,iZoneCount,iZoneContrib2Count,ZoneContrib2,&_ZoneContrib);  // zonecontribname is null
-
-               #ifdef DEBUGTRACEFILE
-               AppendDebugTraceFile("after Build_ZoneContrib2\n");
-               #endif
-           }
-       }
-       free(ZoneContrib);
+                #ifdef DEBUGTRACEFILE
+                AppendDebugTraceFile("after Build_ZoneContrib2\n");
+                #endif
+            }
+        }
+        free(ZoneContrib);
     }
     if (strcmp("NULL",fnames.zonecontrib3name) != 0)
     {
-       if (strcmp("NULL",fnames.zonecontribname) != 0)
-       {
-          // error condition exists, both zonecontrib & zonecontrib3 are defined
-       }
-       else
-       {
-           if (strcmp("NULL",fnames.zonecontrib2name) != 0)
-           {
-              // error condition exists, both zonecontrib2 & zonecontrib3 are defined
-              WriteStopErrorFile("both zonecontrib2 & zonecontrib3 are defined\n");
-              #ifdef DEBUGTRACEFILE
-              AppendDebugTraceFile("both zonecontrib2 & zonecontrib3 are defined\n");
-              #endif
-              ShowGenProg("both zonecontrib2 & zonecontrib3 are defined\n");
-              ShowGenProgInfo("both zonecontrib2 & zonecontrib3 are defined\n");
-              ShowShutdownScreen();
-              return 0;
-           }
-           else
-           {
-               #ifdef DEBUGTRACEFILE
-               AppendDebugTraceFile("before Build_ZoneContrib3\n");
-               #endif
+        if (strcmp("NULL",fnames.zonecontribname) != 0)
+        {
+            // error condition exists, both zonecontrib & zonecontrib3 are defined
+        }
+        else
+        {
+            if (strcmp("NULL",fnames.zonecontrib2name) != 0)
+            {
+                // error condition exists, both zonecontrib2 & zonecontrib3 are defined
+                WriteStopErrorFile("both zonecontrib2 & zonecontrib3 are defined\n");
+                #ifdef DEBUGTRACEFILE
+                AppendDebugTraceFile("both zonecontrib2 & zonecontrib3 are defined\n");
+                #endif
+                ShowGenProg("both zonecontrib2 & zonecontrib3 are defined\n");
+                ShowGenProgInfo("both zonecontrib2 & zonecontrib3 are defined\n");
+                ShowShutdownScreen();
+                return 0;
+            }
+            else
+            {
+                #ifdef DEBUGTRACEFILE
+                AppendDebugTraceFile("before Build_ZoneContrib3\n");
+                #endif
 
-               Build_ZoneContrib3(puno,spno,iZoneCount,iZoneContrib3Count,ZoneContrib3,&_ZoneContrib);
-               free(ZoneContrib3);
-               iZoneContrib3On = 1;
+                Build_ZoneContrib3(puno,spno,iZoneCount,iZoneContrib3Count,ZoneContrib3,&_ZoneContrib);
+                free(ZoneContrib3);
+                iZoneContrib3On = 1;
 
-               #ifdef DEBUGTRACEFILE
-               AppendDebugTraceFile("after Build_ZoneContrib3\n");
-               #endif
-           }
-       }
+                #ifdef DEBUGTRACEFILE
+                AppendDebugTraceFile("after Build_ZoneContrib3\n");
+                #endif
+            }
+        }
     }
     if (strcmp("NULL",fnames.zonecontribname) == 0)
-       if (strcmp("NULL",fnames.zonecontrib2name) == 0)
-          if (strcmp("NULL",fnames.zonecontrib3name) == 0)
-          {
-             #ifdef DEBUGTRACEFILE
-             AppendDebugTraceFile("before Default_ZoneContrib\n");
-             #endif
+    {
+        if (strcmp("NULL",fnames.zonecontrib2name) == 0)
+        {
+            if (strcmp("NULL",fnames.zonecontrib3name) == 0)
+            {
+                #ifdef DEBUGTRACEFILE
+                AppendDebugTraceFile("before Default_ZoneContrib\n");
+                #endif
 
-             Default_ZoneContrib(spno,iZoneCount,&_ZoneContrib,iAvailableZoneInput);
+                Default_ZoneContrib(spno,iZoneCount,&_ZoneContrib,iAvailableZoneInput);
 
-             #ifdef DEBUGTRACEFILE
-             AppendDebugTraceFile("after Default_ZoneContrib\n");
-             #endif
-          }
+                #ifdef DEBUGTRACEFILE
+                AppendDebugTraceFile("after Default_ZoneContrib\n");
+                #endif
+            }
+        }
+    }
 
     if (strcmp("NULL",fnames.zonetargetname) == 0)
-       if (strcmp("NULL",fnames.zonetarget2name) == 0)
-       {
-          ShowGenProg("Warning: No targets specified for zones.\n");
+    {
+        if (strcmp("NULL",fnames.zonetarget2name) == 0)
+        {
+            ShowGenProg("Warning: No targets specified for zones.\n");
 
-          #ifdef DEBUGTRACEFILE
-          AppendDebugTraceFile("Warning: No targets specified for zones.\n");
-          AppendDebugTraceFile("before Default_ZoneTarget\n");
-          #endif
+            #ifdef DEBUGTRACEFILE
+            AppendDebugTraceFile("Warning: No targets specified for zones.\n");
+            AppendDebugTraceFile("before Default_ZoneTarget\n");
+            #endif
 
-          Default_ZoneTarget(spno,iZoneCount,&_ZoneTarget);
+            Default_ZoneTarget(spno,iZoneCount,&_ZoneTarget);
 
-          #ifdef DEBUGTRACEFILE
-          AppendDebugTraceFile("after Default_ZoneTarget\n");
-          #endif
-       }
+            #ifdef DEBUGTRACEFILE
+            AppendDebugTraceFile("after Default_ZoneTarget\n");
+            #endif
+        }
+    }
 
     #ifdef DEBUGTRACEFILE
     AppendDebugTraceFile("before Build_ZoneCost\n");
@@ -635,28 +605,28 @@ int MarZone(char sInputFileName[],int style)
 
     if (strcmp("NULL",fnames.relconnectioncostname) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before Build_RelConnectionCost\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before Build_RelConnectionCost\n");
+        #endif
 
-       Build_RelConnectionCost(iZoneCount,iRelConnectionCostCount,RelConnectionCost,&_RelConnectionCost);
-       free(RelConnectionCost);
+        Build_RelConnectionCost(iZoneCount,iRelConnectionCostCount,RelConnectionCost,&_RelConnectionCost);
+        free(RelConnectionCost);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after Build_RelConnectionCost\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after Build_RelConnectionCost\n");
+        #endif
     }
     else
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before Default_RelConnectionCost\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before Default_RelConnectionCost\n");
+        #endif
 
-       Default_RelConnectionCost(iZoneCount,&_RelConnectionCost);
+        Default_RelConnectionCost(iZoneCount,&_RelConnectionCost);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after Default_RelConnectionCost\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after Default_RelConnectionCost\n");
+        #endif
     }
 
     #ifdef DEBUGTRACEFILE
@@ -679,68 +649,65 @@ int MarZone(char sInputFileName[],int style)
     // parse PuLock and PuZone
     if (strcmp("NULL",fnames.pulockname) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before ParsePuLock\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before ParsePuLock\n");
+        #endif
 
-       ParsePuLock(puno,pu,iPuLockCount,PuLock,PULookup);
-       free(PuLock);
+        ParsePuLock(puno,pu,iPuLockCount,PuLock,PULookup);
+        free(PuLock);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after ParsePuLock\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after ParsePuLock\n");
+        #endif
     }
     if (strcmp("NULL",fnames.puzonename) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before ParsePuZone\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before ParsePuZone\n");
+        #endif
 
-       ParsePuZone(puno,pu,iPuZoneCount,PuZone,PULookup);
+        ParsePuZone(puno,pu,iPuZoneCount,PuZone,PULookup);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after ParsePuZone\n");
-       AppendDebugTraceFile("before CheckPuZone\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after ParsePuZone\n");
+        AppendDebugTraceFile("before CheckPuZone\n");
+        #endif
 
-       CheckPuZone(puno,pu);
+        CheckPuZone(puno,pu);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after CheckPuZone\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after CheckPuZone\n");
+        #endif
     }
 
     #ifdef DEBUGTRACEFILE
     if (iVerbosity > 3)
     {
-       Dump_ZoneContrib(puno,spno,spec,iZoneCount,_ZoneContrib,fnames);
-       Dump_ZoneCost(iCostCount,iZoneCount,_ZoneCost,fnames);
-       Dump_RelConnectionCost(iZoneCount,_RelConnectionCost,fnames);
-       DumpZoneSpec(iMessageCounter,spno,iZoneCount,ZoneSpec,spec,fnames);
-       DumpPuLockZone(puno,pu);
+        Dump_ZoneContrib(puno,spno,spec,iZoneCount,_ZoneContrib,fnames);
+        Dump_ZoneCost(iCostCount,iZoneCount,_ZoneCost,fnames);
+        Dump_RelConnectionCost(iZoneCount,_RelConnectionCost,fnames);
+        DumpZoneSpec(iMessageCounter,spno,iZoneCount,ZoneSpec,spec,fnames);
+        DumpPuLockZone(puno,pu);
     }
-    //TestFastPUIDtoPUINDEX(puno,PULookup,pu,fnames);
-    //TestFastSPIDtoSPINDEX(spno,SPLookup,spec,fnames);
     #endif
 
     bestyet = (int *) calloc(puno,sizeof(int));
 
     R = (int *) calloc(puno,sizeof(int));
 
-    // *******************************************************************************
     if (fnames.savesumsoln)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before InitSumSoln\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before InitSumSoln\n");
+        #endif
 
-       sumsoln = (int *) calloc(puno,sizeof(int));
-       ZoneSumSoln = (int *) calloc(puno * iZoneCount,sizeof(int));
-       InitSumSoln(puno,iZoneCount,sumsoln,ZoneSumSoln);
+        sumsoln = (int *) calloc(puno,sizeof(int));
+        ZoneSumSoln = (int *) calloc(puno * iZoneCount,sizeof(int));
+        InitSumSoln(puno,iZoneCount,sumsoln,ZoneSumSoln);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after InitSumSoln\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after InitSumSoln\n");
+        #endif
     }
 
     connections = (typeconnection *) calloc(puno,sizeof(typeconnection));
@@ -749,26 +716,26 @@ int MarZone(char sInputFileName[],int style)
     itemp = 0;
     if (strcmp("NULL",fnames.connectionname))
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before ReadConnections\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before ReadConnections\n");
+        #endif
 
-       itemp = ReadConnections(puno,connections,verbose,pu,PULookup,fnames);
+        itemp = ReadConnections(puno,connections,verbose,pu,PULookup,fnames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after ReadConnections\n");
-       if (asymmetricconnectivity)
-       {
-          AppendDebugTraceFile("Asymmetric connectivity is on.\n");
-          DumpAsymmetricConnectionFile(puno,connections,pu,fnames);
-       }
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after ReadConnections\n");
+        if (asymmetricconnectivity)
+        {
+            AppendDebugTraceFile("Asymmetric connectivity is on.\n");
+            DumpAsymmetricConnectionFile(puno,connections,pu,fnames);
+        }
+        #endif
     }
 
     ShowGenProg("  %i connections entered \n",itemp);
     #ifdef ASYMCON
     if (asymmetricconnectivity)
-       ShowGenProg("  Asymmetric connectivity is on.\n");
+        ShowGenProg("  Asymmetric connectivity is on.\n");
     #endif
 
     ShowDetProg("    Reading in the Planning Unit versus Species File \n");
@@ -785,21 +752,19 @@ int MarZone(char sInputFileName[],int style)
 
     if (strcmp("NULL",fnames.matrixspordername) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before LoadSparseMatrix_sporder\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before LoadSparseMatrix_sporder\n");
+        #endif
 
-       LoadSparseMatrix_sporder(&iSparseMatrixFileLength_sporder,&SMsporder,puno,spno,PULookup,SPLookup,fnames);
+        LoadSparseMatrix_sporder(&iSparseMatrixFileLength_sporder,&SMsporder,puno,spno,PULookup,SPLookup,fnames);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after LoadSparseMatrix_sporder\n");
-       //Dump_specrichoff(spno,spec,fnames);
-       //Dump_SparseMatrix_sporder(iSparseMatrixFileLength_sporder,SMsporder,pu,fnames);
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after LoadSparseMatrix_sporder\n");
+        #endif
 
-       #ifdef MEMDEBUG
-       ShowGenProg("after LoadSparseMatrix_sporder\n");
-       #endif
+        #ifdef MEMDEBUG
+        ShowGenProg("after LoadSparseMatrix_sporder\n");
+        #endif
     }
 
 
@@ -811,124 +776,128 @@ int MarZone(char sInputFileName[],int style)
 
     if (fnames.savetotalareas)
     {
-       if (fnames.savetotalareas==3)
-          sprintf(tempname2,"%s_totalareas.csv",savename);
-       else
-       if (fnames.savetotalareas==2)
-          sprintf(tempname2,"%s_totalareas.txt",savename);
-       else
-           sprintf(tempname2,"%s_totalareas.dat",savename);
+        if (fnames.savetotalareas==3)
+        {
+            sprintf(tempname2,"%s_totalareas.csv",savename);
+        } else {
+            if (fnames.savetotalareas==2)
+            {
+                sprintf(tempname2,"%s_totalareas.txt",savename);
+            } else {
+                sprintf(tempname2,"%s_totalareas.dat",savename);
+            }
+        }
 
-       OutputTotalAreas(puno,spno,pu,spec,SM,tempname2,fnames.savepenalty);
+        OutputTotalAreas(puno,spno,pu,spec,SM,tempname2,fnames.savepenalty);
     }
 
     // finalise zone and non-zone targets now that matrix has been loaded
     if (fSpecPROPLoaded > 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before ApplySpecProp\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before ApplySpecProp\n");
+        #endif
 
-       // species have prop value specified
-       ApplySpecProp(spno,spec,puno,pu,SM);
+        // species have prop value specified
+        ApplySpecProp(spno,spec,puno,pu,SM);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after ApplySpecProp\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after ApplySpecProp\n");
+        #endif
     }
     if (strcmp("NULL",fnames.zonetargetname) != 0)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before Build_ZoneTarget\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before Build_ZoneTarget\n");
+        #endif
 
-       Build_ZoneTarget(spno,iZoneCount,iZoneTargetCount,ZoneTarget,&_ZoneTarget,puno,pu,SM);
-       free(ZoneTarget);
+        Build_ZoneTarget(spno,iZoneCount,iZoneTargetCount,ZoneTarget,&_ZoneTarget,puno,pu,SM);
+        free(ZoneTarget);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after Build_ZoneTarget\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after Build_ZoneTarget\n");
+        #endif
     }
     if (strcmp("NULL",fnames.zonetarget2name) != 0)
     {
-       if (strcmp("NULL",fnames.zonetargetname) != 0)
-       {
-          #ifdef DEBUGTRACEFILE
-          AppendDebugTraceFile("before Build_ZoneTarget2\n");
-          #endif
+        if (strcmp("NULL",fnames.zonetargetname) != 0)
+        {
+            #ifdef DEBUGTRACEFILE
+            AppendDebugTraceFile("before Build_ZoneTarget2\n");
+            #endif
 
-          Build_ZoneTarget2(spno,iZoneCount,iZoneTarget2Count,ZoneTarget2,&_ZoneTarget,puno,pu,SM);
+            Build_ZoneTarget2(spno,iZoneCount,iZoneTarget2Count,ZoneTarget2,&_ZoneTarget,puno,pu,SM);
 
-          #ifdef DEBUGTRACEFILE
-          AppendDebugTraceFile("after Build_ZoneTarget2\n");
-          #endif
-       }
-       else
-       {
-           #ifdef DEBUGTRACEFILE
-           AppendDebugTraceFile("before Update_ZoneTarget2\n");
-           #endif
+            #ifdef DEBUGTRACEFILE
+            AppendDebugTraceFile("after Build_ZoneTarget2\n");
+            #endif
+        }
+        else
+        {
+            #ifdef DEBUGTRACEFILE
+            AppendDebugTraceFile("before Update_ZoneTarget2\n");
+            #endif
 
-           Update_ZoneTarget2(spno,iZoneCount,iZoneTarget2Count,ZoneTarget2,_ZoneTarget,puno,pu,SM);
+            Update_ZoneTarget2(spno,iZoneCount,iZoneTarget2Count,ZoneTarget2,_ZoneTarget,puno,pu,SM);
 
-           #ifdef DEBUGTRACEFILE
-           AppendDebugTraceFile("after Update_ZoneTarget2\n");
-           #endif
-       }
-       free(ZoneTarget2);
+            #ifdef DEBUGTRACEFILE
+            AppendDebugTraceFile("after Update_ZoneTarget2\n");
+            #endif
+        }
+        free(ZoneTarget2);
     }
 
     #ifdef DEBUGTRACEFILE
     if (iVerbosity > 3)
-       Dump_ZoneTarget(spno,iZoneCount,_ZoneTarget,fnames);
+        Dump_ZoneTarget(spno,iZoneCount,_ZoneTarget,fnames);
     #endif
 
     if (style != 1)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before process block definitions\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before process block definitions\n");
+        #endif
 
-       if (strcmp("NULL",fnames.blockdefname) != 0)
-       {
-          ShowDetProg("    Reading in the Block Definition File \n");
-          ReadGenSpeciesData(&gspno,&gspec,fnames);
-          SetBlockDefs(gspno,spno,puno,gspec,spec,pu,SM);
-       }
+        if (strcmp("NULL",fnames.blockdefname) != 0)
+        {
+            ShowDetProg("    Reading in the Block Definition File \n");
+            ReadGenSpeciesData(&gspno,&gspec,fnames);
+            SetBlockDefs(gspno,spno,puno,gspec,spec,pu,SM);
+        }
 
-       SetDefs(spno,spec);
+        SetDefs(spno,spec);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after process block definitions\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after process block definitions\n");
+        #endif
     } // Read and process species block definitions
 
     ShowGenProgInfo("Checking to see if there are aggregating or separating species.\n");
     for (ipu=0;ipu<spno;ipu++)
     {
         if (spec[ipu].target2>0)
-           aggexist = 1;
+            aggexist = 1;
         if (spec[ipu].sepdistance > 0)
-           sepexist = 1;
+            sepexist = 1;
     }
 
     if (fnames.savesen)
     {
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("before OutputScenario\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("before OutputScenario\n");
+        #endif
 
-       sprintf(tempname2,"%s_sen.dat",savename);
-       OutputScenario(puno,spno,prop,anneal,seedinit,repeats,clumptype,
-                     runopts,heurotype,costthresh,tpf1,tpf2,tempname2);
+        sprintf(tempname2,"%s_sen.dat",savename);
+        OutputScenario(puno,spno,prop,anneal,seedinit,repeats,clumptype,
+                      runopts,heurotype,costthresh,tpf1,tpf2,tempname2);
 
-       #ifdef DEBUGTRACEFILE
-       AppendDebugTraceFile("after OutputScenario\n");
-       #endif
+        #ifdef DEBUGTRACEFILE
+        AppendDebugTraceFile("after OutputScenario\n");
+        #endif
     }
 
     if (verbose > 1)
-       ShowTimePassed();
+        ShowTimePassed();
 
     #ifdef DEBUGTRACEFILE
     AppendDebugTraceFile("before InitialiseReserve\n");
@@ -1422,75 +1391,88 @@ int MarZone(char sInputFileName[],int style)
 
     if (fnames.savebest)
     {
-       if (fnames.savebest == 3)
-          sprintf(tempname2,"%s_best.csv",savename);
-       else
-       if (fnames.savebest == 2)
-          sprintf(tempname2,"%s_best.txt",savename);
-       else
-           sprintf(tempname2,"%s_best.dat",savename);
-       OutputSolution(puno,bestyet,pu,tempname2,fnames.savebest);
+        if (fnames.savebest == 3)
+        {
+            sprintf(tempname2,"%s_best.csv",savename);
+        } else {
+            if (fnames.savebest == 2)
+            {
+                sprintf(tempname2,"%s_best.txt",savename);
+            } else {
+                sprintf(tempname2,"%s_best.dat",savename);
+            }
+        }
+        OutputSolution(puno,bestyet,pu,tempname2,fnames.savebest);
 
-       #ifdef DEBUGTRACEFILE
-       sprintf(debugbuffer,"Best solution is run %i\n",iBestRun);
-       AppendDebugTraceFile(debugbuffer);
-       #endif
+        #ifdef DEBUGTRACEFILE
+        sprintf(debugbuffer,"Best solution is run %i\n",iBestRun);
+        AppendDebugTraceFile(debugbuffer);
+        #endif
 
-       ShowGenProg("\nBest solution is run %i\n",iBestRun);
+        ShowGenProg("\nBest solution is run %i\n",iBestRun);
 
-       if (fnames.savezoneconnectivitysum)
-       {
-          if (fnames.savezoneconnectivitysum == 3)
-             sprintf(tempname2,"%s_zoneconnectivitysumbest.csv",savename);
-          else
-              if (fnames.savezoneconnectivitysum == 2)
-                 sprintf(tempname2,"%s_zoneconnectivitysumbest.txt",savename);
-              else
-                  sprintf(tempname2,"%s_zoneconnectivitysumbest.dat",savename);
+        if (fnames.savezoneconnectivitysum)
+        {
+            if (fnames.savezoneconnectivitysum == 3)
+            {
+                sprintf(tempname2,"%s_zoneconnectivitysumbest.csv",savename);
+            } else {
+                if (fnames.savezoneconnectivitysum == 2)
+                {
+                    sprintf(tempname2,"%s_zoneconnectivitysumbest.txt",savename);
+                } else {
+                    sprintf(tempname2,"%s_zoneconnectivitysumbest.dat",savename);
+                }
+            }
 
-          OutputZoneConnectivitySum(puno,bestyet,tempname2,fnames.savezoneconnectivitysum);
-       }
+            OutputZoneConnectivitySum(puno,bestyet,tempname2,fnames.savezoneconnectivitysum);
+        }
 
-       if (fnames.savespecies)
-       {
-          if (fnames.savespecies ==3)
-             sprintf(tempname2,"%s_mvbest.csv",savename);
-          else
-          if (fnames.savespecies ==2)
-             sprintf(tempname2,"%s_mvbest.txt",savename);
-          else
-              sprintf(tempname2,"%s_mvbest.dat",savename);
+        if (fnames.savespecies)
+        {
+            if (fnames.savespecies ==3)
+            {
+                sprintf(tempname2,"%s_mvbest.csv",savename);
+            } else {
+                if (fnames.savespecies ==2)
+                    sprintf(tempname2,"%s_mvbest.txt",savename);
+                else
+                    sprintf(tempname2,"%s_mvbest.dat",savename);
+            }
 
-          OutputFeatures(spno,spec,tempname2,fnames.savespecies,misslevel);
-       }
+            OutputFeatures(spno,spec,tempname2,fnames.savespecies,misslevel);
+        }
     }
 
     if (fnames.savesumsoln)
     {
-       if (fnames.savesumsoln == 3)
-          sprintf(tempname2,"%s_ssoln.csv",savename);
-       else
-       if (fnames.savesumsoln == 2)
-          sprintf(tempname2,"%s_ssoln.txt",savename);
-       else
-           sprintf(tempname2,"%s_ssoln.dat",savename);
+        if (fnames.savesumsoln == 3)
+        {
+            sprintf(tempname2,"%s_ssoln.csv",savename);
+        } else {
+            if (fnames.savesumsoln == 2)
+            {
+                sprintf(tempname2,"%s_ssoln.txt",savename);
+            } else {
+                sprintf(tempname2,"%s_ssoln.dat",savename);
+            }
+        }
 
-       OutputSumSoln(puno,sumsoln,ZoneSumSoln,R,pu,tempname2,fnames.savesumsoln);
+        OutputSumSoln(puno,sumsoln,ZoneSumSoln,R,pu,tempname2,fnames.savesumsoln);
     }
 
     if (aggexist)
-       ClearClumps(spno,spec,pu,SM);  // ** Remove these pointers for cleanliness sake **
+        ClearClumps(spno,spec,pu,SM);  // ** Remove these pointers for cleanliness sake **
 
     // free datastructures used
     free(_ZoneTarget);
     free(_ZoneContrib);
     free(TotalAreas);
-    //free(PuZone);
 
     ShowShutdownScreen();
 
     if (fnames.savelog)
-       SetLogFile(0,NULL);  /* tidy up files */
+        SetLogFile(0,NULL);  /* tidy up files */
 
     #ifdef DEBUGTRACEFILE
     sprintf(debugbuffer,"end final file output\n");
@@ -1500,36 +1482,29 @@ int MarZone(char sInputFileName[],int style)
 
     return 0;
 
-}   // * * * * Main     * * * *
-
-// * * * * * * * * * * * * * * * * * * * *****
-// * * * * PreProcessing Section * * * * *****
-// * * * * * * * * * * * * * * * * * * * *****
-
-// * * *  Block Definitions * * * * * * * * **
-// ** Sets the block definitions for various types **
+} // MarZone
 
 void DefaultZones(int *iZoneCount,struct stringname *Zones[])
 {
-     // create the zones array
-     *iZoneCount = 2;
-     *Zones = (struct stringname *) calloc(2,sizeof(struct stringname));
+    // create the zones array
+    *iZoneCount = 2;
+    *Zones = (struct stringname *) calloc(2,sizeof(struct stringname));
 
-     (*Zones)[0].id = 1;
-     (*Zones)[1].id = 2;
+    (*Zones)[0].id = 1;
+    (*Zones)[1].id = 2;
 
-     strcpy((*Zones)[0].name,"available");
-     strcpy((*Zones)[1].name,"reserved");
+    strcpy((*Zones)[0].name,"available");
+    strcpy((*Zones)[1].name,"reserved");
 }
 
 void DefaultCostNames(int *iCostCount,struct stringname *CostNames[])
 {
-     *iCostCount = 1;
-     *CostNames = (struct stringname *) calloc(1,sizeof(struct stringname));
+    *iCostCount = 1;
+    *CostNames = (struct stringname *) calloc(1,sizeof(struct stringname));
 
-     (*CostNames)[0].id = 1;
+    (*CostNames)[0].id = 1;
 
-     strcpy((*CostNames)[0].name,"cost");
+    strcpy((*CostNames)[0].name,"cost");
 }
 
 int rtnCostIndex(int iCostCount,struct stringname CostNames[],char *sFieldName)
@@ -1540,7 +1515,7 @@ int rtnCostIndex(int iCostCount,struct stringname CostNames[],char *sFieldName)
     for (i=0;i<iCostCount;i++)
     {
         if (strcmp(sFieldName,CostNames[i].name) == 0)
-           iReturn = i;
+            iReturn = i;
     }
 
     return iReturn;
@@ -1548,461 +1523,415 @@ int rtnCostIndex(int iCostCount,struct stringname CostNames[],char *sFieldName)
 
 void Build_ZoneContrib(int spno,int iZoneCount,int iZoneContribCount,struct zonecontribstruct ZoneContrib[],double *_ZoneContrib[])
 {
-     int i,j,iArraySize,iSpeciesIndex;
-     double rArraySize;
-     char debugbuffer[1000];
+    int i,j,iArraySize,iSpeciesIndex;
+    double rArraySize;
+    char debugbuffer[1000];
 
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("Build_ZoneContrib start\n");
-     #endif
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("Build_ZoneContrib start\n");
+    #endif
 
-     // create and initialise _ZoneContrib
-     rArraySize = spno * iZoneCount;
-     iArraySize = floor(rArraySize);
+    // create and initialise _ZoneContrib
+    rArraySize = spno * iZoneCount;
+    iArraySize = floor(rArraySize);
 
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"Build_ZoneContrib spno %i iZoneCount %i iArraySize %i iZoneContribCount %i\n",spno,iZoneCount,iArraySize,iZoneContribCount);
-     AppendDebugTraceFile(debugbuffer);
-     #endif
+    #ifdef DEBUGTRACEFILE
+    sprintf(debugbuffer,"Build_ZoneContrib spno %i iZoneCount %i iArraySize %i iZoneContribCount %i\n",spno,iZoneCount,iArraySize,iZoneContribCount);
+    AppendDebugTraceFile(debugbuffer);
+    #endif
 
-     *_ZoneContrib = (double *) calloc(iArraySize,sizeof(double));
-     for (j=0;j<spno;j++)
-     {
-         for (i=0;i<iZoneCount;i++)
-         {
-             (*_ZoneContrib)[(j*iZoneCount)+i] = 0;
-         }
-     }
+    *_ZoneContrib = (double *) calloc(iArraySize,sizeof(double));
+    for (j=0;j<spno;j++)
+    {
+        for (i=0;i<iZoneCount;i++)
+        {
+            (*_ZoneContrib)[(j*iZoneCount)+i] = 0;
+        }
+    }
 
-     // populate _ZoneContrib from ZoneContrib
-     for (i=0;i<iZoneContribCount;i++)
-     {
-         // .zoneid .speciesid .fraction
+    // populate _ZoneContrib from ZoneContrib
+    for (i=0;i<iZoneContribCount;i++)
+    {
+        // .zoneid .speciesid .fraction
 
-         iSpeciesIndex = FastSPIDtoSPINDEX(spno,ZoneContrib[i].speciesid,SPLookup);
+        iSpeciesIndex = FastSPIDtoSPINDEX(spno,ZoneContrib[i].speciesid,SPLookup);
 
-         (*_ZoneContrib)[(iSpeciesIndex*iZoneCount)+(ZoneContrib[i].zoneid-1)] = ZoneContrib[i].fraction;
-     }
+        (*_ZoneContrib)[(iSpeciesIndex*iZoneCount)+(ZoneContrib[i].zoneid-1)] = ZoneContrib[i].fraction;
+    }
 
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("Build_ZoneContrib end\n");
-     #endif
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("Build_ZoneContrib end\n");
+    #endif
 }
 
 void Build_ZoneContrib2(int spno,int iZoneCount,int iZoneContrib2Count,struct zonecontrib2struct ZoneContrib2[],double *_ZoneContrib[])
 {
-     int i,j,iArraySize;
-     double rArraySize;
-     char debugbuffer[1000];
+    int i,j,iArraySize;
+    double rArraySize;
+    char debugbuffer[1000];
 
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("Build_ZoneContrib2 start\n");
-     #endif
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("Build_ZoneContrib2 start\n");
+    #endif
 
-     // create and initialise _ZoneContrib
-     rArraySize = spno * iZoneCount;
-     iArraySize = floor(rArraySize);
+    // create and initialise _ZoneContrib
+    rArraySize = spno * iZoneCount;
+    iArraySize = floor(rArraySize);
 
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"Build_ZoneContrib2 spno %i iZoneCount %i iArraySize %i iZoneContrib2Count %i\n",spno,iZoneCount,iArraySize,iZoneContrib2Count);
-     AppendDebugTraceFile(debugbuffer);
-     #endif
+    #ifdef DEBUGTRACEFILE
+    sprintf(debugbuffer,"Build_ZoneContrib2 spno %i iZoneCount %i iArraySize %i iZoneContrib2Count %i\n",spno,iZoneCount,iArraySize,iZoneContrib2Count);
+    AppendDebugTraceFile(debugbuffer);
+    #endif
 
-     *_ZoneContrib = (double *) calloc(iArraySize,sizeof(double));
-     for (j=0;j<spno;j++)
-     {
-         for (i=0;i<iZoneCount;i++)
-         {
-             (*_ZoneContrib)[(j*iZoneCount)+i] = 0;
-         }
-     }
+    *_ZoneContrib = (double *) calloc(iArraySize,sizeof(double));
+    for (j=0;j<spno;j++)
+    {
+        for (i=0;i<iZoneCount;i++)
+        {
+            (*_ZoneContrib)[(j*iZoneCount)+i] = 0;
+        }
+    }
 
-     // populate _ZoneContrib from ZoneContrib
-     for (i=0;i<iZoneContrib2Count;i++)
-         for (j=0;j<spno;j++)
-         {
-             // .zoneid .speciesid .fraction
-             (*_ZoneContrib)[(j*iZoneCount)+(ZoneContrib2[i].zoneid-1)] = ZoneContrib2[i].fraction;
-         }
+    // populate _ZoneContrib from ZoneContrib
+    for (i=0;i<iZoneContrib2Count;i++)
+    {
+        for (j=0;j<spno;j++)
+        {
+            // .zoneid .speciesid .fraction
+            (*_ZoneContrib)[(j*iZoneCount)+(ZoneContrib2[i].zoneid-1)] = ZoneContrib2[i].fraction;
+        }
+    }
 
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("Build_ZoneContrib2 end\n");
-     #endif
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("Build_ZoneContrib2 end\n");
+    #endif
 }
 
 void Update_ZoneContrib2(int spno,int iZoneCount,int iZoneContrib2Count,struct zonecontrib2struct ZoneContrib2[],double _ZoneContrib[])
 {
-     int i,j,iArraySize;
-     double rArraySize;
-     char debugbuffer[1000];
+    int i,j,iArraySize;
+    double rArraySize;
+    char debugbuffer[1000];
 
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("Update_ZoneContrib2 start\n");
-     #endif
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("Update_ZoneContrib2 start\n");
+    #endif
 
-     // create and initialise _ZoneContrib
-     rArraySize = spno * iZoneCount;
-     iArraySize = floor(rArraySize);
+    // create and initialise _ZoneContrib
+    rArraySize = spno * iZoneCount;
+    iArraySize = floor(rArraySize);
 
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"Update_ZoneContrib2 spno %i iZoneCount %i iArraySize %i iZoneContrib2Count %i\n",spno,iZoneCount,iArraySize,iZoneContrib2Count);
-     AppendDebugTraceFile(debugbuffer);
-     #endif
+    #ifdef DEBUGTRACEFILE
+    sprintf(debugbuffer,"Update_ZoneContrib2 spno %i iZoneCount %i iArraySize %i iZoneContrib2Count %i\n",spno,iZoneCount,iArraySize,iZoneContrib2Count);
+    AppendDebugTraceFile(debugbuffer);
+    #endif
 
-     // populate _ZoneContrib from ZoneContrib
-     for (i=0;i<iZoneContrib2Count;i++)
-         for (j=0;j<spno;j++)
-         {
-             #ifdef DEBUGTRACEFILE
-             sprintf(debugbuffer,"Update_ZoneContrib2 i %i j %i fraction %f _ZCidx %i\n",i,j,ZoneContrib2[i].fraction,(j*iZoneCount)+(ZoneContrib2[i].zoneid-1));
-             AppendDebugTraceFile(debugbuffer);
-             #endif
-             // .zoneid .speciesid .fraction
-             _ZoneContrib[(j*iZoneCount)+(ZoneContrib2[i].zoneid-1)] = ZoneContrib2[i].fraction;
-         }
+    // populate _ZoneContrib from ZoneContrib
+    for (i=0;i<iZoneContrib2Count;i++)
+    {
+        for (j=0;j<spno;j++)
+        {
+            #ifdef DEBUGTRACEFILE
+            sprintf(debugbuffer,"Update_ZoneContrib2 i %i j %i fraction %f _ZCidx %i\n",i,j,ZoneContrib2[i].fraction,(j*iZoneCount)+(ZoneContrib2[i].zoneid-1));
+            AppendDebugTraceFile(debugbuffer);
+            #endif
+            // .zoneid .speciesid .fraction
+            _ZoneContrib[(j*iZoneCount)+(ZoneContrib2[i].zoneid-1)] = ZoneContrib2[i].fraction;
+        }
+    }
 
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("Update_ZoneContrib2 end\n");
-     #endif
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("Update_ZoneContrib2 end\n");
+    #endif
 }
 
 void Build_ZoneContrib3(int puno,int spno,int iZoneCount,int iZoneContrib3Count,struct zonecontrib3struct ZoneContrib3[],double *_ZoneContrib[])
 {
-     int i,j,k,iArraySize,iSpeciesIndex,iPUIndex;
-     double rArraySize;
-     char debugbuffer[1000];
+    int i,j,k,iArraySize,iSpeciesIndex,iPUIndex;
+    double rArraySize;
+    char debugbuffer[1000];
 
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("Build_ZoneContrib3 start\n");
-     #endif
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("Build_ZoneContrib3 start\n");
+    #endif
 
-     // create and initialise _ZoneContrib
-     rArraySize = puno * spno * iZoneCount;
-     iArraySize = floor(rArraySize);
+    // create and initialise _ZoneContrib
+    rArraySize = puno * spno * iZoneCount;
+    iArraySize = floor(rArraySize);
 
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"Build_ZoneContrib3 puno %i spno %i iZoneCount %i iArraySize %i iZoneContrib3Count %i\n",puno,spno,iZoneCount,iArraySize,iZoneContrib3Count);
-     AppendDebugTraceFile(debugbuffer);
-     #endif
+    #ifdef DEBUGTRACEFILE
+    sprintf(debugbuffer,"Build_ZoneContrib3 puno %i spno %i iZoneCount %i iArraySize %i iZoneContrib3Count %i\n",puno,spno,iZoneCount,iArraySize,iZoneContrib3Count);
+    AppendDebugTraceFile(debugbuffer);
+    #endif
 
-     *_ZoneContrib = (double *) calloc(iArraySize,sizeof(double));
-     for (i=0;i<iArraySize;i++)
-         (*_ZoneContrib)[i] = 0;
+    *_ZoneContrib = (double *) calloc(iArraySize,sizeof(double));
+    for (i=0;i<iArraySize;i++)
+        (*_ZoneContrib)[i] = 0;
 
-     // populate _ZoneContrib from ZoneContrib
-     for (i=0;i<iZoneContrib3Count;i++)
-     {
-         iSpeciesIndex = FastSPIDtoSPINDEX(spno,ZoneContrib3[i].speciesid,SPLookup);
-         iPUIndex = FastPUIDtoPUINDEX(puno,ZoneContrib3[i].puid,PULookup);
-         // .zoneid .speciesid .fraction
-         (*_ZoneContrib)[(iSpeciesIndex*puno*iZoneCount)+(iPUIndex*iZoneCount)+(ZoneContrib3[i].zoneid-1)] = ZoneContrib3[i].fraction;
+    // populate _ZoneContrib from ZoneContrib
+    for (i=0;i<iZoneContrib3Count;i++)
+    {
+        iSpeciesIndex = FastSPIDtoSPINDEX(spno,ZoneContrib3[i].speciesid,SPLookup);
+        iPUIndex = FastPUIDtoPUINDEX(puno,ZoneContrib3[i].puid,PULookup);
+        // .zoneid .speciesid .fraction
+        (*_ZoneContrib)[(iSpeciesIndex*puno*iZoneCount)+(iPUIndex*iZoneCount)+(ZoneContrib3[i].zoneid-1)] = ZoneContrib3[i].fraction;
 
-         //_ZoneContrib index = (zero_base_feature_index * number_of_planning_units * number_of_zones) +
-         //                     (zero_base_planning_unit_index * number_of_zones) +
-         //                     zero_base_zone_index
-     }
+        //_ZoneContrib index = (zero_base_feature_index * number_of_planning_units * number_of_zones) +
+        //                     (zero_base_planning_unit_index * number_of_zones) +
+        //                     zero_base_zone_index
+    }
 
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("Build_ZoneContrib3 end\n");
-     #endif
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("Build_ZoneContrib3 end\n");
+    #endif
 }
 
 void Default_ZoneContrib(int spno,int iZoneCount,double *_ZoneContrib[],int iAvailableZoneFromInput)
 {
-     // neither zonecontrib.dat or zonecontrib2.dat exist so we are using defaults of 1 for each zone and species
+    // neither zonecontrib.dat or zonecontrib2.dat exist so we are using defaults of 1 for each zone and species
 
-     int i,j,iArraySize;
-     double rArraySize;
-     char debugbuffer[1000];
+    int i,j,iArraySize;
+    double rArraySize;
+    char debugbuffer[1000];
 
-     #ifdef DEBUGTRACEFILE
-     //AppendDebugTraceFile("Default_ZoneContrib start\n");
-     #endif
+    // create and initialise _ZoneContrib
+    rArraySize = spno * iZoneCount;
+    iArraySize = floor(rArraySize);
 
-     // create and initialise _ZoneContrib
-     rArraySize = spno * iZoneCount;
-     iArraySize = floor(rArraySize);
-
-     #ifdef DEBUGTRACEFILE
-     //sprintf(debugbuffer,"Default_ZoneContrib spno %i iZoneCount %i iArraySize %i\n",spno,iZoneCount,iArraySize);
-     //AppendDebugTraceFile(debugbuffer);
-     #endif
-
-     *_ZoneContrib = (double *) calloc(iArraySize,sizeof(double));
-     for (j=0;j<spno;j++)
-     {
-         for (i=0;i<iZoneCount;i++)
-             if (iAvailableZoneFromInput == (i+1))
-             {
+    *_ZoneContrib = (double *) calloc(iArraySize,sizeof(double));
+    for (j=0;j<spno;j++)
+    {
+        for (i=0;i<iZoneCount;i++)
+        {
+            if (iAvailableZoneFromInput == (i+1))
+            {
                 (*_ZoneContrib)[(j*iZoneCount)+i] = 0;
-             }
-             else
-             {
+            } else {
                 (*_ZoneContrib)[(j*iZoneCount)+i] = 1;
-             }
-     }
-
-     #ifdef DEBUGTRACEFILE
-     //AppendDebugTraceFile("Default_ZoneContrib end\n");
-     #endif
+            }
+        }
+    }
 }
 
 void Build_ZoneTarget(int spno, int iZoneCount,int iZoneTargetCount,struct zonetargetstruct ZoneTarget[],
                       struct _zonetargetstruct *_ZoneTarget[],int puno,struct spustuff pu[],struct spu SM[])
 {
-     int i,j,iArraySize,iSpeciesIndex;
-     double rArraySize;
-     char debugbuffer[1000];
-     type_zonetarget _ZT;
-     double *SpecArea;
-     int *SpecOcc;
+    int i,j,iArraySize,iSpeciesIndex;
+    double rArraySize;
+    char debugbuffer[1000];
+    type_zonetarget _ZT;
+    double *SpecArea;
+    int *SpecOcc;
 
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("Build_ZoneTarget start\n");
-     #endif
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("Build_ZoneTarget start\n");
+    #endif
 
-     // create and initialise _ZoneTarget
-     rArraySize = spno * iZoneCount;
-     iArraySize = floor(rArraySize);
+    // create and initialise _ZoneTarget
+    rArraySize = spno * iZoneCount;
+    iArraySize = floor(rArraySize);
 
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"Build_ZoneTarget spno %i iZoneCount %i iArraySize %i iZoneTargetCount %i\n",spno,iZoneCount,iArraySize,iZoneTargetCount);
-     AppendDebugTraceFile(debugbuffer);
-     #endif
+    #ifdef DEBUGTRACEFILE
+    sprintf(debugbuffer,"Build_ZoneTarget spno %i iZoneCount %i iArraySize %i iZoneTargetCount %i\n",spno,iZoneCount,iArraySize,iZoneTargetCount);
+    AppendDebugTraceFile(debugbuffer);
+    #endif
 
-     // init arrays of species area and occurrence totals
-     SpecArea = (double *) calloc(spno,sizeof(double));
-     SpecOcc = (int *) calloc(spno,sizeof(int));
-     for (i=0;i<spno;i++)
-     {
-         SpecArea[i] = 0;
-         SpecOcc[i] = 0;
-     }
+    // init arrays of species area and occurrence totals
+    SpecArea = (double *) calloc(spno,sizeof(double));
+    SpecOcc = (int *) calloc(spno,sizeof(int));
+    for (i=0;i<spno;i++)
+    {
+        SpecArea[i] = 0;
+        SpecOcc[i] = 0;
+    }
 
-     // find species totals from the matrix
-     for (i=0;i<puno;i++)
-         if (pu[i].richness > 0)
+    // find species totals from the matrix
+    for (i=0;i<puno;i++)
+    {
+        if (pu[i].richness > 0)
+        {
             for (j=0;j<pu[i].richness;j++)
             {
                 SpecArea[SM[pu[i].offset + j].spindex] += SM[pu[i].offset + j].amount;
                 SpecOcc[SM[pu[i].offset + j].spindex]++;
             }
+        }
+    }
 
-     *_ZoneTarget = (struct _zonetargetstruct *) calloc(iArraySize,sizeof(struct _zonetargetstruct));
+    *_ZoneTarget = (struct _zonetargetstruct *) calloc(iArraySize,sizeof(struct _zonetargetstruct));
 
-     #ifdef DEBUGTRACEFILE
-     //AppendDebugTraceFile("_ZoneTarget created\n");
-     #endif
+    for (j=0;j<spno;j++)
+    {
+        for (i=0;i<iZoneCount;i++)
+        {
+            (*_ZoneTarget)[(j*iZoneCount)+i].target = 0;
+            (*_ZoneTarget)[(j*iZoneCount)+i].occurrence = 0;
+        }
+    }
 
-     for (j=0;j<spno;j++)
-     {
-         for (i=0;i<iZoneCount;i++)
-         {
-             #ifdef DEBUGTRACEFILE
-             //sprintf(debugbuffer,"Build_ZoneTarget init _ZoneTarget i %i j %i\n",i,j);
-             //AppendDebugTraceFile(debugbuffer);
-             #endif
+    // populate _ZoneTarget from ZoneTarget
+    for (i=0;i<iZoneTargetCount;i++)
+    {
+        iSpeciesIndex = FastSPIDtoSPINDEX(spno,ZoneTarget[i].speciesid,SPLookup);
 
-             (*_ZoneTarget)[(j*iZoneCount)+i].target = 0;
-             (*_ZoneTarget)[(j*iZoneCount)+i].occurrence = 0;
-         }
-     }
-
-     // populate _ZoneTarget from ZoneTarget
-     for (i=0;i<iZoneTargetCount;i++)
-     {
-         #ifdef DEBUGTRACEFILE
-         //sprintf(debugbuffer,"Build_ZoneTarget i %i\n",i);
-         //AppendDebugTraceFile(debugbuffer);
-         //sprintf(debugbuffer,"Build_ZoneTarget i %i ZoneTarget[i].speciesid %i ZoneTarget[i].zoneid %i ZoneTarget[i].target %f ZoneTarget[i].targettype \n",
-         //                    i,ZoneTarget[i].speciesid,ZoneTarget[i].zoneid,ZoneTarget[i].target);//,       ZoneTarget[i].targettype);
-         //AppendDebugTraceFile(debugbuffer);
-         #endif
-
-         iSpeciesIndex = FastSPIDtoSPINDEX(spno,ZoneTarget[i].speciesid,SPLookup);
-
-         // .zoneid .speciesid .target
-         if (ZoneTarget[i].targettype == 0)  // area target as hectare
+        // .zoneid .speciesid .target
+        if (ZoneTarget[i].targettype == 0)  // area target as hectare
             (*_ZoneTarget)[(iSpeciesIndex*iZoneCount)+(ZoneTarget[i].zoneid-1)].target = ZoneTarget[i].target;
-         if (ZoneTarget[i].targettype == 1)  // area target as proportion
+        if (ZoneTarget[i].targettype == 1)  // area target as proportion
             (*_ZoneTarget)[(iSpeciesIndex*iZoneCount)+(ZoneTarget[i].zoneid-1)].target = ZoneTarget[i].target * SpecArea[iSpeciesIndex];
-         if (ZoneTarget[i].targettype == 2)  // occurrence target as occurrences
+        if (ZoneTarget[i].targettype == 2)  // occurrence target as occurrences
             (*_ZoneTarget)[(iSpeciesIndex*iZoneCount)+(ZoneTarget[i].zoneid-1)].occurrence = ceil(ZoneTarget[i].target);
-         if (ZoneTarget[i].targettype == 3)  // occurrence target as proportion
+        if (ZoneTarget[i].targettype == 3)  // occurrence target as proportion
             (*_ZoneTarget)[(iSpeciesIndex*iZoneCount)+(ZoneTarget[i].zoneid-1)].occurrence = ceil(ZoneTarget[i].target * SpecOcc[iSpeciesIndex]);
 
          //if ((*_ZoneTarget)[((ZoneTarget[i].speciesid-1)*iZoneCount)+(ZoneTarget[i].zoneid-1)].target > SpecArea[ZoneTarget[i].speciesid-1])
          //   ShowGenProgInfo("Species %d (%s) cannot reach target %.2f in zone %i there is only %.2f available.\n",
          //            spec[i].name,spec[i].sname,spec[i].target,ZoneTarget[i].zoneid,ftarget);
+    }
 
-         #ifdef DEBUGTRACEFILE
-         //sprintf(debugbuffer,"Build_ZoneTarget i %i .speciesid %i .zoneid %i .fraction %f\n",i,ZoneTarget[i].speciesid,ZoneTarget[i].zoneid,ZoneTarget[i].target);
-         //AppendDebugTraceFile(debugbuffer);
-         #endif
-     }
+    // destroy arrays of species area and occurrence totals
+    free(SpecArea);
+    free(SpecOcc);
 
-     // destroy arrays of species area and occurrence totals
-     free(SpecArea);
-     free(SpecOcc);
-
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("Build_ZoneTarget end\n");
-     #endif
-}
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("Build_ZoneTarget end\n");
+    #endif
+} // Build_ZoneTarget
 
 void Build_ZoneTarget2(int spno, int iZoneCount,int iZoneTarget2Count,struct zonetarget2struct ZoneTarget2[],
                       struct _zonetargetstruct *_ZoneTarget[],int puno,struct spustuff pu[],struct spu SM[])
 {
-     // this function is called when zonetarget2.dat exists but zonetarget.dat does not exist
-     int i,j,iArraySize;//,iSpeciesIndex;
-     double rArraySize;
-     char debugbuffer[1000];
-     type_zonetarget _ZT;
-     double *SpecArea;
-     int *SpecOcc;
+    // this function is called when zonetarget2.dat exists but zonetarget.dat does not exist
+    int i,j,iArraySize;//,iSpeciesIndex;
+    double rArraySize;
+    char debugbuffer[1000];
+    type_zonetarget _ZT;
+    double *SpecArea;
+    int *SpecOcc;
 
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("Build_ZoneTarget2 start\n");
-     #endif
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("Build_ZoneTarget2 start\n");
+    #endif
 
-     // create and initialise _ZoneTarget
-     rArraySize = spno * iZoneCount;
-     iArraySize = floor(rArraySize);
+    // create and initialise _ZoneTarget
+    rArraySize = spno * iZoneCount;
+    iArraySize = floor(rArraySize);
 
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"Build_ZoneTarget spno %i iZoneCount %i iArraySize %i iZoneTarget2Count %i\n",spno,iZoneCount,iArraySize,iZoneTarget2Count);
-     AppendDebugTraceFile(debugbuffer);
-     #endif
+    #ifdef DEBUGTRACEFILE
+    sprintf(debugbuffer,"Build_ZoneTarget spno %i iZoneCount %i iArraySize %i iZoneTarget2Count %i\n",spno,iZoneCount,iArraySize,iZoneTarget2Count);
+    AppendDebugTraceFile(debugbuffer);
+    #endif
 
-     // init arrays of species area and occurrence totals
-     SpecArea = (double *) calloc(spno,sizeof(double));
-     SpecOcc = (int *) calloc(spno,sizeof(int));
-     for (i=0;i<spno;i++)
-     {
-         SpecArea[i] = 0;
-         SpecOcc[i] = 0;
-     }
+    // init arrays of species area and occurrence totals
+    SpecArea = (double *) calloc(spno,sizeof(double));
+    SpecOcc = (int *) calloc(spno,sizeof(int));
+    for (i=0;i<spno;i++)
+    {
+        SpecArea[i] = 0;
+        SpecOcc[i] = 0;
+    }
 
-     // find species totals from the matrix
-     for (i=0;i<puno;i++)
-         if (pu[i].richness > 0)
+    // find species totals from the matrix
+    for (i=0;i<puno;i++)
+    {
+        if (pu[i].richness > 0)
+        {
             for (j=0;j<pu[i].richness;j++)
             {
                 SpecArea[SM[pu[i].offset + j].spindex] += SM[pu[i].offset + j].amount;
                 SpecOcc[SM[pu[i].offset + j].spindex]++;
             }
+        }
+    }
 
-     *_ZoneTarget = (struct _zonetargetstruct *) calloc(iArraySize,sizeof(struct _zonetargetstruct));
+    *_ZoneTarget = (struct _zonetargetstruct *) calloc(iArraySize,sizeof(struct _zonetargetstruct));
 
-     #ifdef DEBUGTRACEFILE
-     //AppendDebugTraceFile("_ZoneTarget created\n");
-     #endif
+    for (j=0;j<spno;j++)
+    {
+        for (i=0;i<iZoneCount;i++)
+        {
+            (*_ZoneTarget)[(j*iZoneCount)+i].target = 0;
+            (*_ZoneTarget)[(j*iZoneCount)+i].occurrence = 0;
+        }
+    }
 
-     for (j=0;j<spno;j++)
-     {
-         for (i=0;i<iZoneCount;i++)
-         {
-             #ifdef DEBUGTRACEFILE
-             //sprintf(debugbuffer,"Build_ZoneTarget init _ZoneTarget i %i j %i\n",i,j);
-             //AppendDebugTraceFile(debugbuffer);
-             #endif
-
-             (*_ZoneTarget)[(j*iZoneCount)+i].target = 0;
-             (*_ZoneTarget)[(j*iZoneCount)+i].occurrence = 0;
-         }
-     }
-
-     // populate _ZoneTarget from ZoneTarget
-     for (i=0;i<iZoneTarget2Count;i++)
-         for (j=0;j<spno;j++)
-         {
-             #ifdef DEBUGTRACEFILE
-             //sprintf(debugbuffer,"Build_ZoneTarget i %i\n",i);
-             //AppendDebugTraceFile(debugbuffer);
-             //sprintf(debugbuffer,"Build_ZoneTarget i %i ZoneTarget[i].speciesid %i ZoneTarget[i].zoneid %i ZoneTarget[i].target %f\n",i,ZoneTarget[i].speciesid,ZoneTarget[i].zoneid,ZoneTarget[i].target);
-             //AppendDebugTraceFile(debugbuffer);
-             #endif
-
-             //iSpeciesIndex = FastSPIDtoSPINDEX(spno,ZoneTarget[i].speciesid,SPLookup);
-
-             // .zoneid .speciesid .target
-             if (ZoneTarget2[i].targettype == 0)  // area target as hectare
+    // populate _ZoneTarget from ZoneTarget
+    for (i=0;i<iZoneTarget2Count;i++)
+    {
+        for (j=0;j<spno;j++)
+        {
+            // .zoneid .speciesid .target
+            if (ZoneTarget2[i].targettype == 0)  // area target as hectare
                 (*_ZoneTarget)[(j*iZoneCount)+(ZoneTarget2[i].zoneid-1)].target = ZoneTarget2[i].target;
-             if (ZoneTarget2[i].targettype == 1)  // area target as proportion
+            if (ZoneTarget2[i].targettype == 1)  // area target as proportion
                 (*_ZoneTarget)[(j*iZoneCount)+(ZoneTarget2[i].zoneid-1)].target = ZoneTarget2[i].target * SpecArea[j];
-             if (ZoneTarget2[i].targettype == 2)  // occurrence target as occurrences
+            if (ZoneTarget2[i].targettype == 2)  // occurrence target as occurrences
                 (*_ZoneTarget)[(j*iZoneCount)+(ZoneTarget2[i].zoneid-1)].occurrence = ceil(ZoneTarget2[i].target);
-             if (ZoneTarget2[i].targettype == 3)  // occurrence target as proportion
+            if (ZoneTarget2[i].targettype == 3)  // occurrence target as proportion
                 (*_ZoneTarget)[(j*iZoneCount)+(ZoneTarget2[i].zoneid-1)].occurrence = ceil(ZoneTarget2[i].target * SpecOcc[j]);
+        }
+    }
 
-             #ifdef DEBUGTRACEFILE
-             //sprintf(debugbuffer,"Build_ZoneTarget i %i .speciesid %i .zoneid %i .fraction %f\n",i,ZoneTarget[i].speciesid,ZoneTarget[i].zoneid,ZoneTarget[i].target);
-             //AppendDebugTraceFile(debugbuffer);
-             #endif
-         }
+    // destroy arrays of species area and occurrence totals
+    free(SpecArea);
+    free(SpecOcc);
 
-     // destroy arrays of species area and occurrence totals
-     free(SpecArea);
-     free(SpecOcc);
-
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("Build_ZoneTarget2 end\n");
-     #endif
-}
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("Build_ZoneTarget2 end\n");
+    #endif
+} // Build_ZoneTarget2
 
 void Update_ZoneTarget2(int spno, int iZoneCount,int iZoneTarget2Count,struct zonetarget2struct ZoneTarget2[],
-                      struct _zonetargetstruct _ZoneTarget[],int puno,struct spustuff pu[],struct spu SM[])
+                       struct _zonetargetstruct _ZoneTarget[],int puno,struct spustuff pu[],struct spu SM[])
 {
-     // this function is called when zonetarget2.dat exists but zonetarget.dat does not exist
-     int i,j,iArraySize;
-     double rArraySize;
-     char debugbuffer[1000];
-     type_zonetarget _ZT;
-     double *SpecArea;
-     int *SpecOcc;
+    // this function is called when zonetarget2.dat exists but zonetarget.dat does not exist
+    int i,j,iArraySize;
+    double rArraySize;
+    char debugbuffer[1000];
+    type_zonetarget _ZT;
+    double *SpecArea;
+    int *SpecOcc;
 
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("Update_ZoneTarget2 start\n");
-     #endif
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("Update_ZoneTarget2 start\n");
+    #endif
 
-     // create and initialise _ZoneTarget
-     rArraySize = spno * iZoneCount;
-     iArraySize = floor(rArraySize);
+    // create and initialise _ZoneTarget
+    rArraySize = spno * iZoneCount;
+    iArraySize = floor(rArraySize);
 
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"Update_ZoneTarget2 spno %i iZoneCount %i iArraySize %i iZoneTarget2Count %i\n",spno,iZoneCount,iArraySize,iZoneTarget2Count);
-     AppendDebugTraceFile(debugbuffer);
-     #endif
+    #ifdef DEBUGTRACEFILE
+    sprintf(debugbuffer,"Update_ZoneTarget2 spno %i iZoneCount %i iArraySize %i iZoneTarget2Count %i\n",spno,iZoneCount,iArraySize,iZoneTarget2Count);
+    AppendDebugTraceFile(debugbuffer);
+    #endif
 
-     // init arrays of species area and occurrence totals
-     SpecArea = (double *) calloc(spno,sizeof(double));
-     SpecOcc = (int *) calloc(spno,sizeof(int));
-     for (i=0;i<spno;i++)
-     {
-         SpecArea[i] = 0;
-         SpecOcc[i] = 0;
-     }
+    // init arrays of species area and occurrence totals
+    SpecArea = (double *) calloc(spno,sizeof(double));
+    SpecOcc = (int *) calloc(spno,sizeof(int));
+    for (i=0;i<spno;i++)
+    {
+        SpecArea[i] = 0;
+        SpecOcc[i] = 0;
+    }
 
-     // find species totals from the matrix
-     for (i=0;i<puno;i++)
-         if (pu[i].richness > 0)
+    // find species totals from the matrix
+    for (i=0;i<puno;i++)
+    {
+        if (pu[i].richness > 0)
+        {
             for (j=0;j<pu[i].richness;j++)
             {
                 SpecArea[SM[pu[i].offset + j].spindex] += SM[pu[i].offset + j].amount;
                 SpecOcc[SM[pu[i].offset + j].spindex]++;
             }
+        }
+    }
 
-     // populate _ZoneTarget from ZoneTarget
-     for (i=0;i<iZoneTarget2Count;i++)
-         for (j=0;j<spno;j++)
+    // populate _ZoneTarget from ZoneTarget
+    for (i=0;i<iZoneTarget2Count;i++)
+    {
+        for (j=0;j<spno;j++)
          {
-             #ifdef DEBUGTRACEFILE
-             //sprintf(debugbuffer,"Build_ZoneTarget i %i\n",i);
-             //AppendDebugTraceFile(debugbuffer);
-             //sprintf(debugbuffer,"Build_ZoneTarget i %i ZoneTarget[i].speciesid %i ZoneTarget[i].zoneid %i ZoneTarget[i].target %f\n",i,ZoneTarget[i].speciesid,ZoneTarget[i].zoneid,ZoneTarget[i].target);
-             //AppendDebugTraceFile(debugbuffer);
-             #endif
-
              // .zoneid .speciesid .target
              if (ZoneTarget2[i].targettype == 0)  // area target as hectare
                 _ZoneTarget[(j*iZoneCount)+(ZoneTarget2[i].zoneid-1)].target = ZoneTarget2[i].target;
@@ -2012,12 +1941,8 @@ void Update_ZoneTarget2(int spno, int iZoneCount,int iZoneTarget2Count,struct zo
                 _ZoneTarget[(j*iZoneCount)+(ZoneTarget2[i].zoneid-1)].occurrence = ceil(ZoneTarget2[i].target);
              if (ZoneTarget2[i].targettype == 3)  // occurrence target as proportion
                 _ZoneTarget[(j*iZoneCount)+(ZoneTarget2[i].zoneid-1)].occurrence = ceil(ZoneTarget2[i].target * SpecOcc[j]);
-
-             #ifdef DEBUGTRACEFILE
-             //sprintf(debugbuffer,"Build_ZoneTarget i %i .speciesid %i .zoneid %i .fraction %f\n",i,ZoneTarget[i].speciesid,ZoneTarget[i].zoneid,ZoneTarget[i].target);
-             //AppendDebugTraceFile(debugbuffer);
-             #endif
          }
+    }
 
      // destroy arrays of species area and occurrence totals
      free(SpecArea);
@@ -2408,16 +2333,16 @@ void CheckPuZone(int puno,struct spustuff pu[])
 
      for (i=0;i<puno;i++)
      {
-		 if (pu[i].iPUZones == 1)
-		 {
-		    // error condition exists
+         if (pu[i].iPUZones == 1)
+         {
+            // error condition exists
             #ifdef DEBUGTRACEFILE
             sprintf(debugbuffer,"Error: planning unit %i is locked to a single zone in %s.\nDo not use this file to lock planning units to a single zone; use pulock.dat for this purpose.\nAborting Program.\n",pu[i].id,fnames.puzonename);
             AppendDebugTraceFile(debugbuffer);
             #endif
 
-	        ShowErrorMessage("Error: planning unit %i is locked to a single zone in %s.\nDo not use this file to lock planning units to a single zone; use pulock.dat for this purpose.\nAborting Program.\n",pu[i].id,fnames.puzonename);
-		 }
+            ShowErrorMessage("Error: planning unit %i is locked to a single zone in %s.\nDo not use this file to lock planning units to a single zone; use pulock.dat for this purpose.\nAborting Program.\n",pu[i].id,fnames.puzonename);
+         }
      }
 }
 
@@ -3543,10 +3468,10 @@ void ZonationCost(int irun,int puno,int spno,int R[],struct spustuff pu[],struct
         iZonationCost++;
         // prepare output file
         sprintf(sDebugIndex,"%i",iZonationCost);
-		strcpy(sDebugFile,fnames.outputdir);
-		strcat(sDebugFile,"output_penalty_detail_");
-		strcat(sDebugFile,sDebugIndex);
-		strcat(sDebugFile,".csv");
+        strcpy(sDebugFile,fnames.outputdir);
+        strcat(sDebugFile,"output_penalty_detail_");
+        strcat(sDebugFile,sDebugIndex);
+        strcat(sDebugFile,".csv");
 
         DebugFile = fopen(sDebugFile,"w");
         fprintf(DebugFile,"i,SPID,shortfall,spec_penalty,spf,reserve_penalty\n");
@@ -3653,7 +3578,7 @@ void ZonationCost(int irun,int puno,int spno,int R[],struct spustuff pu[],struct
          {
             fprintf(DebugFile,"%i,%i,%g,%g,%g,%g\n",i,spec[i].name,rCurrentShortfall,spec[i].penalty,spec[i].spf,reserve->penalty);
             //"i,SPID,shortfall,spec_penalty,spf,reserve_penalty"
-	     }
+         }
 
          #ifdef DEBUG_ZONATION_COST
          sprintf(debugbuffer,"ZonationCost spid %i targ %g reserved %g Shortfall %g rShort %g missing features %i spec.pen %g spec.spf %g\n"
@@ -3673,9 +3598,9 @@ void ZonationCost(int irun,int puno,int spno,int R[],struct spustuff pu[],struct
 
      if (fDebugPenaltyNegative)
      {
-		// finalise output file
-		fclose(DebugFile);
-	 }
+        // finalise output file
+        fclose(DebugFile);
+     }
 
      #ifdef DEBUG_ZONATION_COST
      sprintf(sDebugCost,"%f",reserve->cost);
@@ -6899,7 +6824,7 @@ void CostPuZones(char *sNames,char *sCounts,int imode,int puno,int R[])
 
      for (i=0;i<puno;i++)
      {
-		 rZoneCost = ReturnPuZoneCost(i,R[i]);
+         rZoneCost = ReturnPuZoneCost(i,R[i]);
 
          #ifdef DEBUGTRACEFILE
          //sprintf(debugbuffer,"CostPuZones ipu %i R %i zonecost %f\n",i,R[i],rZoneCost);
@@ -7698,24 +7623,16 @@ void siftDown_ii(struct iimp numbers[], int root, int bottom, int array_size)
 
 void heapSort_ii(struct iimp numbers[], int array_size)
 {
-     int i;
-     typeiimp temp;
-     #ifdef DEBUGTRACEFILE
-     //char debugbuffer[1000];
-     #endif
+    int i;
+    typeiimp temp;
 
-     for (i = (array_size / 2)-1; i >= 0; i--)
-     {
-         #ifdef DEBUGTRACEFILE
-         //sprintf(debugbuffer,"heapSort_ii i %i\n",i);
-         //AppendDebugTraceFile(debugbuffer);
-         #endif
+    for (i = (array_size / 2)-1; i >= 0; i--)
+    {
+        siftDown_ii(numbers, i, array_size, array_size);
+    }
 
-         siftDown_ii(numbers, i, array_size, array_size);
-     }
-
-     for (i = array_size-1; i >= 1; i--)
-     {
+    for (i = array_size-1; i >= 1; i--)
+    {
          #ifdef DEBUGTRACEFILE
          //sprintf(debugbuffer,"heapSort_ii i %i\n",i);
          //AppendDebugTraceFile(debugbuffer);
@@ -7725,85 +7642,85 @@ void heapSort_ii(struct iimp numbers[], int array_size)
          numbers[0] = numbers[i];
          numbers[i] = temp;
          siftDown_ii(numbers, 0, i-1, array_size);
-     }
+    }
 }
 
+/*** Time Optimised Iterative Improvement ***/
 void IterativeImprovementOptimise(int puno,struct spustuff pu[], struct sconnections connections[],
-                                   struct sspecies spec[],struct spu SM[],int R[],
-                                   struct scost *reserve,struct scost *change,double costthresh,double tpf1, double tpf2,
-                                   int clumptype,int irun,char *savename)
+                                  struct sspecies spec[],struct spu SM[],int R[],
+                                  struct scost *reserve,struct scost *change,double costthresh,double tpf1, double tpf2,
+                                  int clumptype,int irun,char *savename)
 {
-     int puvalid =0,i,j,ipu=0,imode,ichoice,iZone,iSamplesForEachPu, iRowCounter, iRowLimit, iLoopCounter, iPreviousR, ichanges = 0;
-     struct iimp *iimparray;
-     double debugfloat;
-     char debugbuffer[1000],tempname2[100];
-     FILE *ttfp,*zonefp;
-     char *writename;
+    int puvalid =0,i,j,ipu=0,imode,ichoice,iZone,iSamplesForEachPu, iRowCounter, iRowLimit, iLoopCounter, iPreviousR, ichanges = 0;
+    struct iimp *iimparray;
+    double debugfloat;
+    char debugbuffer[1000],tempname2[100];
+    FILE *ttfp,*zonefp;
+    char *writename;
 
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("IterativeImprovementOptimise start\n");
-     #endif
+    #ifdef DEBUGTRACEFILE
+    AppendDebugTraceFile("IterativeImprovementOptimise start\n");
+    #endif
 
-     iSamplesForEachPu = (iZoneCount-1)*2; // allow sampling to each zone and back to available for each non available  zone
+    iSamplesForEachPu = (iZoneCount-1)*2; // allow sampling to each zone and back to available for each non available  zone
 
-     // counting pu's we need to test
-     for (i=0;i<puno;i++)
-         if ((R[ipu] > 0) && (pu[ipu].status < 2) && (pu[ipu].fPULock != 1) && (pu[ipu].fPUZone != 1))
+    // counting pu's we need to test
+    for (i=0;i<puno;i++)
+    {
+        if ((R[ipu] > 0) && (pu[ipu].status < 2) && (pu[ipu].fPULock != 1) && (pu[ipu].fPUZone != 1))
             puvalid += iSamplesForEachPu;
+    }
 
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"IterativeImprovementOptimise puvalid %i\n",puvalid);
-     AppendDebugTraceFile(debugbuffer);
-     #endif
+    #ifdef DEBUGTRACEFILE
+    sprintf(debugbuffer,"IterativeImprovementOptimise puvalid %i\n",puvalid);
+    AppendDebugTraceFile(debugbuffer);
+    #endif
 
-     if (fnames.saveitimptrace)
-     {
+    if (fnames.saveitimptrace)
+    {
         if (fnames.saveitimptrace==3)
-           sprintf(tempname2,"%s_itimp_objective%05i.csv",savename,irun%10000);
-        else
-        if (fnames.saveitimptrace==2)
-           sprintf(tempname2,"%s_itimp_objective%05i.txt",savename,irun%10000);
-        else
-            sprintf(tempname2,"%s_itimp_objective%05i.dat",savename,irun%10000);
+        {
+            sprintf(tempname2,"%s_itimp_objective%05i.csv",savename,irun%10000);
+        } else {
+            if (fnames.saveitimptrace==2)
+                sprintf(tempname2,"%s_itimp_objective%05i.txt",savename,irun%10000);
+            else
+                sprintf(tempname2,"%s_itimp_objective%05i.dat",savename,irun%10000);
+        }
 
         writename = (char *) calloc(strlen(fnames.outputdir) + strlen(tempname2) + 2, sizeof(char));
-        //strcpy(writename,fnames.outputdir);
         strcpy(writename,tempname2);
         if ((ttfp = fopen(writename,"w"))==NULL)
-           ShowErrorMessage("cannot create threshold trace file %s\n",writename);
+            ShowErrorMessage("cannot create threshold trace file %s\n",writename);
         free(writename);
         if (fnames.saveitimptrace > 1)
-           fprintf(ttfp,"improvement,total,cost,connection,penalty\n");
+            fprintf(ttfp,"improvement,total,cost,connection,penalty\n");
         else
             fprintf(ttfp,"improvement total cost connection penalty\n");
 
         if (fnames.saveitimptrace==3)
-           sprintf(tempname2,"%s_itimp_zones%05i.csv",savename,irun%10000);
+            sprintf(tempname2,"%s_itimp_zones%05i.csv",savename,irun%10000);
         else
         if (fnames.saveitimptrace==2)
-           sprintf(tempname2,"%s_itimp_zones%05i.txt",savename,irun%10000);
+            sprintf(tempname2,"%s_itimp_zones%05i.txt",savename,irun%10000);
         else
             sprintf(tempname2,"%s_itimp_zones%05i.dat",savename,irun%10000);
 
-        //sprintf(tempname2,"%s_anneal_zones%05i.csv",savename,irun%10000);
         writename = (char *) calloc(strlen(fnames.outputdir) + strlen(tempname2) + 2, sizeof(char));
-        //strcpy(writename,fnames.outputdir);
         strcat(writename,tempname2);
         if ((zonefp = fopen(writename,"w"))==NULL)
-           ShowErrorMessage("cannot create threshold trace file %s\n",writename);
+            ShowErrorMessage("cannot create threshold trace file %s\n",writename);
         free(writename);
         fprintf(zonefp,"configuration");
         if (fnames.saveitimptrace > 1)
         {
-           for (i = 0;i<puno;i++)
-               fprintf(zonefp,",%i",pu[i].id);
-           fprintf(zonefp,"\n0");
+            for (i = 0;i<puno;i++)
+                fprintf(zonefp,",%i",pu[i].id);
+            fprintf(zonefp,"\n0");
 
-           for (i = 0;i<puno;i++)
-               fprintf(zonefp,",%i",R[i]);
-        }
-        else
-        {
+            for (i = 0;i<puno;i++)
+                fprintf(zonefp,",%i",R[i]);
+        } else {
             for (i = 0;i<puno;i++)
                 fprintf(zonefp," %i",pu[i].id);
             fprintf(zonefp,"\n0");
@@ -7815,23 +7732,27 @@ void IterativeImprovementOptimise(int puno,struct spustuff pu[], struct sconnect
 
         iRowCounter = 0;
         if (fnames.itimptracerows == 0)
-           iRowLimit = 0;
+            iRowLimit = 0;
         else
             iRowLimit = floor(puvalid / fnames.itimptracerows);
-     }
+    }
 
-     if (puvalid > 0)
-     {
+    if (puvalid > 0)
+    {
         iimparray = (struct iimp *) calloc(puvalid,sizeof(struct iimp));
 
         for (i=0;i<puno;i++)
+        {
             if ((R[i] > 0) && (pu[i].status < 2) && (pu[i].fPULock != 1) && (pu[i].fPUZone != 1))
-               for (j=0;j<iSamplesForEachPu;j++)  // add each planning unit iZoneCount*2 times to allow adequate sampling of zones
-               {
-                   iimparray[ipu].puindex = i;
-                   iimparray[ipu].randomfloat = rand1();
-                   ipu++;
-               }
+            {
+                for (j=0;j<iSamplesForEachPu;j++)  // add each planning unit iZoneCount*2 times to allow adequate sampling of zones
+                {
+                    iimparray[ipu].puindex = i;
+                    iimparray[ipu].randomfloat = rand1();
+                    ipu++;
+                }
+            }
+        }
 
         #ifdef DEBUGTRACEFILE
         sprintf(debugbuffer,"IterativeImprovementOptimise after array init file %s\n",tempname2);
@@ -7848,117 +7769,104 @@ void IterativeImprovementOptimise(int puno,struct spustuff pu[], struct sconnect
         /***** Doing the improvements ****/
         for (i=0;i<puvalid;i++)
         {
-              ichoice = iimparray[i].puindex;
+            ichoice = iimparray[i].puindex;
 
-              if ((R[ichoice] > 0) && (pu[ichoice].status < 2) && (pu[ichoice].fPULock != 1) && (pu[ichoice].fPUZone != 1))
-              {
+            if ((R[ichoice] > 0) && (pu[ichoice].status < 2) && (pu[ichoice].fPULock != 1) && (pu[ichoice].fPUZone != 1))
+            {
 
-                 iPreviousR = R[ichoice];
+                iPreviousR = R[ichoice];
 
-                 if (pu[ichoice].fPUZone == 1)
-                 {
+                if (pu[ichoice].fPUZone == 1)
+                {
                     // enforce locked into range of zones
                     iLoopCounter = 0;
 
                     do
                     {
-                      iZone = RandNum(iZoneCount) + 1;
-                      iLoopCounter++;
+                        iZone = RandNum(iZoneCount) + 1;
+                        iLoopCounter++;
 
-                      if (iLoopCounter > 5000)
-                      {
-                         #ifdef DEBUGTRACEFILE
-                         DumpPuZone_Debug(iPuZoneCount,PuZone,fnames,999);
-                         AppendDebugTraceFile("PuZone endless loop in IterativeImprovementOptimise detected\n");
-                         sprintf(debugbuffer,"puid %i iZone %i\n",pu[ichoice].id,iZone);
-                         AppendDebugTraceFile(debugbuffer);
-                         #endif
-                         ShowGenProg("\nPuZone endless loop in IterativeImprovementOptimise detected\n");
-                         ShowGenProg("Internal error detected.  Please inform the Marxan with Zones developers.\n\n");
-                         ShowPauseExit();
-                         exit(1);
-                      }
+                        if (iLoopCounter > 5000)
+                        {
+                            #ifdef DEBUGTRACEFILE
+                            DumpPuZone_Debug(iPuZoneCount,PuZone,fnames,999);
+                            AppendDebugTraceFile("PuZone endless loop in IterativeImprovementOptimise detected\n");
+                            sprintf(debugbuffer,"puid %i iZone %i\n",pu[ichoice].id,iZone);
+                            AppendDebugTraceFile(debugbuffer);
+                            #endif
+                            ShowGenProg("\nPuZone endless loop in IterativeImprovementOptimise detected\n");
+                            ShowGenProg("Internal error detected.  Please inform the Marxan with Zones developers.\n\n");
+                            ShowPauseExit();
+                            exit(1);
+                        }
                     }
                     while ((iZone == iPreviousR) || (PuNotInAllowedZone(pu[ichoice],iZone,PuZone,0,'I')));
-                 }
-                 else
-                 {
-                     // allowed in any zone
-                     do
-                       iZone = RandNum(iZoneCount) + 1;
+                } else {
+                    // allowed in any zone
+                    do
+                        iZone = RandNum(iZoneCount) + 1;
+                    while (iZone == iPreviousR);
+                }
 
-                     while (iZone == iPreviousR);
-                 }
+                imode = 1;
 
-                 //if (iZone == iAvailableEquivalentZone)
-                 //   imode = -1;
-                 //else
-                     imode = 1;
-
-                 CheckChange(i,ichoice,puno,pu,connections,spec,SM,R,imode,iZone,change,reserve,
-                             costthresh,tpf1,tpf2,1,clumptype,1);
-                 if (change->total < 0)
-                 {
+                CheckChange(i,ichoice,puno,pu,connections,spec,SM,R,imode,iZone,change,reserve,
+                            costthresh,tpf1,tpf2,1,clumptype,1);
+                if (change->total < 0)
+                {
                     ichanges++;
                     ShowGenProgInfo("It Imp has changed %i with change value %lf \n",ichoice,change->total);
                     DoChange(ichoice,puno,R,reserve,*change,pu,SM,spec,connections,imode,iZone,clumptype);
-                 }   /* I've just made a good change */
-              }
+                }   /* I've just made a good change */
+            }
 
-              if (fnames.saveitimptrace)
-              {
-                 iRowCounter++;
-                 if (iRowCounter > iRowLimit)
+            if (fnames.saveitimptrace)
+            {
+                iRowCounter++;
+                if (iRowCounter > iRowLimit)
                     iRowCounter = 1;
 
-                 if (iRowCounter == 1)
-                 {
+                if (iRowCounter == 1)
+                {
                     fprintf(zonefp,"%i",i);
 
                     if (fnames.saveitimptrace > 1)
                     {
-                       fprintf(ttfp,"%i,%f,%f,%f,%f\n"
-                                   ,i,reserve->total
-                                   ,reserve->cost,reserve->connection,reserve->penalty); // i,costthresh,cost,connection,penalty
+                        fprintf(ttfp,"%i,%f,%f,%f,%f\n",
+                                    i,reserve->total,
+                                    reserve->cost,reserve->connection,reserve->penalty); // i,costthresh,cost,connection,penalty
 
-                       for (j = 0;j<puno;j++)
-                           fprintf(zonefp,",%i",R[j]);
-                    }
-                    else
-                    {
-                        fprintf(ttfp,"%i %f %f %f %f\n"
-                                    ,i,reserve->total,reserve->cost,reserve->connection,reserve->penalty);
+                        for (j = 0;j<puno;j++)
+                            fprintf(zonefp,",%i",R[j]);
+                    } else {
+                        fprintf(ttfp,"%i %f %f %f %f\n",
+                                     i,reserve->total,reserve->cost,reserve->connection,reserve->penalty);
 
                         for (j = 0;j<puno;j++)
                             fprintf(zonefp," %i",R[j]);
                     }
 
                     fprintf(zonefp,"\n");
-                 }
-              }
+                }
+            }
         }/* no untested PUs left */
 
         free(iimparray);
-     }
+    }
 
-     if (fnames.saveitimptrace)
-     {
+    if (fnames.saveitimptrace)
+    {
         fclose(ttfp);
         fclose(zonefp);
-     }
+    }
 
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"IterativeImprovementOptimise end changes %i\n",ichanges);
-     AppendDebugTraceFile(debugbuffer);
-     #endif
+    #ifdef DEBUGTRACEFILE
+    sprintf(debugbuffer,"IterativeImprovementOptimise end changes %i\n",ichanges);
+    AppendDebugTraceFile(debugbuffer);
+    #endif
+} // IterativeImprovementOptimise
 
-}  /*** Time Optimised Iterative Improvement ***/
-
-/* * * * * * * * *****
- *  ran1() from numerical recipes
-     produces a random number between 0 and 1
- */
-
+// ran1() from numerical recipes - produces a random number between 0 and 1
 #define IA 16807
 #define IM 2147483647
 #define AM (1.0 / IM)
@@ -7972,47 +7880,48 @@ void IterativeImprovementOptimise(int puno,struct spustuff pu[], struct sconnect
 long    RandomIY;
 long    RandomIV[NTAB];
 
+// ran1() from numerical recipes - produces a random number between 0 and 1
 double rand1(void)
 {
-       int j;
-       long k;
-       double temp;
+    int j;
+    long k;
+    double temp;
 
-       if (RandSeed1 <= 0 || !RandomIY)    // Initialize
-       {
-          RandSeed1 = -RandSeed1;
-          for (j = NTAB+7; j >= 0; j--)
-          {
-              k = RandSeed1/IQ;
-              RandSeed1 = IA * (RandSeed1 - k * IQ) - IR * k;
-              if (RandSeed1 < 0)
-                 RandSeed1 += IM;
-              if (j < NTAB)
-                 RandomIV[j] = RandSeed1;
-          }
-          RandomIY=RandomIV[0];
-       }
-       k=RandSeed1/IQ;        /* The stuff we do on calls after the first */
-       RandSeed1 = IA * (RandSeed1 - k * IQ) - IR * k;
-       if (RandSeed1 < 0)
-          RandSeed1 += IM;
-       j = RandomIY/NDIV;
-       RandomIY=RandomIV[j];
-       RandomIV[j] = RandSeed1;
-       temp=AM*RandomIY;
-       if (temp > RNMX)
-          return(RNMX);
-       else
-           return(temp);
+    if (RandSeed1 <= 0 || !RandomIY)    // Initialize
+    {
+        RandSeed1 = -RandSeed1;
+        for (j = NTAB+7; j >= 0; j--)
+        {
+            k = RandSeed1/IQ;
+            RandSeed1 = IA * (RandSeed1 - k * IQ) - IR * k;
+            if (RandSeed1 < 0)
+                RandSeed1 += IM;
+            if (j < NTAB)
+                RandomIV[j] = RandSeed1;
+        }
+        RandomIY=RandomIV[0];
+    }
+    k=RandSeed1/IQ;        /* The stuff we do on calls after the first */
+    RandSeed1 = IA * (RandSeed1 - k * IQ) - IR * k;
+    if (RandSeed1 < 0)
+        RandSeed1 += IM;
+    j = RandomIY/NDIV;
+    RandomIY=RandomIV[j];
+    RandomIV[j] = RandSeed1;
+    temp=AM*RandomIY;
+    if (temp > RNMX)
+        return(RNMX);
+    else
+        return(temp);
 }
 
 void InitRandSeed(int iSeed)
 {
-     if (iSeed>0)
+    if (iSeed>0)
         RandSeed1 = iSeed;
-     else
-         RandSeed1 = (long int)time(NULL);
-     if (RandSeed1 > 0)
+    else
+        RandSeed1 = (long int)time(NULL);
+    if (RandSeed1 > 0)
         RandSeed1 = -RandSeed1;
 }
 
@@ -8022,18 +7931,15 @@ int RandNum (int num)
     int temp;
 
     if(num == 0)
-      return(0);
+        return(0);
     temp = (int)(rand1() * num);
     if (temp == num)
-       return(0);
+        return(0);
     else
         return((int)temp);
 }
 
-// * * * * * * * * * * * * * * * * * * * * * * * ****
-// * * * * Separation Measure Routines * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * ****
-
+// penalty associated with separation
 double SepPenalty(int ival)
 {
        // here ival = 1, 2 or 3. being number of separate locations for speceis
@@ -8047,25 +7953,23 @@ double SepPenalty(int ival)
 
        return(0); // This line should never be reached
 
-} // penalty associated with separation
+} // SepPenalty
 
 // * * * **** Sep Penalty 2 * * * * * * * *
 // This returns the penalty for not meeting separation requirments. Feed in sepnum and current
 //    separation and returns a value from 0 to 1 which is an artificial shortfall.
-
 double SepPenalty2(int ival,int itarget)
 {
-       double fval;
+    double fval;
 
-       if (!itarget)
-          return (0); // no penalty if no separation requirement
-       fval = (double) ival / (double) itarget;
-       if (!ival)
-          fval = 1.0 /(double) itarget;
+    if (!itarget)
+        return (0); // no penalty if no separation requirement
+    fval = (double) ival / (double) itarget;
+    if (!ival)
+        fval = 1.0 /(double) itarget;
 
-       return(1/(7*fval+0.2)-(1/7.2)); // Gives a nice hyperbole with fval = 1 return 0 and
-                                       // fval = 0 or 0.1 returning almost 1
-
+    return(1/(7*fval+0.2)-(1/7.2)); // Gives a nice hyperbole with fval = 1 return 0 and
+                                    // fval = 0 or 0.1 returning almost 1
 } // SepPenalty2
 
 int ValidPU(int ipu,int isp,struct sclumps *newno,struct sspecies spec[],struct spustuff pu[],
@@ -8076,45 +7980,44 @@ int ValidPU(int ipu,int isp,struct sclumps *newno,struct sspecies spec[],struct 
     struct sclumps *pclump, *ppu;
     if (newno)
     {
-       if (imode == -2)
-          if (SM[i].clump == newno->clumpid)
-             return(0); // This whole clump is to be removed
-       for (ppu=newno;ppu;ppu=ppu->next)
-       {
-           if (ipu == ppu->clumpid)
-           {
-              if (ppu->amount < spec[isp].target2)
-                 return(0);
-              else
-                  return(1);
-           }// debugging braces
-       } // ipu is on list of changed pus
+        if (imode == -2)
+        {
+            if (SM[i].clump == newno->clumpid)
+                return(0); // This whole clump is to be removed
+        }
+        for (ppu=newno;ppu;ppu=ppu->next)
+        {
+            if (ipu == ppu->clumpid)
+            {
+                if (ppu->amount < spec[isp].target2)
+                    return(0);
+                else
+                    return(1);
+            }// debugging braces
+        } // ipu is on list of changed pus
     }  // Above used only when newno is not NULL
     // Find clump
     for (pclump = spec[isp].head;pclump && (SM[i].clump != pclump->clumpid);pclump= pclump->next)
         ; // scan through to find clump
     if (pclump)
     {
-       if (pclump->amount <spec[isp].target2)
-          return(0);
-       else
-           return(1);
-    }
-    else
-    {
+        if (pclump->amount <spec[isp].target2)
+            return(0);
+        else
+            return(1);
+    } else {
         if (SM[i].amount < spec[isp].target2)
-           return(0);
+            return(0);
         else
             return(1);
     }
-
-}  // Valid PU
+} // ValidPU
 
 int CheckDistance(int i, int j,struct spustuff pu[],double squaretarget)
 {
     // compare x1*x2+y1*y2 with squaretarget
     if ((pu[i].xloc-pu[j].xloc)*(pu[i].xloc-pu[j].xloc) + (pu[i].yloc-pu[j].yloc)* (pu[i].yloc-pu[j].yloc) >= squaretarget)
-       return(1);
+        return(1);
     else
         return(0);
 } // Is Distant returns true if PU's are big enough distance apart
@@ -8135,61 +8038,70 @@ int CountSeparation(int isp,struct sclumps *newno,
     targetdist = spec[isp].sepdistance * spec[isp].sepdistance;
 
     if (targetdist == 0)
-       return(3); // Shortcut if sep not apply to this species
-                    // This assumes that 3 is highest sep count
+        return(3); // Shortcut if sep not apply to this species
+                   // This assumes that 3 is highest sep count
 
     // Set up the first list
     if (imode == 1)
-       if (ValidPU(newno->clumpid,isp,newno,spec,pu,SM,imode))
-       {
-          ptemp = (struct slink *) malloc(sizeof(struct slink));
-          ptemp->id = newno->clumpid;
-          ptemp->next = first;
-          first = ptemp;
-       }
+    {
+        if (ValidPU(newno->clumpid,isp,newno,spec,pu,SM,imode))
+        {
+            ptemp = (struct slink *) malloc(sizeof(struct slink));
+            ptemp->id = newno->clumpid;
+            ptemp->next = first;
+            first = ptemp;
+        }
+    }
     for (pclump = spec[isp].head;pclump;pclump = pclump->next)
+    {
         for (ppu = pclump->head;ppu;ppu= ppu->next)
+        {
             if (ValidPU(ppu->puid,isp,newno,spec,pu,SM,imode))
             {
-               ptemp = (struct slink *) malloc(sizeof(struct slink));
-               ptemp->id = ppu->puid;
-               ptemp->next = first;
-               first = ptemp;
+                ptemp = (struct slink *) malloc(sizeof(struct slink));
+                ptemp->id = ppu->puid;
+                ptemp->next = first;
+                first = ptemp;
             }  // Add all valid species bearing PU's to list
+        }
+    }
     // need to worry about added pu which is not on spec[isp].head list
 
     // cycle through this list
     while (first)
     {
-          test = first->id;
-          ptemp = first;
-          first = first->next;
-          free(ptemp);
-          DebugFree(sizeof(struct slink));
+        test = first->id;
+        ptemp = first;
+        first = first->next;
+        free(ptemp);
+        DebugFree(sizeof(struct slink));
 
-          for (ptemp = first;ptemp;ptemp = ptemp->next)
-              if (CheckDistance(ptemp->id,test,pu,targetdist))
-              {
-                 for (ptest=second;ptest;ptest = ptest->next)
-                     if (CheckDistance(ptemp->id,ptest->id,pu,targetdist))
-                     {
+        for (ptemp = first;ptemp;ptemp = ptemp->next)
+        {
+            if (CheckDistance(ptemp->id,test,pu,targetdist))
+            {
+                for (ptest=second;ptest;ptest = ptest->next)
+                {
+                    if (CheckDistance(ptemp->id,ptest->id,pu,targetdist))
+                    {
                         // Clear all lists
                         while (first)
                         {
-                              ptemp = first;
-                              first = ptemp->next;
-                              free(ptemp);
-                              DebugFree(sizeof(struct slink));
+                            ptemp = first;
+                            first = ptemp->next;
+                            free(ptemp);
+                            DebugFree(sizeof(struct slink));
                         }
                         while (second)
                         {
-                              ptemp = second;
-                              second = ptemp->next;
-                              free(ptemp);
-                              DebugFree(sizeof(struct slink));
+                            ptemp = second;
+                            second = ptemp->next;
+                            free(ptemp);
+                            DebugFree(sizeof(struct slink));
                         }
                         return(3);
-                     }  // I have succeeded in finding what I'm looking for
+                    } // I have succeeded in finding what I'm looking for
+                }
 
                  ptest = (struct slink *) malloc(sizeof(struct slink));
                  ptest->id = ptemp->id;
@@ -8197,28 +8109,27 @@ int CountSeparation(int isp,struct sclumps *newno,
                   second = ptest;
                  sepcount = 2; // there is a separation of at least2.
                                // This should be used to cut down calls to this function
+            } // I am sufficient distance from test location
+        }
 
-              } // I am sufficient distance from test location
-
-          while (second)
-          {
-                ptemp = second;
-                second = ptemp->next;
-                free(ptemp);
-                DebugFree(sizeof(struct slink));
-          } // clear second between tests
+        while (second)
+        {
+            ptemp = second;
+            second = ptemp->next;
+            free(ptemp);
+            DebugFree(sizeof(struct slink));
+        } // clear second between tests
     } // finished scanning through list. first is neccessarily empty now
 
     while (second)
     {
-          ptemp = second;
-          second = ptemp->next;
-          free(ptemp);
-          DebugFree(sizeof(struct slink));
+        ptemp = second;
+        second = ptemp->next;
+        free(ptemp);
+        DebugFree(sizeof(struct slink));
     }
 
     return(sepcount);
-
 } // CountSeparation
 
 
@@ -8238,57 +8149,59 @@ struct slink *makelist(int isp,int ipu,int puno,int R[],
     double rAmount = rtnAmountSpecAtPu(pu,SM,ipu,isp);
 
     if (spec[isp].target2)
-    {  /* deal with clumping species differently from non-clumping*/
-       if ((imode == 1) && (ValidPU(newno->clumpid,isp,newno,spec,pu,SM,imode)))
-       {
-          ptemp = (struct slink *) malloc(sizeof(struct slink));
-          ptemp->id = newno->clumpid;
-          ptemp->next = head;
-          head = ptemp;
-       }
-       for (pclump = spec[isp].head;pclump;pclump = pclump->next)
-             for (ppu = pclump->head;ppu;ppu= ppu->next)
-               if (ValidPU(ppu->puid,isp,newno,spec,pu,SM,imode))
-               {
-                  ptemp = (struct slink *) malloc(sizeof(struct slink));
-                  ptemp->id = ppu->puid;
-                  ptemp->next = head;
-                  head = ptemp;
-               }  /* Add all valid species bearing PU's to list */
-    }  /* if target2 */
-    else
-    {   /* non clumping species */
+    { /* if target2 */ /* deal with clumping species differently from non-clumping*/
+        if ((imode == 1) && (ValidPU(newno->clumpid,isp,newno,spec,pu,SM,imode)))
+        {
+            ptemp = (struct slink *) malloc(sizeof(struct slink));
+            ptemp->id = newno->clumpid;
+            ptemp->next = head;
+            head = ptemp;
+        }
+        for (pclump = spec[isp].head;pclump;pclump = pclump->next)
+        {
+            for (ppu = pclump->head;ppu;ppu= ppu->next)
+            {
+                if (ValidPU(ppu->puid,isp,newno,spec,pu,SM,imode))
+                {
+                    ptemp = (struct slink *) malloc(sizeof(struct slink));
+                    ptemp->id = ppu->puid;
+                    ptemp->next = head;
+                    head = ptemp;
+                }  /* Add all valid species bearing PU's to list */
+            }
+        }
+    } else {   /* non clumping species */
         if ((imode ==1) && rAmount)
         {
-           ptemp = (struct slink *)malloc(sizeof(struct slink));
-           ptemp->id = ipu;
-           ptemp->next = head;
-           head = ptemp;
+            ptemp = (struct slink *)malloc(sizeof(struct slink));
+            ptemp->id = ipu;
+            ptemp->next = head;
+            head = ptemp;
         } /* deal with imode == 1 case */
 
         for (i=0;i<puno;i++)
-            //if (((R[i] != iAvailableEquivalentZone) && (R[i] != 0) && rAmount) && !(imode == -1 && ipu == i))
+        {
             if (rAmount && !(imode == -1 && ipu == i))
             {
-               ptemp = (struct slink *)malloc(sizeof(struct slink));
-               ptemp->id = i;
-               ptemp->next = head;
-               head = ptemp;
+                ptemp = (struct slink *)malloc(sizeof(struct slink));
+                ptemp->id = i;
+                ptemp->next = head;
+                head = ptemp;
             }
+        }
     } /* non clumping species */
 
-  return(head);
-} /* Makelist */
+    return(head);
+} // makelist
 
 /* * * * ***** Sep Deal List * * * * * * * * *****/
 /* This funciton is called by count separation2. It takes a link list of sites and 'deals' them
     out on to the seplist */
-
 int SepDealList(struct slink *head, typeseplist *Dist,struct spustuff *pu,
                 struct sspecies spec[],int first,int sepnum,double targetdist,
                 int isp)
-    /* Currsep is the current separation maximum it is 0 up to sepnum */
-    /* first is only needed if maximum is at 0, sepnum is the target separation */
+/* Currsep is the current separation maximum it is 0 up to sepnum */
+/* first is only needed if maximum is at 0, sepnum is the target separation */
 {
     int placefound,currtarget,bestsep=0;
     int currsep;
@@ -8296,39 +8209,37 @@ int SepDealList(struct slink *head, typeseplist *Dist,struct spustuff *pu,
 
     while (head)
     {
-          placefound = 0;
-          currtarget = first;
-          currsep = sepnum;
-          do
-          {
+        placefound = 0;
+        currtarget = first;
+        currsep = sepnum;
+        do
+        {
             if (CheckDistance(head->id,currtarget,pu,targetdist))
-            {
-               currsep++;
-               if (currsep == spec[isp].sepnum-1)
-               {
-                  while (head)
-                  {
+            { /* Good distance */
+                currsep++;
+                if (currsep == spec[isp].sepnum-1)
+                {
+                    while (head)
+                    {
                         temp = head->next;
                         head->next = Dist[currsep].head;
                         Dist[currsep].head = head;
                         head = temp;
-                  }  /* glue remaining list on to bottom of Dist. ignoring size and tail as useless */
-                  return(currsep);
-               } /* Just found valid separation */
-               if (Dist[currsep].head)
-                  currtarget = Dist[currsep].head->id;
-               else
-               {
-                   placefound = 1;
-                   Dist[currsep].head = head;
-                   Dist[currsep].tail = head;
-                   Dist[currsep].size++;
-                   head = head->next;
-                   Dist[currsep].tail->next = NULL;
-               } /* I'm at the end of the line */
-            } /* Good distance */
-            else
-            {
+                    }  /* glue remaining list on to bottom of Dist. ignoring size and tail as useless */
+                    return(currsep);
+                } /* Just found valid separation */
+                if (Dist[currsep].head)
+                {
+                    currtarget = Dist[currsep].head->id;
+                } else {
+                    placefound = 1;
+                    Dist[currsep].head = head;
+                    Dist[currsep].tail = head;
+                    Dist[currsep].size++;
+                    head = head->next;
+                    Dist[currsep].tail->next = NULL;
+                } /* I'm at the end of the line */
+            } else {
                 placefound = 1;
                 Dist[currsep].tail->next = head;
                 Dist[currsep].tail = head;
@@ -8336,15 +8247,13 @@ int SepDealList(struct slink *head, typeseplist *Dist,struct spustuff *pu,
                 head = head->next;
                 Dist[currsep].tail->next = NULL;
             } // bad distance
-          } while (!placefound); // Doing each individual
-          if (currsep > bestsep)
-             bestsep = currsep;
+        } while (!placefound); // Doing each individual
+        if (currsep > bestsep)
+            bestsep = currsep;
     }
 
     return(bestsep);
-} // Sep: Deal List
-
-
+} // SepDealList
 
 // This is a modified form of count separation where the user can specify any
 // maximum separation distance rather than just assuming a sep distance of three
@@ -8362,7 +8271,7 @@ int CountSeparation2(int isp,int ipu,struct sclumps *newno,int puno,int R[],
     targetdist = spec[isp].sepdistance * spec[isp].sepdistance;
 
     if (targetdist == 0)
-       return(spec[isp].sepnum); /*Shortcut if sep not apply to this species */
+        return(spec[isp].sepnum); /*Shortcut if sep not apply to this species */
 
     /* Set up array for counting separation */
     Dist = (typeseplist *) calloc(spec[isp].sepnum,sizeof(typeseplist));
@@ -8371,8 +8280,8 @@ int CountSeparation2(int isp,int ipu,struct sclumps *newno,int puno,int R[],
 
     if (!head)
     {
-       free(Dist);
-       return(0);
+        free(Dist);
+        return(0);
     } /* There was nothing to put in the list */
 
 
@@ -8383,25 +8292,25 @@ int CountSeparation2(int isp,int ipu,struct sclumps *newno,int puno,int R[],
     Dist[0].tail->next = NULL;
     if (!head)
     {
-      free(Dist[0].head);
-      free(Dist);
-      return(1);
+        free(Dist[0].head);
+        free(Dist);
+        return(1);
     }  /* There was only one item in the list */
-
 
     /* Deal out link list */
     sepcount = SepDealList(head,Dist,pu,spec,Dist[0].head->id,0,targetdist,isp);
     if (sepcount >= spec[isp].sepnum-1)
     {
         /* clean up arrays */
-    /*  CheckDist(Dist,spec[isp].sepnum);*/
         for (i=0;i<spec[isp].sepnum;i++)
-          while(Dist[i].head)
-          {
-              temp = Dist[i].head;
-              Dist[i].head = Dist[i].head->next;
-              free(temp);
-          }
+        {
+            while(Dist[i].head)
+            {
+                temp = Dist[i].head;
+                Dist[i].head = Dist[i].head->next;
+                free(temp);
+            }
+        }
         free(Dist);
         return(spec[isp].sepnum);
     }  /* I'm at maximum separation */
@@ -8410,84 +8319,76 @@ int CountSeparation2(int isp,int ipu,struct sclumps *newno,int puno,int R[],
 
     do
     {  /* The main Loop */
-      for (currcol=0;Dist[currcol+1].head && currcol < spec[isp].sepnum-2;currcol++)
-          ;
-      if (currcol == 0)
-      {
-         if (Dist[0].size < spec[isp].sepnum)
-         {
-            while (Dist[0].head)
+        for (currcol=0;Dist[currcol+1].head && currcol < spec[isp].sepnum-2;currcol++)
+            ;
+        if (currcol == 0)
+        {
+            if (Dist[0].size < spec[isp].sepnum)
             {
-                  temp = Dist[0].head;
-                  Dist[0].head = Dist[0].head->next;
-                  free(temp);
+                while (Dist[0].head)
+                {
+                    temp = Dist[0].head;
+                    Dist[0].head = Dist[0].head->next;
+                    free(temp);
+                }
+                free(Dist);
+                return(bestsep + 1);
+            } /* cannot increase separation terminate function */
+            else
+            {
+                temp = Dist[0].head;
+                Dist[0].head = Dist[0].head->next;
+                head = Dist[0].head->next;
+                Dist[0].head->next = NULL;
+                Dist[0].size = 1;
+                Dist[0].tail = Dist[0].head;
+                free(temp);
+                sepcount = SepDealList(head,Dist,pu,spec,Dist[0].head->id,0,targetdist,isp);
             }
-            free(Dist);
-            return(bestsep + 1);
-         } /* cannot increase separation terminate function */
-         else
-         {
-             temp = Dist[0].head;
-             Dist[0].head = Dist[0].head->next;
-             head = Dist[0].head->next;
-             Dist[0].head->next = NULL;
-             Dist[0].size = 1;
-             Dist[0].tail = Dist[0].head;
-             free(temp);
-             sepcount = SepDealList(head,Dist,pu,spec,Dist[0].head->id,0,targetdist,isp);
-         }
-      } /* Deal with first column */
-      else
-      {
-          if (Dist[currcol].size + currcol  < spec[isp].sepnum)
-          {
-             Dist[currcol-1].tail->next = Dist[currcol].head;
-             Dist[currcol-1].tail = Dist[currcol].tail;
-             Dist[currcol-1].tail->next = NULL;
-             Dist[currcol-1].size += Dist[currcol].size;
-             Dist[currcol].head = NULL;
-             Dist[currcol].size = 0;
-             Dist[currcol].tail = NULL;
-             sepcount = 0;
-          } /* list is not long enough to increase sepcount */
-          else
-          {
-              Dist[currcol-1].tail->next = Dist[currcol].head;
-              Dist[currcol-1].tail = Dist[currcol].head;
-              Dist[currcol-1].size++;
-              Dist[currcol].head = Dist[currcol].head->next;
-              head = Dist[currcol].head->next;
-              Dist[currcol].head->next = NULL;
-              Dist[currcol-1].tail->next = NULL;
-              Dist[currcol].tail = Dist[currcol].head;
-              Dist[currcol].size = 1;
-              sepcount = SepDealList(head,Dist,pu,spec,Dist[currcol].head->id,currcol,targetdist,isp);
-          } /* else this column might be long enough */
-      } /* Deal with columns other than the first */
-      if (sepcount > bestsep)
-         bestsep = sepcount;
+        } /* Deal with first column */
+        else
+        {
+            if (Dist[currcol].size + currcol  < spec[isp].sepnum)
+            {
+                Dist[currcol-1].tail->next = Dist[currcol].head;
+                Dist[currcol-1].tail = Dist[currcol].tail;
+                Dist[currcol-1].tail->next = NULL;
+                Dist[currcol-1].size += Dist[currcol].size;
+                Dist[currcol].head = NULL;
+                Dist[currcol].size = 0;
+                Dist[currcol].tail = NULL;
+                sepcount = 0;
+            } /* list is not long enough to increase sepcount */
+            else
+            {
+                Dist[currcol-1].tail->next = Dist[currcol].head;
+                Dist[currcol-1].tail = Dist[currcol].head;
+                Dist[currcol-1].size++;
+                Dist[currcol].head = Dist[currcol].head->next;
+                head = Dist[currcol].head->next;
+                Dist[currcol].head->next = NULL;
+                Dist[currcol-1].tail->next = NULL;
+                Dist[currcol].tail = Dist[currcol].head;
+                Dist[currcol].size = 1;
+                sepcount = SepDealList(head,Dist,pu,spec,Dist[currcol].head->id,currcol,targetdist,isp);
+            } /* else this column might be long enough */
+        } /* Deal with columns other than the first */
+        if (sepcount > bestsep)
+            bestsep = sepcount;
     } while (bestsep < spec[isp].sepnum-1); /* Main loop. */
 
     for (i=0;i<spec[isp].sepnum;i++)
+    {
         while (Dist[i].head)
         {
-              temp = Dist[i].head;
-              Dist[i].head = Dist[i].head->next;
-              free(temp);
+            temp = Dist[i].head;
+            Dist[i].head = Dist[i].head->next;
+            free(temp);
         }
-        free(Dist);
+    }
+    free(Dist);
     return(bestsep+1);
-
-} // CountSeparation 2
-
-// SEPARATION.C END
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// MARXAN.C BEGIN
+} // CountSeparation2
 
 // This function produces a usage statement for when the command line is
 // not correct. Usually when there is the wrong number (ie > 1) arguments
@@ -8495,26 +8396,26 @@ int CountSeparation2(int isp,int ipu,struct sclumps *newno,int puno,int R[],
 
 void Usage(char *programName)
 {
-     fprintf(stderr,"%s usage: %s -[o] -[c] [input file name]\n",programName,programName);
+    fprintf(stderr,"%s usage: %s -[o] -[c] [input file name]\n",programName,programName);
 }
 
 // returns the index of the first argument that is not an option; i.e.
 // does not start with a dash or a slash
 void HandleOptions(int argc,char *argv[],char sInputFileName[],int *oldstyle)
 {
-     int i;
+    int i;
 
-     if (argc>4)
-     {  // if more than one commandline argument then exit
+    if (argc>4)
+    {  // if more than one commandline argument then exit
         Usage(argv[0]);
         //ShowPauseExit();   // This to go into output routine
         exit(1);
-     }
+    }
 
-     for (i=1;i<argc;i++)
-     {
-         if (argv[i][0] == '/' || argv[i][0] == '-')
-         {
+    for (i=1;i<argc;i++)
+    {
+        if (argv[i][0] == '/' || argv[i][0] == '-')
+        {
             switch(argv[i][1])
             {
             case '0':
@@ -8522,20 +8423,19 @@ void HandleOptions(int argc,char *argv[],char sInputFileName[],int *oldstyle)
             case 'O':
                 *oldstyle = 1;
                 break;
-                        case 'C':
-                        case 'c':
-                        case 'S':
-                        case 's':
-                                marxanisslave = 1;
-                                break;
+            case 'C':
+            case 'c':
+            case 'S':
+            case 's':
+                marxanisslave = 1;
+                break;
             default:
                 fprintf(stderr,"unknown option %s\n",argv[i]);
-                break;
             }
-         }
-         else
-             strcpy(sInputFileName,argv[i]); // If not a -option then must be input.dat name
-     }  // Deal with all arguments
+        }
+        else
+            strcpy(sInputFileName,argv[i]); // If not a -option then must be input.dat name
+    }  // Deal with all arguments
 }
 
 int main(int argc,char *argv[])
@@ -8549,22 +8449,19 @@ int main(int argc,char *argv[])
     strcpy(sInputFileName,"input.dat");
 
     if (argc == 1)
-       strcpy(sInputFileName,"input.dat");  // If no arguments then assume the default file name of 'input.dat'
+        strcpy(sInputFileName,"input.dat");  // If no arguments then assume the default file name of 'input.dat'
     else
         HandleOptions(argc,argv,sInputFileName,&oldstyle);  // handle the program options
 
-    if (MarZone(sInputFileName,oldstyle))        // Calls the main annealing unit
+    // Calls the main annealing unit
+    if (MarZone(sInputFileName,oldstyle))
     {
-       if (marxanisslave == 1)
+        if (marxanisslave == 1)
           SlaveExit();
-       else
-           //ShowPauseExit();
-       return 1;
+        return 1;
     }  // Abnormal Exit
     if (marxanisslave == 1)
-       SlaveExit();
-    else
-        //ShowPauseExit();
+        SlaveExit();
 
     return 0;
 }
@@ -8572,62 +8469,66 @@ int main(int argc,char *argv[])
 // use the prop value from the conservation feature file to set a proportion target for species
 void ApplySpecProp(int spno,typesp spec[],int puno,struct spustuff pu[],struct spu SM[])
 {
-     // compute and set target for species with a prop value
-     double totalamount;
-     int isp, ipu;
+    // compute and set target for species with a prop value
+    double totalamount;
+    int isp, ipu;
 
-     for (isp=0;isp<spno;isp++)
-         if (spec[isp].prop > 0)
-         {
+    for (isp=0;isp<spno;isp++)
+    {
+        if (spec[isp].prop > 0)
+        {
             for (ipu = 0,totalamount = 0;ipu<puno;ipu++)
                 totalamount += rtnAmountSpecAtPu(pu,SM,ipu,isp);
             spec[isp].target = totalamount * spec[isp].prop;
-         }
+        }
+    }
 }
 
 // return cost of planning unit in given zone
 double ReturnPuZoneCost(int ipu,int iZone)
        // parameter iZone is one base
 {
-       int i;
-       double rCost = 0, rAddCost;
+    int i;
+    double rCost = 0, rAddCost;
 
-       for (i=0;i<iCostCount;i++)
-       {
-           rAddCost = CostValues[ipu][i] * _ZoneCost[(i*iZoneCount)+(iZone-1)];
+    for (i=0;i<iCostCount;i++)
+    {
+        rAddCost = CostValues[ipu][i] * _ZoneCost[(i*iZoneCount)+(iZone-1)];
 
-           rCost += rAddCost;
-       }
+        rCost += rAddCost;
+    }
 
-       return rCost;
+    return rCost;
 }
 
 void CalcTotalAreas(int puno,int spno,struct spustuff pu[],struct sspecies spec[],struct spu SM[])
 {
-     int ipu, i, ism, isp, *TotalOccurrences, *TO_2, *TO_3;
-     double *TA_2, *TA_3;
-     FILE* TotalAreasFile;
+    int ipu, i, ism, isp, *TotalOccurrences, *TO_2, *TO_3;
+    double *TA_2, *TA_3;
+    FILE* TotalAreasFile;
 
-     TotalAreas = (double *) calloc(spno,sizeof(double));
+    TotalAreas = (double *) calloc(spno,sizeof(double));
 
-     TotalOccurrences = (int *) calloc(spno,sizeof(int));
-     TO_2 = (int *) calloc(spno,sizeof(int));
-     TO_3 = (int *) calloc(spno,sizeof(int));
-     TA_2 = (double *) calloc(spno,sizeof(double));
-     TA_3 = (double *) calloc(spno,sizeof(double));
+    TotalOccurrences = (int *) calloc(spno,sizeof(int));
+    TO_2 = (int *) calloc(spno,sizeof(int));
+    TO_3 = (int *) calloc(spno,sizeof(int));
+    TA_2 = (double *) calloc(spno,sizeof(double));
+    TA_3 = (double *) calloc(spno,sizeof(double));
 
-     for (i=0;i<spno;i++)
-     {
-         TotalAreas[i] = 0;
+    for (i=0;i<spno;i++)
+    {
+        TotalAreas[i] = 0;
 
-         TO_2[i] = 0;
-         TO_3[i] = 0;
-         TA_2[i] = 0;
-         TA_3[i] = 0;
-     }
+        TO_2[i] = 0;
+        TO_3[i] = 0;
+        TA_2[i] = 0;
+        TA_3[i] = 0;
+    }
 
-     for (ipu=0;ipu<puno;ipu++)
-         if (pu[ipu].richness)
+    for (ipu=0;ipu<puno;ipu++)
+    {
+        if (pu[ipu].richness)
+        {
             for (i=0;i<pu[ipu].richness;i++)
             {
                 ism = pu[ipu].offset + i;
@@ -8637,65 +8538,69 @@ void CalcTotalAreas(int puno,int spno,struct spustuff pu[],struct sspecies spec[
 
                 if (iVerbosity > 1)
                 {
-                   TotalOccurrences[isp]++;
+                    TotalOccurrences[isp]++;
 
-                   if (pu[ipu].status == 2)
-                   {
-                      TO_2[isp]++;
-                      TA_2[isp] += SM[ism].amount;
-                   }
+                    if (pu[ipu].status == 2)
+                    {
+                        TO_2[isp]++;
+                        TA_2[isp] += SM[ism].amount;
+                    }
 
-                   if (pu[ipu].status == 3)
-                   {
-                      TO_3[isp]++;
-                      TA_3[isp] += SM[ism].amount;
-                   }
+                    if (pu[ipu].status == 3)
+                    {
+                        TO_3[isp]++;
+                        TA_3[isp] += SM[ism].amount;
+                    }
                 }
             }
+        }
+    }
 
-     if (iVerbosity > 3)
-     {
+    if (iVerbosity > 3)
+    {
         TotalAreasFile = fopen("MarZoneTotalAreas.csv","w");
         fprintf(TotalAreasFile,"spname,spindex,totalarea,reservedarea,excludedarea,targetarea,totalocc,reservedocc,excludedocc,targetocc\n");
         for (i=0;i<spno;i++)
-            fprintf(TotalAreasFile,"%i,%i,%g,%g,%g,%g,%i,%i,%i,%i\n"
-                                  ,spec[i].name,i,TotalAreas[i],TA_2[i],TA_3[i],spec[i].target
-                                  ,TotalOccurrences[i],TO_2[i],TO_3[i],spec[i].targetocc);
+            fprintf(TotalAreasFile,"%i,%i,%g,%g,%g,%g,%i,%i,%i,%i\n",
+                                   spec[i].name,i,TotalAreas[i],TA_2[i],TA_3[i],spec[i].target,
+                                   TotalOccurrences[i],TO_2[i],TO_3[i],spec[i].targetocc);
         fclose(TotalAreasFile);
-     }
+    }
 
-     free(TotalOccurrences);
-     free(TO_2);
-     free(TO_3);
-     free(TA_2);
-     free(TA_3);
-}
+    free(TotalOccurrences);
+    free(TO_2);
+    free(TO_3);
+    free(TA_2);
+    free(TA_3);
+} // CalcTotalAreas
 
 void ComputeZoneConnectivitySum(double **ZCS,int puno,int R[])
 {
-     int i;
-     double fcost, rResult, rZoneConnectionCost;
-     struct sneighbour *p;
+    int i;
+    double fcost, rResult, rZoneConnectionCost;
+    struct sneighbour *p;
 
-     for (i=0;i<puno;i++)
-     {
-       // fixed cost for ipu is between this zone and itself
-       ZCS[R[i]-1][R[i]-1] += connections[i].fixedcost;
+    for (i=0;i<puno;i++)
+    {
+        // fixed cost for ipu is between this zone and itself
+        ZCS[R[i]-1][R[i]-1] += connections[i].fixedcost;
 
-       // traverse connections for this ipu
-       p = connections[i].first;
-       while (p)
-       {
-             if (p->nbr > i) // avoid double counting connnections
+        // traverse connections for this ipu
+        p = connections[i].first;
+        while (p)
+        {
+            if (p->nbr > i) // avoid double counting connnections
+            {
                 if (R[i] != R[p->nbr]) // ignore internal connections within a zone
                 {
                    // connections are symmetric
                    ZCS[R[i]-1][R[p->nbr]-1] += p->cost;
                    ZCS[R[p->nbr]-1][R[i]-1] += p->cost;
                 }
+            }
 
-             p = p->next;
-       }
-     }
+            p = p->next;
+        }
+    }
 }
 
