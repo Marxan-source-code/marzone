@@ -11,6 +11,7 @@
 #include <string.h>
 #include <time.h>
 #include <limits>
+#include <omp.h>
 
 #define MARZONE
 
@@ -57,6 +58,9 @@
 #include "reserve.hpp"
 #include "species.hpp"
 #include "zones.hpp"
+
+// Solver filers
+#include "solvers/simulated_annealing.hpp"
 
 namespace marzone {
 
@@ -268,6 +272,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 pu.puvspr.size(),pu.puno*spec.spno,pu.density);
     AppendDebugTraceFile("after LoadSparseMatrix\n");
 
+    /* Removing the need for this function.
     if (!fnames.matrixspordername.empty())
     {
         AppendDebugTraceFile("before LoadSparseMatrix_sporder\n");
@@ -275,6 +280,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         AppendDebugTraceFile("after LoadSparseMatrix_sporder\n");
         ShowGenProg("after LoadSparseMatrix_sporder\n");
     }
+    */
 
     #ifdef DEBUGTRACEFILE
     AppendDebugTraceFile("before CalcTotalAreas\n");
@@ -368,6 +374,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         }
         else
         {
+            /* Removing optimise since we no longer need it.
             // we have sporder matrix available, so use optimised CalcPenalties method
             if (iOptimisationCalcPenalties == 1)
             {
@@ -378,13 +385,13 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 AppendDebugTraceFile("after CalcPenaltiesOptimise\n");
             }
             else
-            {
+            {*/
                 AppendDebugTraceFile("before CalcPenalties\n");
 
                 itemp = CalcPenalties(pu, spec, zones, reserve);
 
                 AppendDebugTraceFile("after CalcPenalties\n");
-            }
+            //}
         }
 
         if (itemp > 0)
@@ -435,6 +442,9 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
     //   The larger repetition loop
     // TODO - parallelize
+        // for each repeat run
+    int maxThreads = omp_get_max_threads();
+    ShowGenProg("Running multithreaded over number of threads: %d\n", maxThreads);
     for (int irun = 1;irun <= runoptions.repeats;irun++)
     {
         stringstream debugbuffer; 
@@ -445,8 +455,16 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         ShowGenProg("\n");
         ShowProg("Run %i ",irun);
 
+        SimulatedAnnealing sa(runoptions.AnnealingOn, anneal);
         if (runoptions.AnnealingOn)
         {
+            debugbuffer << "before Annealling Init run "<< irun << "\n";
+
+            // init sa if setting is appropriate
+            sa.Initialize();
+
+            debugbuffer << "after Annealling Init run "<< irun << "\n";
+
            if (anneal.type >= 2)
            {
               if (anneal.type == 2)
@@ -475,15 +493,9 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                  #endif
               }
 
-              ShowGenProg("  Using Calculated Tinit = %.4f Tcool = %.8f \n",
-                          anneal.Tinit,anneal.Tcool);
            }  // Using Precalced Temperature Settings
 
-           if (anneal.type == 3)
-           {
-              // Call annealing init here
-           }  // using adaptive annealing type 2 here
-
+            ShowGenProg("  Using Calculated Tinit = %.4f Tcool = %.8f \n", anneal.Tinit,anneal.Tcool);
            anneal.temp = anneal.Tinit;
         }  // Annealing Settup
 
@@ -1184,14 +1196,14 @@ void AddReserve(int puno,struct spustuff pu[],int R[],int iZoneCount,struct puzo
 
 // * * * * Calculate Initial Penalties * * * *
 // This routine calculates the initial penalties or the penalty if you had no representation
-// TODO - come back to rewrite this. 
 int CalcPenalties(Pu& pu, Species& spec, Zones& zones, Reserve& r) {
-    vector<int> PUtemp(pu.puno, 0);
     int badspecies = 0, goodspecies = 0, itargetocc;
-    double rZoneSumTarg, iZoneSumOcc, penalty, ftarget, rAmount;
+    double rZoneSumTarg, iZoneSumOcc, penalty, ftarget, rAmount, ftemp;
 
-    vector<double> specTargetZones = zones.AggregateTargetAreaBySpecies();
-    vector<int> specOccurrenceZones = zones.AggregateTargetOccurrenceBySpecies();
+    vector<double>& specTargetZones = zones.AggregateTargetAreaBySpecies();
+    vector<int>& specOccurrenceZones = zones.AggregateTargetOccurrenceBySpecies();
+
+    vector<vector<penaltyTerm>>& specPuAmounts = pu.getPuAmountsSorted(spec.spno, true); // list of pus that contribute to a species.
 
     for (int i = 0; i < spec.spno; i++)
     {
@@ -1215,33 +1227,82 @@ int CalcPenalties(Pu& pu, Species& spec, Zones& zones, Reserve& r) {
         } // Species has aggregation requirements
 
         itargetocc = 0, ftarget = 0.0, penalty = 0.0;
-        // For this species, sum up all locked occurrences and areas
-        for (int j=0; j < pu.puno; j++)
+        int lockedZone = -1;
+        double lockedContrib = 0.0;
+        // For this species, sum up all locked occurrences and areas. TODO - move this logic somewhere general.
+        for (int j : pu.GetPuLockedIndices())
         {
-            // TODO - this part confuses me, so I need to revisit in the future. I believe it's intended to only be for locked pu.
-            rAmount = pu.RtnAmountSpecAtPu(j,i)
-            if (rAmount > 0) {
-                ftarget += rAmount;
-                itargetocc++;
+            // Get zoneid of locked pu and zone contrib of this zone for this species
+            lockedZone = pu.GetPuLock(j);
+            lockedContrib = zones.GetZoneContrib(i, lockedZone);
+
+            if (lockedContrib) {
+                // Do this calculation by taking into account zonecontrib of the locked zone. If positive contrib, we count it.
+                rAmount = pu.RtnAmountSpecAtPu(j,i)*lockedContrib;
+                if (rAmount > 0) {
+                    ftarget += rAmount;
+                    itargetocc++;
+                }
+
+                penalty += rtnMaxNonAvailableCost(j, pu, zones); // TODO - figure out what this is intended to do. Probably should be the cost of the zone if it's counted.
             }
 
-            penalty += rtnMaxNonAvailableCost(j, pu, zones);
         } // reset PUtemp and also target
-        spec.specList[i].penalty = penalty; //TODO - set within spec object
+        spec.specList[i].penalty = penalty;
 
         // Already adequately represented on type 2 planning unit
         if (ftarget >= rZoneSumTarg && itargetocc >= iZoneSumOcc)
         {
             goodspecies++;
             ShowGenProgInfo("Species %i (%s) has already met target %.2f\n",
-                spec[i].name,spec[i].sname,rZoneSumTarg);
+                spec.specList[i].name,spec.specList[i].sname,rZoneSumTarg);
+
+            continue;
         }
 
-        // TODO
+        // cycle through all pus that contain this spec, and keep adding until spec target is met
+        bool targetMet = false;
+        for (penaltyTerm& p: specPuAmounts[i]) {
+            if (p.amount) {
+                ftarget += p.amount;
+                itargetocc++;
+                spec.specList[i].penalty += p.cost;
+            }
 
+            // Check if targets met
+            if (ftarget >= rZoneSumTarg && itargetocc >= iZoneSumOcc) {
+                targetMet = true;
+                break;
+            }
+        }
 
+        // If target not met with available pu, scale the penalty. 
+        if (!targetMet) {
+            ShowGenProgInfo("Species %d (%s) cannot reach target %.2f there is only %.2f available.\n",
+                            spec.specList[i].name, spec.specList[i].sname, rZoneSumTarg, ftarget);
 
+            if (ftarget == 0)
+                ftarget = delta; // Protect against divide by zero
+            ftemp = 0;
+            if (ftarget < rZoneSumTarg)
+                ftemp = rZoneSumTarg / ftarget;
+            if (itargetocc < iZoneSumOcc && itargetocc) // If ! itargetocc then also !ftarget
+                ftemp += (double)iZoneSumOcc / (double)itargetocc;
+            spec.specList[i].penalty = spec.specList[i].penalty * ftemp; // Scale it up
+            // This value will be ~ 1/delta when there are no occ's of target species in system
+            badspecies++;
+        }
     }
+
+    if (spec.aggexist)
+        ClearClumps(spno,spec,pu,SM);
+
+    if (goodspecies)
+         ShowGenProg("%i species are already adequately represented.\n",goodspecies);
+
+    AppendDebugTraceFile("CalcPenalties end\n");
+
+    return(badspecies);
 }
 
 double rtnMaxNonAvailableCost(int ipu, Pu& pu, Zones& zones)
@@ -1306,157 +1367,6 @@ void AddReserve_CPO(int puno,struct spustuff pu[],int R[],int iZoneCount,struct 
      }
 }    // * * * * Add Reserve * * * *
 
-int CalcPenaltiesOptimise(Pu& pu, Species& spec, Zones& zones, Reserve& r)
-{
-    int i,j,ibest,imaxtarget,itargetocc,ism,ipu, iPUsToTest, iArrayIndex, iZone;
-    double ftarget,fbest,fbestrat,fcost,ftemp, rAmount, r_ibest_amount, rZoneSumTarg;
-    int badspecies = 0,goodspecies = 0, iZoneSumOcc;
-
-    vector<int> PUtemp(pu.puno, 0);
-    AppendDebugTraceFile("CalcPenaltiesOptimise start\n");
-
-    // compute zonesumtarg and zonesumocc for this species
-    vector<double> specTargetZones = zones.AggregateTargetAreaBySpecies();
-    vector<int> specOccurrenceZones = zones.AggregateTargetOccurrenceBySpecies();
-
-    for (i=0;i<spec.spno;i++)
-    {
-        /*
-        sprintf(debugbuffer,"CalcPenaltiesOptimise spname %i\n",spec[i].name);
-        AppendDebugTraceFile(debugbuffer);
-        */
-
-        // compute zonesumtarg and zonesumocc for this species
-        rZoneSumTarg = specTargetZones[i];
-        iZoneSumOcc = specOccurrenceZones[i];
-
-        if (spec[i].target > rZoneSumTarg)
-           rZoneSumTarg = spec[i].target;
-        if (spec[i].occurrence > iZoneSumOcc)
-           iZoneSumOcc = spec[i].occurrence;
-
-        #ifdef DEBUG_CALC_PENALTIES
-        sprintf(debugbuffer,"CalcPenaltiesOptimise spid %i rZoneSumTarg %f\n",spec[i].name,rZoneSumTarg);
-        AppendDebugTraceFile(debugbuffer);
-        #endif
-
-        if (spec.specList[i].target2 || spec.specList[i].sepnum)
-        {
-           j = CalcPenaltyType4(i,puno,SM,connections,spec,pu,clumptype,PUtemp); //TODO
-           badspecies += (j>0);
-           goodspecies += (j<0);
-           continue;
-        } // Species has aggregation requirements
-
-        ftarget = 0;
-        itargetocc = 0;
-        spec.specList[i].penalty = 0;
-
-        // TODO - below logic needs a rewrite to only consider FIXED zones.
-        for (j = 0; j < spec.specList[i].richness; j++) // traverse pu's containing this sp
-        {
-            ism = spec.specList[i].offset + j;
-            ipu = pu.puvspr_sporder[ism].puindex;
-
-            ftarget += pu.puvspr_sporder[ism].amount;
-            itargetocc++;
-            spec.specList[i].penalty += rtnMaxNonAvailableCost(ipu, pu, zones);
-        } // reset PUtemp and also target
-
-        // Already adequately represented on type 2 planning unit
-        if (ftarget >= rZoneSumTarg && itargetocc >= iZoneSumOcc)
-        {
-           goodspecies++;
-           ShowGenProgInfo("Species %i (%s) has already met target %.2f\n",
-                            spec.specList[i].name,spec.specList[i].sname,rZoneSumTarg);
-           continue;
-        } // Target met in unremovable reserve
-
-        // TODO - rewrite this later.
-        do
-        {
-          fbest =0; imaxtarget = 0; fbestrat = 0;
-          if (spec[i].richness > 0)
-             for (j=0;j<spec[i].richness;j++)  // traverse pu's containing this sp
-             {
-                 ism = spec[i].offset + j;
-                 ipu = SMsp[ism].puindex;
-
-                 rAmount = SMsp[ism].amount;
-                 if (rAmount>0)
-                 {
-                    fcost = rtnMaxNonAvailableCost(ipu,connections);
-                    if (fcost == 0)
-                       fcost = delta;
-                    if (rAmount >= rZoneSumTarg - ftarget && (imaxtarget == 0 ||
-                             (imaxtarget == 1 && fcost < fbest)))
-                    {
-                       imaxtarget = 1;
-                       ibest = ipu;
-                       r_ibest_amount = rAmount;
-                       fbest = fcost;
-                    } // can I meet the target cheaply?
-                    else if (fbestrat < rAmount/fcost)
-                         {
-                            fbest = fcost;
-                            fbestrat = rAmount/fbest;
-                            ibest = ipu;
-                            r_ibest_amount = rAmount;
-                         }  // finding the cheapest planning unit
-                 }  // Making sure only checking planning units not already used
-             }  // trying to find best pu
-
-          if (fbest > 0)
-          {
-             PUtemp[ibest] = iZoneCount;
-             ftarget += r_ibest_amount;
-             itargetocc++;
-             spec[i].penalty += fbest;
-          } // Add pu to target
-
-        } while ((ftarget < rZoneSumTarg || itargetocc < iZoneSumOcc) && fbest > 0); // or no more pu left
-        // while there is some pu's with this species to test AND a best available pu was found AND targets are not met yet
-
-        if (fbest == 0) // Could not meet target using all available PUs
-        {
-           ShowGenProgInfo("Species %d (%s) cannot reach target %.2f there is only %.2f available.\n",
-                           spec[i].name,spec[i].sname,spec[i].target,ftarget);
-           if (ftarget==0)
-              ftarget=delta;  // Protect against divide by zero
-           ftemp = 0;
-           if (ftarget<rZoneSumTarg)
-              ftemp = rZoneSumTarg/ftarget;
-           if (itargetocc < iZoneSumOcc && itargetocc)  // If ! itargetocc then also !ftarget
-              ftemp += (double) iZoneSumOcc/(double) itargetocc;
-           spec[i].penalty = spec[i].penalty * ftemp; // Scale it up
-           // This value will be ~ 1/delta when there are no occ's of target species in system
-           badspecies++;
-        }  // If not met target with all available PUs
-
-        #ifdef DEBUGTRACEFILE
-        sprintf(debugbuffer,"CalcPenaltiesOptimise spname %i penalty %g target %g\n",spec[i].name,spec[i].penalty,rZoneSumTarg);
-        AppendDebugTraceFile(debugbuffer);
-        #endif
-
-    }  // Penalty for each individual Species
-    // Clear clumps in case I needed them for target4 species
-
-    if (aggexist)
-        ClearClumps(spno,spec,pu,SM);
-
-    if (goodspecies)
-         ShowGenProg("%i species are already adequately represented.\n",goodspecies);
-
-    #ifdef DEBUGTRACEFILE
-    AppendDebugTraceFile("CalcPenaltiesOptimise end\n");
-    #endif
-
-    return(badspecies);
-
-}// *** Calculate Initial Penalties *****
-// ******* Calculate Initial Penalties *************
-
-
 // * * * * *** Cost of Planning Unit * * * * ******
 // ***** Used only when calculating penalties *****
 double cost(int ipu,struct sconnections connections[],int iZone)
@@ -1468,560 +1378,6 @@ double cost(int ipu,struct sconnections connections[],int iZone)
        fcost += ConnectionCost1(ipu,connections);
        return(fcost);
 } // Cost of Planning Unit
-
-
-// * * * * ** Connection Cost Type 2 * * * * ******
-// **  Requires R[]. imode2 = 0 there is no negative cost for removing connection, we are calling from ReserveCost
-//                         or 1 there is a negative cost for removing connection, we are calling from Annealing
-//                   imode = -1 we are removing the planning unit from a reserve, calling from Annealing
-//                        or 1  we are adding the planning unit to a reserve, or it is already in reserve
-double ConnectionCost2(int ipu,int iCurrentZone,struct sconnections connections[],int R[],int imode,int iDebugMode)
-{
-       double fcost, rResult, rZoneConnectionCost, rDelta;
-       struct sneighbour *p;
-       #ifdef DEBUG_CONNECTIONCOST2
-       char debugbuffer[1000];
-       #endif
-
-       #ifdef DEBUG_CONNECTIONCOST2
-       if (iDebugMode)
-       {
-          sprintf(debugbuffer,"ConnectionCost2 start ipu %i iCurrentZone %i Ripu %i  fixedcost %g imode %i\n"
-                             ,ipu,iCurrentZone,R[ipu],connections[ipu].fixedcost,imode);
-          AppendDebugTraceFile(debugbuffer);
-       }
-       #endif
-
-       fcost = connections[ipu].fixedcost*imode;
-       p = connections[ipu].first;
-
-       #ifdef ASYMCON
-       if (asymmetricconnectivity)
-       {
-          while (p) // treatment for asymmetric connectivity
-          {
-                if (imode2) // calling from Annealing
-                {
-                   if (imode == 1)
-                      R_pu1 = 0;
-                   else
-                       R_pu1 = 1;
-
-                   if (p->connectionorigon)
-                   {
-                      if (R[p->nbr] == 0)
-                      {
-                         if (R_pu1 == 1)
-                         {
-                            rDelta = -1*p->cost;
-                            fcost += rDelta;
-                         }
-                         else
-                         {
-                            rDelta = p->cost;
-                            fcost += rDelta;
-                         }
-                      }
-                   }
-                   else
-                   {
-                      if (R[p->nbr] == 1 || R[p->nbr] == 2)
-                      {
-                         if (R_pu1 == 1)
-                         {
-                            rDelta = p->cost;
-                            fcost += rDelta;
-                         }
-                         else
-                         {
-                            rDelta = -1*p->cost;
-                            fcost += rDelta;
-                         }
-                      }
-                   }
-                }
-                else // calling from ReserveCost
-                {
-                    if (R[p->nbr] == 0)
-                       if (p->connectionorigon)
-                       {
-                          rDelta = p->cost;
-                          fcost += rDelta;
-                       }
-                }
-
-                p = p->next;
-          }
-       }
-       else
-       #endif
-       {
-           while (p)
-           {
-                 rZoneConnectionCost = _RelConnectionCost[((iCurrentZone-1) * iZoneCount) + (R[p->nbr] - 1)];
-                 fcost += imode*p->cost*rZoneConnectionCost;
-
-                 p = p->next;
-           }
-       }
-
-       rResult = fcost;
-
-       #ifdef DEBUG_CONNECTIONCOST2
-       if (iDebugMode)
-       {
-       sprintf(debugbuffer,"ConnectionCost2 end result %g fcost %g\n",rResult,fcost);
-       AppendDebugTraceFile(debugbuffer);
-       }
-       #endif
-
-       return(rResult);
-}// Connection Cost Type 2
-
-// * * * * **** Change in penalty for moving single PU between zones ******
-double ChangePen(int iIteration, int ipu,int puno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],
-                 int R[],struct sconnections connections[],int imode,int clumptype,int iZone,double *rShortfall)
-                 // iZone is one based
-{
-       int i, k, ism, isp, iArrayIndex, iNewOccurrence, iCurrentShortfall, iNewShortfall;
-       double rShortFraction, rNewShortFraction, rOldShortfall, rNewShortfall, rNewAmount, rSumDeltaPenalty = 0, rDeltaPenalty,
-              rCurrentContribAmount, rNewContribAmount;
-       #ifdef DEBUG_CHANGE_PEN
-       char debugline[1000];
-       #endif
-       #ifdef DEBUG_PEW_CHANGE_PEN
-       char debugline[1000];
-       #endif
-
-       #ifdef DEBUG_CHANGE_PEN
-       sprintf(debugline,"ChangePen start puid %i existing zone %i proposed zone %i\n",pu[ipu].id,R[ipu],iZone);
-       AppendDebugTraceFile(debugline);
-       #endif
-
-       // we need to know the penalty with ipu in its existing zone and the penalty with ipu in its proposed zone.
-       // change in penalty = penalty in proposed configuration - penalty in existing configuration
-
-       #ifdef DEBUG_CHANGE_PEN
-       sprintf(debugline,"spid,targ,current ztarg,new ztarg,current shortfall,new shortfall,delta penalty\n");//,proposed amount,proposed occurrence\n");
-       AppendDebugTraceFile(debugline);
-       #endif
-
-       *rShortfall = 0;
-
-       if (pu[ipu].richness)
-          for (i=0;i<pu[ipu].richness;i++)
-          {
-              ism = pu[ipu].offset + i;
-              isp = SM[ism].spindex;
-              if (SM[ism].amount)
-              {
-                 // R[ipu] is existing zone
-                 // iZone is proposed zone
-                 // init variables tracking shortfall in existing zone
-                 rOldShortfall = 0;
-                 rShortFraction = 0;
-                 iCurrentShortfall = 0;
-                 // init variables tracking shortfall in proposed zone
-                 rNewShortfall = 0;
-                 rNewShortFraction = 0;
-                 iNewShortfall = 0;
-
-                 // shortfall with respect to overall targets
-                 rCurrentContribAmount = rtnConvertZoneAmount(R[ipu]-1,isp,ipu,puno,SM[ism].amount);
-                 rNewContribAmount = rtnConvertZoneAmount(iZone-1,isp,ipu,puno,SM[ism].amount);
-
-                 rNewAmount = spec[isp].amount + rNewContribAmount - rCurrentContribAmount;
-                 iNewOccurrence = spec[isp].occurrence + (rNewContribAmount > 0) - (rCurrentContribAmount > 0);
-
-                 if (spec[isp].target > 0)
-                 {
-                    if (spec[isp].target > spec[isp].amount)
-                    {
-                       rOldShortfall += spec[isp].target - spec[isp].amount;
-                       rShortFraction += (spec[isp].target - spec[isp].amount)/spec[isp].target;
-                       iCurrentShortfall++;
-                    }
-
-                    if (spec[isp].target > rNewAmount)
-                    {
-                       rNewShortfall += spec[isp].target - rNewAmount;
-                       rNewShortFraction += (spec[isp].target - rNewAmount)/spec[isp].target;
-                       iNewShortfall++;
-                    }
-
-                    #ifdef DEBUG_PEW_CHANGE_PEN
-                    sprintf(debugline,"%i,%i,%i,%i,%i,%i,%i,%g,%g,%g,%g,%g,%g,%g,%g,%i,%i,0\n"
-                                     ,iIteration,ipu,isp,pu[ipu].id,spec[isp].name,R[ipu],iZone,spec[isp].target,SM[ism].amount,spec[isp].amount
-                                     ,rNewAmount,rShortfall,rNewShortfall,rShortFraction,rNewShortFraction,iCurrentShortfall,iNewShortfall);
-                    AppendDebugFile("debug_MarZone_PewChangePen.csv",debugline,fnames);
-                    AppendDebugTraceFile("iteration,ipu,isp,puid,spid,Zone,newZone,Target,PUAmount,Amount,newAmount,Shortfall,newShortfall,rSF,rNSF,iCSF,iNSF,zone\n");
-                    AppendDebugTraceFile(debugline);
-                    #endif
-                 }
-
-                 if (spec[isp].targetocc > 0)
-                 {
-                    if (spec[isp].targetocc > spec[isp].occurrence)
-                    {
-                       rOldShortfall += spec[isp].targetocc - spec[isp].occurrence;
-                       rShortFraction += (spec[isp].targetocc - spec[isp].occurrence)/spec[isp].targetocc;
-                       iCurrentShortfall++;
-                    }
-
-                    if (spec[isp].targetocc > iNewOccurrence)
-                    {
-                       rNewShortfall += spec[isp].targetocc - iNewOccurrence;
-                       rNewShortFraction += (spec[isp].targetocc - iNewOccurrence)/spec[isp].targetocc;
-                       iNewShortfall++;
-                    }
-                 }
-
-                 // compute existing & proposed shortfall for this feature across any relevant zone targets
-                 for (k=0;k<iZoneCount;k++)
-                 {
-                     // is k our existing zone or our new zone?
-                     // (ie. will the amount held for this zone change as a result of this proposed status change)
-                     if ((k == (R[ipu] - 1)) || (k == (iZone - 1)))
-                     {
-
-                        iArrayIndex = (isp * iZoneCount) + k;
-                        // compute amount of feature if change is made
-                        if (k == (R[ipu] - 1)) // zone is existing zone, reduce zone amount by amount at site
-                        {
-                           rNewAmount = ZoneSpec[iArrayIndex].amount - SM[ism].amount;
-                           iNewOccurrence = ZoneSpec[iArrayIndex].occurrence - 1;
-                        }
-                        else
-                            //if (k == (iZone - 1)) // zone is proposed zone, increase zone amount by amount at site
-                            {
-                               rNewAmount = ZoneSpec[iArrayIndex].amount + SM[ism].amount;
-                               iNewOccurrence = ZoneSpec[iArrayIndex].occurrence + 1;
-                            }
-
-                        // do we have areal zone target?
-                        if (_ZoneTarget[iArrayIndex].target > 0)
-                        {
-                           // compute existing shortfall
-                           if (_ZoneTarget[iArrayIndex].target > ZoneSpec[iArrayIndex].amount)
-                           {
-                              rOldShortfall += _ZoneTarget[iArrayIndex].target - ZoneSpec[iArrayIndex].amount;
-                              rShortFraction += (_ZoneTarget[iArrayIndex].target - ZoneSpec[iArrayIndex].amount) / _ZoneTarget[iArrayIndex].target;
-                              iCurrentShortfall++;
-                           }
-
-                           // compute proposed shortfall
-                           if (_ZoneTarget[iArrayIndex].target > rNewAmount)
-                           {
-                              rNewShortfall += _ZoneTarget[iArrayIndex].target - rNewAmount;
-                              rNewShortFraction += (_ZoneTarget[iArrayIndex].target - rNewAmount) / _ZoneTarget[iArrayIndex].target;
-                              iNewShortfall++;
-                           }
-
-                           #ifdef DEBUG_PEW_CHANGE_PEN
-                           sprintf(debugline,"%i,%i,%i,%i,%i,%i,%i,%g,%g,%g,%g,%g,%g,%g,%g,%i,%i,1\n"
-                                            ,iIteration,ipu,isp,pu[ipu].id,spec[isp].name,R[ipu],iZone,_ZoneTarget[iArrayIndex].target
-                                            ,SM[ism].amount,ZoneSpec[iArrayIndex].amount,rNewAmount,rShortfall,rNewShortfall
-                                            ,rShortFraction,rNewShortFraction,iCurrentShortfall,iNewShortfall);
-                           AppendDebugFile("debug_MarZone_PewChangePen.csv",debugline,fnames);
-                           AppendDebugTraceFile("iteration,ipu,isp,puid,spid,Zone,newZone,ZoneTarget,PUAmount,Amount,newAmount,Shortfall,newShortfall,rSF,rNSF,iCSF,iNSF,zone\n");
-                           AppendDebugTraceFile(debugline);
-                           #endif
-                        }
-
-                        // do we have occurrence zone target?
-                        if (_ZoneTarget[iArrayIndex].occurrence > 0)
-                        {
-                           // compute existing shortfall
-                           if (_ZoneTarget[iArrayIndex].occurrence > ZoneSpec[iArrayIndex].occurrence)
-                           {
-                              rOldShortfall += _ZoneTarget[iArrayIndex].occurrence - ZoneSpec[iArrayIndex].occurrence;
-                              rShortFraction += (_ZoneTarget[iArrayIndex].occurrence - ZoneSpec[iArrayIndex].occurrence) / _ZoneTarget[iArrayIndex].occurrence;
-                              iCurrentShortfall++;
-                           }
-
-                           // compute proposed shortfall
-                           if (_ZoneTarget[iArrayIndex].occurrence > iNewOccurrence)
-                           {
-                              rNewShortfall += _ZoneTarget[iArrayIndex].occurrence - iNewOccurrence;
-                              rNewShortFraction += (_ZoneTarget[iArrayIndex].occurrence - iNewOccurrence) / _ZoneTarget[iArrayIndex].occurrence;
-                              iNewShortfall++;
-                           }
-                        }
-                     }
-                 }
-
-                 #ifdef PENX_MOD
-                 //rDeltaPenalty = spec[isp].penalty*spec[isp].spf*(rNewShortfall - rShortfall);
-                 rDeltaPenalty = spec[isp].penalty*spec[isp].spf*(rNewShortFraction - rShortFraction);
-                 #else
-                 /*if (iCurrentShortfall > 1)
-                    rShortFraction /= iCurrentShortfall;
-
-                 if (iNewShortfall > 1)
-                    rNewShortFraction /= iNewShortfall;*/
-
-                 rDeltaPenalty = spec[isp].penalty*spec[isp].spf*(rNewShortFraction - rShortFraction);
-                 #endif
-
-                 #ifdef DEBUG_PEW_CHANGE_PEN
-                 // rDeltaPenalty,spec[isp].penalty,spec[isp].spf,rNewShortFraction,rShortFraction
-                 AppendDebugTraceFile("rDeltaPenalty,spec.penalty,spec.spf,rNewShortFraction,rShortFraction\n");
-                 sprintf(debugline,"%g,%g,%g,%g,%g\n",rDeltaPenalty,spec[isp].penalty,spec[isp].spf,rNewShortFraction,rShortFraction);
-                 AppendDebugTraceFile(debugline);
-                 #endif
-
-                 rSumDeltaPenalty += rDeltaPenalty;
-                 *rShortfall += rNewShortfall - rOldShortfall;
-
-              }  // Only worry about PUs where species occurs
-
-              #ifdef DEBUG_PEW_CHANGE_PEN
-              sprintf(debugline,"rSumDeltaPenalty %g\n",rSumDeltaPenalty);
-              AppendDebugTraceFile(debugline);
-              #endif
-
-              #ifdef DEBUG_CHANGE_PEN
-              sprintf(debugline,"%i,%g,%g,%g,%g,%g,%g\n",
-                        spec[isp].name,spec[isp].target,_ZoneTarget[(isp * iZoneCount) + R[ipu]-1].target,
-                        _ZoneTarget[(isp * iZoneCount) + iZone-1].target,rOldShortfall,rNewShortfall,rDeltaPenalty);
-              AppendDebugTraceFile(debugline);
-              #endif
-          }
-
-       #ifdef DEBUG_CHANGE_PEN
-       sprintf(debugline,"ChangePen end rSumDeltaPenalty %g\n",rSumDeltaPenalty);
-       AppendDebugTraceFile(debugline);
-       #endif
-
-       return (rSumDeltaPenalty);
-}  // Change in penalty for adding or deleting one PU
-
-double ConnectionCost2Linear(int ipu,int iCurrentZone, struct spustuff pu[],struct sconnections connections[],int R[],int imode,int iDebugMode)
-{
-       // avoid double counting connections by only adding connections where puindex > current puindex
-       double fcost, rResult, rZoneConnectionCost;
-       struct sneighbour *p;
-       #ifdef DEBUG_CONNECTIONCOST2_LINEAR
-       char debugbuffer[1000];
-       #endif
-
-       #ifdef DEBUG_CONNECTIONCOST2_LINEAR
-       if (iDebugMode)
-       {
-          sprintf(debugbuffer,"ConnectionCost2Linear start puid %i iCurrentZone %i Ripu %i  fixedcost %g imode %i\n"
-                             ,pu[ipu].id,iCurrentZone,R[ipu],connections[ipu].fixedcost,imode);
-          AppendDebugTraceFile(debugbuffer);
-       }
-       #endif
-
-       fcost = connections[ipu].fixedcost*imode;
-       p = connections[ipu].first;
-       while (p)
-       {
-             if (p->nbr > ipu)
-             {
-                rZoneConnectionCost = _RelConnectionCost[((iCurrentZone-1) * iZoneCount) + (R[p->nbr] - 1)];
-                fcost += imode*p->cost*rZoneConnectionCost;
-
-                #ifdef DEBUG_CONNECTIONCOST2_LINEAR
-                if (iDebugMode)
-                {
-                   sprintf(debugbuffer,"ConnectionCost2Linear puidnbr %i rnbr %i costnbr %g zoneconnectioncost %lf\n"
-                                      ,pu[p->nbr].id,R[p->nbr],p->cost,rZoneConnectionCost);
-                   AppendDebugTraceFile(debugbuffer);
-                }
-                #endif
-             }
-
-             p = p->next;
-       }
-
-       rResult = fcost;
-
-       #ifdef DEBUG_CONNECTIONCOST2_LINEAR
-       if (iDebugMode)
-       {
-       sprintf(debugbuffer,"ConnectionCost2Linear end result %g fcost %g\n",rResult,fcost);
-       AppendDebugTraceFile(debugbuffer);
-       }
-       #endif
-
-       return(rResult);
-}// Connection Cost Type 2 Linear
-
-// * * * * ****** Value of a Zonation System * * * *
-void ZonationCost(int irun,int puno,int spno,int R[],struct spustuff pu[],struct sconnections connections[],
-                 struct spu SM[], struct sspecies spec[],int aggexist,
-                 struct scost *reserve,int clumptype,double prop,int iApplyReserveInit)
-{
-     // compute the objective function score for zonation system R
-
-     int i,j,k,iArrayIndex, iExistingArrayIndex, iShortfall, iMissingFeatures = 0, fDebugPenaltyNegative = 0;
-     double rShortfall, rShortFraction, rCurrentShortfall, rTotalShortfall = 0;
-     #ifdef DEBUG_ZONATION_COST
-     char debugbuffer[1000], sDebugFileName[500], sDebugCost[100];
-     #endif
-
-     #ifdef DEBUG_PENALTY_NEGATIVE
-     char sDebugFile[1000], sDebugMessage[1000], sDebugIndex[100];
-     FILE* DebugFile;
-     fDebugPenaltyNegative = 1;
-     #endif
-
-     if (fDebugPenaltyNegative)
-     {
-        iZonationCost++;
-        // prepare output file
-        sprintf(sDebugIndex,"%i",iZonationCost);
-        strcpy(sDebugFile,fnames.outputdir);
-        strcat(sDebugFile,"output_penalty_detail_");
-        strcat(sDebugFile,sDebugIndex);
-        strcat(sDebugFile,".csv");
-
-        DebugFile = fopen(sDebugFile,"w");
-        fprintf(DebugFile,"i,SPID,shortfall,spec_penalty,spf,reserve_penalty\n");
-
-        sprintf(sDebugMessage,"ZonationCost file >%i< was created.\n",iZonationCost);
-        AppendDebugTraceFile(sDebugMessage);
-     }
-
-     if (iApplyReserveInit > 0)
-     {
-        InitReserve(puno,prop,R,pu,iZoneCount);  // create initial reserve
-        AddReserve(puno,pu,R,iZoneCount,PuZone);
-     }
-
-     #ifdef DEBUG_ZONATION_COST
-     AppendDebugTraceFile("ZonationCost start\n");
-     #endif
-
-     reserve->cost = 0;
-     reserve->penalty = 0;
-     reserve->connection = 0;
-     reserve->shortfall = 0;
-     if (aggexist)
-        SetSpeciesClumps(puno,R,spec,pu,SM,connections,clumptype);
-
-     // initialise species amounts in each zone prior to computing them for this run
-     InitZoneSpec(spno,iZoneCount,ZoneSpec);
-     SpeciesAmounts(spno,puno,spec,pu,SM,R,clumptype,ZoneSpec);
-
-     for (i=0;i<spno;i++)
-     {
-         // R[i] is existing zone
-         rShortfall = 0;
-         iShortfall = 0;
-         rShortFraction = 0;
-
-         // shortfall with respect to overall targets
-         if (spec[i].target > 0)
-            if (spec[i].target > spec[i].amount)
-            {
-               rShortfall += spec[i].target - spec[i].amount;
-               rShortFraction += (spec[i].target - spec[i].amount)/spec[i].target;
-               iShortfall++;
-
-               reserve->shortfall += spec[i].target - spec[i].amount;
-            }
-
-         if (spec[i].targetocc > 0)
-            if (spec[i].targetocc > spec[i].occurrence)
-            {
-               rShortfall += spec[i].targetocc - spec[i].occurrence;
-               rShortFraction += (spec[i].targetocc - spec[i].occurrence)/spec[i].targetocc;
-               iShortfall++;
-
-               reserve->shortfall += spec[i].targetocc - spec[i].occurrence;
-            }
-
-         // shortfall with respect to zone targets (removing pu from existing zone)
-         // loop through all zones to compute target achievement
-         for (k=0;k<iZoneCount;k++)
-         {
-             iExistingArrayIndex = (i * iZoneCount) + k;
-
-             if (_ZoneTarget[iExistingArrayIndex].target > 0)
-                if (_ZoneTarget[iExistingArrayIndex].target > ZoneSpec[iExistingArrayIndex].amount)
-                {
-                   rShortfall += _ZoneTarget[iExistingArrayIndex].target - ZoneSpec[iExistingArrayIndex].amount;
-                   rShortFraction += (_ZoneTarget[iExistingArrayIndex].target - ZoneSpec[iExistingArrayIndex].amount) / _ZoneTarget[iExistingArrayIndex].target;
-                   iShortfall++;
-
-                   reserve->shortfall += _ZoneTarget[iExistingArrayIndex].target - ZoneSpec[iExistingArrayIndex].amount;
-                }
-
-             if (_ZoneTarget[iExistingArrayIndex].occurrence > 0)
-                if (_ZoneTarget[iExistingArrayIndex].occurrence > ZoneSpec[iExistingArrayIndex].occurrence)
-                {
-                   rShortfall += _ZoneTarget[iExistingArrayIndex].occurrence - ZoneSpec[iExistingArrayIndex].occurrence;
-                   rShortFraction += (_ZoneTarget[iExistingArrayIndex].occurrence - ZoneSpec[iExistingArrayIndex].occurrence) / _ZoneTarget[iExistingArrayIndex].occurrence;
-                   iShortfall++;
-
-                   reserve->shortfall += _ZoneTarget[iExistingArrayIndex].occurrence - ZoneSpec[iExistingArrayIndex].occurrence;
-                }
-             #ifdef DEBUG_ZONATION_COST
-             sprintf(debugbuffer,"ZonationCost zone %i ztarg %g zamount %g\n"
-                                ,Zones[k].id,_ZoneTarget[iExistingArrayIndex].target,ZoneSpec[iExistingArrayIndex].amount);
-             AppendDebugTraceFile(debugbuffer);
-             #endif
-         }
-
-         #ifdef PENX_MOD
-         rCurrentShortfall = rShortFraction;
-         #else
-         rCurrentShortfall = rShortFraction;
-         /*if (iShortfall > 1)
-            rCurrentShortfall /= iShortfall;*/
-         #endif
-         rTotalShortfall += rShortfall;
-         iMissingFeatures += iShortfall;
-
-
-         reserve->penalty += rCurrentShortfall * spec[i].penalty * spec[i].spf;
-
-         if (fDebugPenaltyNegative)
-         {
-            fprintf(DebugFile,"%i,%i,%g,%g,%g,%g\n",i,spec[i].name,rCurrentShortfall,spec[i].penalty,spec[i].spf,reserve->penalty);
-            //"i,SPID,shortfall,spec_penalty,spf,reserve_penalty"
-         }
-
-         #ifdef DEBUG_ZONATION_COST
-         sprintf(debugbuffer,"ZonationCost spid %i targ %g reserved %g Shortfall %g rShort %g missing features %i spec.pen %g spec.spf %g\n"
-                            ,spec[i].name,spec[i].target,spec[i].amount,rShortfall,rCurrentShortfall,iShortfall,spec[i].penalty,spec[i].spf);
-         AppendDebugTraceFile(debugbuffer);
-         #endif
-     }
-
-     for (j=0;j<puno;j++)
-     {
-         reserve->cost += ReturnPuZoneCost(j,R[j]);
-
-         reserve->connection += ConnectionCost2Linear(j,R[j],pu,connections,R,1,1);
-     }
-
-     reserve->total = reserve->cost + reserve->connection + reserve->penalty;
-
-     if (fDebugPenaltyNegative)
-     {
-        // finalise output file
-        fclose(DebugFile);
-     }
-
-     #ifdef DEBUG_ZONATION_COST
-     sprintf(sDebugCost,"%f",reserve->cost);
-     strcpy(sDebugFileName,fnames.outputdir);
-     strcat(sDebugFileName,"output_ZonationCostDebug_");
-     strcat(sDebugFileName,sDebugCost);
-     strcat(sDebugFileName,".csv");
-     OutputZonationCostDebugTable(spno,spec,sDebugFileName);
-
-     sprintf(debugbuffer,"ZonationCost total %g cost %g connection %g penalty %g shortfall %g missing features %i \n"
-                        ,reserve->total,reserve->cost,reserve->connection,reserve->penalty,rTotalShortfall,iMissingFeatures);
-     AppendDebugTraceFile(debugbuffer);
-     AppendDebugTraceFile("ZonationCost end\n");
-     #endif
-
-}  // score of a zonation system
 
 // * * * * *** Set the Initial Reserve System * * * * ***
 void InitReserve(int puno,double prop, int R[], struct spustuff pu[], int iZoneCount)
@@ -2037,69 +1393,6 @@ void InitReserve(int puno,double prop, int R[], struct spustuff pu[], int iZoneC
      }
 }// Set Initial Reserve System
 
-// * * * *  Species Amounts * * * * * * * *
-// * * * *  puts in the effective amount for each species in reserve R
-void SpeciesAmounts(int spno,int puno,struct sspecies spec[],struct spustuff pu[],struct spu SM[],
-                    int R[],int clumptype,struct zonespecstruct ZoneSpec[])
-{
-     int i, ism, isp,ipu, iZoneSpecIndex;
-     double rContribAmount;
-     #ifdef ANNEALING_TEST
-     char debugbuffer[1000];
-     #endif
-
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("SpeciesAmounts start\n");
-     #endif
-
-     for (isp=0;isp<spno;isp++)
-     {
-         spec[isp].amount = 0;
-         spec[isp].occurrence = 0;
-         if (spec[isp].target2)
-            SpeciesAmounts4(isp,spec,clumptype);
-     }
-
-     for (ipu=0;ipu<puno;ipu++)
-         if (pu[ipu].richness)
-            if (R[ipu] != 0)
-               for (i=0;i<pu[ipu].richness;i++)
-               {
-                   ism = pu[ipu].offset + i;
-                   isp = SM[ism].spindex;
-                   if (spec[isp].target2 == 0)
-                   {
-                      //if (R[ipu] != iAvailableEquivalentZone)
-                      {
-                         rContribAmount = rtnConvertZoneAmount(R[ipu]-1,isp,ipu,puno,SM[ism].amount);
-
-                         spec[isp].amount += rContribAmount;
-                         spec[isp].occurrence += (rContribAmount > 0);
-                      }
-
-                      // store amount in each zone
-                      iZoneSpecIndex = (isp * iZoneCount) + (R[ipu]-1);
-                      ZoneSpec[iZoneSpecIndex].amount += SM[ism].amount;
-                      ZoneSpec[iZoneSpecIndex].occurrence++;
-                   }
-               }
-
-     #ifdef ANNEALING_TEST
-     for (isp=0;isp<spno;isp++)
-     {
-         sprintf(debugbuffer,"SpeciesAmounts isp %i spec.amount %g\n"
-                            ,isp,spec[isp].amount);
-         AppendDebugTraceFile(debugbuffer);
-     }
-     #endif
-
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("SpeciesAmounts end\n");
-     #endif
-} // Species Amounts
-
-
-// * * * * * * * * * * * * * * * * * * * * * * * *
 // *****    Central Processing Loop   * * * * ****
 // * * * * * * * * * * * * * * * * * * * * * * * *
 

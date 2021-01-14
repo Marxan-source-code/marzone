@@ -69,6 +69,11 @@ namespace marzone {
 
     typepusporder *SMsporder;
 
+    typedef struct penaltyTerm {
+        double amount; // amount contributed
+        double cost; // cost of pu
+    } penaltyTerm; // used for penalty calculation sorting. 
+
     // type definitions for original Ian Ball Marxan data structures
 
     typedef struct spustuff
@@ -94,9 +99,9 @@ namespace marzone {
         double cost;
         double threshpen;
         double shortfall;
-    } typecost;
+    } scost;
 
-    typecost reserve,change,debugcost;
+    //typecost reserve,change,debugcost;
 
     /* General Species information structure */
     typedef struct sgenspec

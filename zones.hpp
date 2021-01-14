@@ -153,6 +153,23 @@ class Zones {
         }
     }
 
+    // given a species index and zoneid, return the contrib fraction
+    double GetZoneContrib(int spindex, int zoneid) {
+        // only spno*zoneCount used
+        return zoneContribValues[(spindex*zoneCount)+(zoneid-1)];
+    }
+
+    // Get zone contrib but for a specific pu.
+    double GetZoneContrib(int puindex, int puno, int spindex, int zoneid) {
+        if (!zoneContrib3Count) {
+            // only spno*zoneCount used
+            return GetZoneContrib(spindex, zoneid);
+        }
+        else {
+            return zoneContribValues[(spindex*puno*zoneCount)+(puindex*zoneCount)+(zoneid-1)];
+        }
+    }
+
     // returns an aggregate vector by species containing total zone targets and occurences.
     vector<double> AggregateTargetAreaBySpecies() {
         int spno = zoneTarget.size();
@@ -190,6 +207,11 @@ class Zones {
         }
 
         return rCost;
+    }
+
+    // connection cost between two zone indices
+    double GetZoneConnectionCost(int zoneindex1, int zoneindex2) {
+        return zoneConnectionCost[zoneindex1*zoneCount + zoneindex2];
     }
 
     vector<vector<double>> InitializeZoneMatrix() {

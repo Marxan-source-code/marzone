@@ -4,6 +4,7 @@
 // Handles all operations relating to pu, puzone, pulock etc. and pu connections.
 // Also includes the sparse matrix. 
 
+#include <algorithm>
 #include <iostream>
 #include <map>
 #include <string>
@@ -221,6 +222,40 @@ class Pu {
         }
         return(fcost);
     } // * * * * Connection Cost Type 1 * * * *
+    
+    // Returns the connection cost of a puindex, given the zones of the other pu.
+    // imode = TODO check specifics of this param. For now I am assuming 1, 0 or -1
+    double ConnectionCost2Linear(Zones& zones, int puindex, int imode, vector<int>& solution) {
+        double fcost, rResult, rZoneConnectionCost;
+        int iCurrentZone = solution[puindex];
+
+        fcost = connections[puindex].fixedcost*imode;
+        for (sneighbour& p: connections[puindex].first) {
+            if (p.nbr > puindex) {
+                rZoneConnectionCost = zones.GetZoneConnectionCost(iCurrentZone, solution[p.nbr]);
+                fcost += imode*p.cost*rZoneConnectionCost;
+            }
+        }
+
+        return fcost;
+    }
+
+    // Connection cost but we can specify which zone to calculate the current pu for
+    double ConnectionCost2(Zones& zones, int puindex, int imode, vector<int>& solution, int curZone) {
+        double fcost, rZoneConnectionCost;
+
+        // Initial fixed cost
+        fcost = connections[puindex].fixedcost*imode;
+
+        // Asymmetric connectivity not supported in marzone, so we can ignore it.
+        // We can add it back in the future if needed TODO.
+        for (sneighbour& p: connections[puindex].first) {
+            rZoneConnectionCost = zones.GetZoneConnectionCost(curZone, solution[p.nbr]);
+            fcost += imode*p.cost*rZoneConnectionCost;
+        }
+
+        return fcost;
+    }
 
     // returns the amount of a species at a planning unit, if the species doesn't occur here, returns 0
     double RtnAmountSpecAtPu(int iPUIndex, int iSpecIndex)
@@ -252,6 +287,45 @@ class Pu {
         myfile.close();
     }
 
+    vector<int> GetPuLockedIndices() {
+        vector<int> puLocked;
+
+        for (auto& [puid, zoneid]: puLock) {
+            puLocked.push_back(lookup[puid]);
+        }
+
+        return puLocked;
+    }
+
+    // Given a pu index, returns -1 if pu is not locked, or zoneid if pu is locked.
+    int GetPuLock(int puindex) {
+        if (puList[puindex].fPULock) {
+            return puList[puindex].iPULock;
+        }
+        return -1;
+    }
+
+    // Gets the species -> pu map sorted in amount/cost order. 
+    // if ignoreLocked is set, then 
+    vector<vector<penaltyTerm>> getPuAmountsSorted(int spno, bool ignoreLocked) {
+        vector<vector<penaltyTerm>> penaltyTerms(spno);
+        int ipu;
+
+        for (int i = 0; i < puno; i++) {
+            ipu = puList[i].offset;
+            for (int j = 0; j < puList[i].richness; j++) {
+                penaltyTerms[puvspr[ipu+j].spindex].push_back({puvspr[ipu+j].amount, puList[i].cost});
+            }
+        }
+
+        // Sort them
+        for (vector<penaltyTerm>& v: penaltyTerms) {
+            sort(v.begin(), v.end(), penaltyTermSortOperator);
+        }
+        
+        return penaltyTerms;
+    }
+
     int puno;
     int puLockCount;
     int puZoneCount;
@@ -260,7 +334,7 @@ class Pu {
 
     // TODO - make private.
     map<int, int> puLock; // puid -> zoneid
-    vector<vector<int>> puZone; // puindex -> list of available zones.
+    vector<vector<int>> puZone; // puindex -> list of available zones. If pu has empty puzone, it is allowed in ALL zones.
     vector<spustuff> puList;
     map<int, int> lookup; // original puid -> pu index
     vector<sconnections> connections; 
@@ -270,6 +344,21 @@ class Pu {
     vector<spusporder> puvspr_sporder;
 
     private:
+
+    bool penaltyTermSortOperator(penaltyTerm t1, penaltyTerm t2) {
+        if (t1.cost == 0 && t2.cost == 0) {
+            return t1.amount > t2.amount; // return higher amount
+        }
+        else if (t1.cost == 0) {
+            return true; // t1 has lower cost and therefore higher priority
+        }
+        else if (t2.cost == 0) {
+            return false; 
+        }
+        else {
+            return t1.amount/t1.cost > t2.amount/t2.cost; //prioritise higher ratio 
+        }
+    }
 
     void PersistPuLock() {
         for (auto& [puid, zoneid]: puLock) {
@@ -436,6 +525,11 @@ class Pu {
 
             if (putemp.id == -1)
                 throw invalid_argument("ERROR: Unable to parse planning unit id for line "+ to_string(puList.size()+1) + "\n");
+
+            // Aggregate pu costs 
+            for (double c: putemp.costBreakdown) {
+                putemp.cost += c;
+            }
 
             puList.push_back(putemp);
             lookup[putemp.id] = puno;
