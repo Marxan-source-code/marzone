@@ -1,6 +1,6 @@
 
 
-// C file for Marxan with Zones
+// C++ file for Marxan with Zones
 
 #include <ctype.h>
 #include <math.h>
@@ -32,7 +32,6 @@
 
 #undef DEBUG_COUNT_MISSING
 #undef DEBUG_CONNECTIONCOST2_LINEAR
-#undef TRACE_ZONE_TARGETS
 
 #undef DEBUGINITIALISERESERVE
 #undef DEBUG_PuNotInAllowedZone
@@ -49,6 +48,8 @@
 #define DEBUG_PENALTY_NEGATIVE
 
 #include "analysis.hpp"
+#include "heuristic.hpp"
+#include "iterative_improvement.hpp"
 #include "marzone.hpp"
 #include "input.hpp"
 #include "output.hpp"
@@ -442,12 +443,17 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
     //   The larger repetition loop
     // TODO - parallelize
-        // for each repeat run
+    // for each repeat run
     int maxThreads = omp_get_max_threads();
     ShowGenProg("Running multithreaded over number of threads: %d\n", maxThreads);
     for (int irun = 1;irun <= runoptions.repeats;irun++)
     {
         stringstream debugbuffer; 
+
+        // Create new reserve object and init
+        Reserve reserveThread(spec, zones);
+        reserveThread.InitializeSolution(pu.puno);
+        reserveThread.RandomiseSolution(pu, rngEngine);
 
         debugbuffer << "annealing start run " << irun << "\n";
         //AppendDebugTraceFile(debugbuffer);
@@ -455,86 +461,38 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         ShowGenProg("\n");
         ShowProg("Run %i ",irun);
 
-        SimulatedAnnealing sa(runoptions.AnnealingOn, anneal);
+        SimulatedAnnealing sa(runoptions.AnnealingOn, anneal, rngEngine, fnames.saveannealingtrace);
         if (runoptions.AnnealingOn)
         {
             debugbuffer << "before Annealling Init run "<< irun << "\n";
 
-            // init sa if setting is appropriate
-            sa.Initialize();
+            // init sa parameters if setting is appropriate
+            sa.Initialize(spec, pu, zones);
 
             debugbuffer << "after Annealling Init run "<< irun << "\n";
-
-           if (anneal.type >= 2)
-           {
-              if (anneal.type == 2)
-              {
-                 debugbuffer << "before ConnollyInit run "<< irun << "\n";
-                 //AppendDebugTraceFile(debugbuffer);
-
-                 ConnollyInit(irun,puno,spno,pu,connections,spec,SM,&anneal,aggexist,R,prop,clumptype,iZoneCount,verbose);
-
-                 debugbuffer << "after ConnollyInit run " << irun << "\n";
-                 //AppendDebugTraceFile(debugbuffer);
-              }
-
-              if (anneal.type == 3)
-              {
-                 #ifdef DEBUGTRACEFILE
-                 sprintf(debugbuffer,"before AdaptiveInit run %i\n",irun);
-                 AppendDebugTraceFile(debugbuffer);
-                 #endif
-
-                 AdaptiveInit(irun,puno,spno,prop,R,pu,connections,SM,spec,aggexist,&anneal,clumptype,iZoneCount);
-
-                 #ifdef DEBUGTRACEFILE
-                 sprintf(debugbuffer,"after AdaptiveInit run %i\n",irun);
-                 AppendDebugTraceFile(debugbuffer);
-                 #endif
-              }
-
-           }  // Using Precalced Temperature Settings
 
             ShowGenProg("  Using Calculated Tinit = %.4f Tcool = %.8f \n", anneal.Tinit,anneal.Tcool);
            anneal.temp = anneal.Tinit;
         }  // Annealing Settup
 
-
         ShowGenProg("  creating the initial reserve \n");
 
+        /* TODO reenable
         if (aggexist)
            ClearClumps(spno,spec,pu,SM);
-           
-        //ShowGenProg("A_\n");
+        */
 
-        #ifdef DEBUGTRACEFILE
-        sprintf(debugbuffer,"before ZonationCost run %i\n",irun);
-        AppendDebugTraceFile(debugbuffer);
-        #endif
+        debugbuffer << "before ZonationCost run " << irun << "%i\n";
+        reserveThread.EvaluateObjectiveValue(pu, spec, zones);
+        debugbuffer << "after ZonationCost run " << irun << "\n";
 
-        ZonationCost(irun,puno,spno,R,pu,connections,SM,spec,aggexist,&reserve,clumptype,prop,1);
-
-        //ShowGenProg("B_\n");
-
-        #ifdef DEBUGTRACEFILE
-        sprintf(debugbuffer,"after ZonationCost run %i\n",irun);
-        AppendDebugTraceFile(debugbuffer);
-        #endif
-
-        //ShowGenProg("B_2\n");
-
-        if (verbose > 1)
+        if (runoptions.verbose > 1)
         {
            ShowGenProg("\n  Init:");
-           
-           //ShowGenProg("B_3\n");
-           
-           PrintResVal(puno,spno,R,reserve,spec,misslevel);
+           PrintResVal(reserve, spec, zones, runoptions.misslevel);
         }
 
-        //ShowGenProg("C_\n");
-
-        if (verbose > 5)
+        if (runoptions.verbose > 5)
         {
            ShowTimePassed();
         }
@@ -543,92 +501,47 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         // * * *  main annealing algorithm * * * * *
         // * * * * * * * * * * * * * * * * * * * ***
 
-        if (runoptions.AnnealingOn)  // This should be moved to Annealing.c
+        if (runoptions.AnnealingOn)
         {
-           #ifdef DEBUGTRACEFILE
-           sprintf(debugbuffer,"before Annealing run %i\n",irun);
-           AppendDebugTraceFile(debugbuffer);
-           #endif
+            debugbuffer << "before Annealing run " << irun << "\n";
+            ShowGenProgInfo("  Main Annealing Section.\n");
 
-           Annealing(spno,puno,connections,R,spec,pu,SM,&change,&reserve,
-                     repeats,irun,savename,verbose,misslevel,
-                     aggexist,costthresh,tpf1,tpf2,clumptype,prop);
+            sa.RunAnneal(reserve, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
 
-           #ifdef DEBUGTRACEFILE
-           sprintf(debugbuffer,"after Annealing run %i\n",irun);
-           AppendDebugTraceFile(debugbuffer);
-           #endif
-        }  // End of Annealing On
+            debugbuffer << "after Annealing run " << irun << "\n";
+        } // End of Annealing On
 
         if (runoptions.HeuristicOn)
         {
-           #ifdef DEBUGTRACEFILE
-           sprintf(debugbuffer,"before Heuristics run %i\n",irun);
-           AppendDebugTraceFile(debugbuffer);
-           #endif
+           debugbuffer << "before Heuristics run " << irun << "\n";
+           Heuristic heur = Heuristic(rngEngine, runoptions.heurotype);
+           heur.RunHeuristic(reserve, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
 
-           Heuristics(spno,puno,pu,connections,R,spec,SM,&reserve,
-                      costthresh,tpf1,tpf2,heurotype,clumptype);
-
-           if (verbose > 1 && (runopts == 2 || runopts == 5))
+           if (runoptions.verbose > 1 && (runoptions.runopts == 2 || runoptions.runopts == 5))
            {
               ShowGenProg("\n  Heuristic:");
-              PrintResVal(puno,spno,R,reserve,spec,misslevel);
+              PrintResVal(reserve,spec,zones,runoptions.misslevel);
            }
 
-           #ifdef DEBUGTRACEFILE
-           sprintf(debugbuffer,"after Heuristics run %i\n",irun);
-           AppendDebugTraceFile(debugbuffer);
-           #endif
+           debugbuffer << "after Heuristics run " << irun << "\n";
         }    // Activate Greedy
 
         if (runoptions.ItImpOn)
         {
-           if (iOptimisationIterativeImprovement == 1)
-           {
-              #ifdef DEBUGTRACEFILE
-              sprintf(debugbuffer,"before IterativeImprovementOptimise run %i\n",irun);
-              AppendDebugTraceFile(debugbuffer);
-              #endif
+            debugbuffer << "before IterativeImprovementOptimise run " << irun << "\n";
+            IterativeImprovement itImp = IterativeImprovement(rngEngine, fnames, runoptions.itimptype);
+            itImp.Run(reserve, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
+            debugbuffer << "after IterativeImprovementOptimise run " << irun << "\n";
 
-              IterativeImprovementOptimise(puno,pu,connections,spec,SM,R,
-                                            &reserve,&change,costthresh,tpf1,tpf2,clumptype,irun,savename);
-
-              if (itimptype == 3)
-                 IterativeImprovementOptimise(puno,pu,connections,spec,SM,R,
-                                               &reserve,&change,costthresh,tpf1,tpf2,clumptype,irun,savename);
-
-              #ifdef DEBUGTRACEFILE
-              sprintf(debugbuffer,"after IterativeImprovementOptimise run %i\n",irun);
-              AppendDebugTraceFile(debugbuffer);
-              #endif
-           }
-           else
-           {
-               #ifdef DEBUGTRACEFILE
-               sprintf(debugbuffer,"before IterativeImprovement run %i\n",irun);
-               AppendDebugTraceFile(debugbuffer);
-               #endif
-
-               IterativeImprovement(puno,pu,connections,spec,SM,R,
-                                     &reserve,&change,costthresh,tpf1,tpf2,clumptype,itimptype);
-               if (itimptype == 3)
-                  IterativeImprovement(puno,pu,connections,spec,SM,R,
-                                    &reserve,&change,costthresh,tpf1,tpf2,clumptype,1);
-
-               #ifdef DEBUGTRACEFILE
-               sprintf(debugbuffer,"after IterativeImprovement run %i\n",irun);
-               AppendDebugTraceFile(debugbuffer);
-               #endif
-           }
-
+            /* TODO - reenable.
            if (aggexist)
               ClearClumps(spno,spec,pu,SM);
+            */
 
-           if (verbose > 1)
+           if (runoptions.verbose > 1)
            {
               ShowGenProg("  Iterative Improvement:");
-              PrintResVal(puno,spno,R,reserve,spec,misslevel);
+              PrintResVal(reserve,spec,zones,runoptions.misslevel);
            }
         } // Activate Iterative Improvement
 
@@ -1396,118 +1309,6 @@ void InitReserve(int puno,double prop, int R[], struct spustuff pu[], int iZoneC
 // *****    Central Processing Loop   * * * * ****
 // * * * * * * * * * * * * * * * * * * * * * * * *
 
-// ** Threshold penalty used for Check Change ***
-// ** only used when there is a cost threshold **
-double ThresholdPenalty(double tpf1,double tpf2,double timeprop)
-{
-       if (tpf2 < 0)
-          return(tpf1);
-
-       return(tpf1*exp(tpf2*timeprop));
-} // Threshold Penalty
-
-// *** Check Change * * * * * * * * * * * * ******
-void CheckChange(int iIteration, int ipu,int puno,struct spustuff pu[],struct sconnections connections[],
-                 struct sspecies spec[],struct spu SM[],int R[],int imode,int iZone,
-                 struct scost *change, struct scost *reserve,double costthresh,double tpf1, double tpf2,
-                 double timeprop,int clumptype,int iDebugMode)
-                // imode = 1 (add PU), imode = -1 (remove PU), imode = 0 (free zone swapping)
-                // iZone is one based
-{
-     double threshpen = 0;
-     int threshtype = 1;  // Debugging line. This should be input parameter not hardwired
-     double tchangeconnection,tresconnection;
-     #ifdef DEBUGCHECKCHANGE
-     char debugline[1000];
-     #endif
-
-     #ifdef DEBUGCHECKCHANGE
-     if (iDebugMode)
-       AppendDebugTraceFile("CheckChange start\n");
-     #endif
-
-     // change in cost = cost of new configuration - cost of old configuration
-     change->cost = ReturnPuZoneCost(ipu,iZone) - ReturnPuZoneCost(ipu,R[ipu]);
-
-     #ifdef DEBUGCHECKCHANGE
-     if (iDebugMode)
-        AppendDebugTraceFile("CheckChange after ReturnPuZoneCost\n");
-     #endif
-
-     // change in connection = connection of new configuration - connection of old configuration
-     change->connection = ConnectionCost2(ipu,iZone,connections,R,1,iDebugMode) -
-                        ConnectionCost2(ipu,R[ipu],connections,R,1,iDebugMode);
-
-     #ifdef DEBUGCHECKCHANGE
-     if (iDebugMode)
-     {
-        sprintf(debugline,"CheckChange after ConnectionCost2 penalty %g\n",change->penalty);
-        AppendDebugTraceFile(debugline);
-     }
-     #endif
-
-     if (threshtype ==1)
-     {
-        tchangeconnection = change->connection;
-        tresconnection = reserve->connection;
-        change->connection = 0;
-        reserve->connection = 0;
-     }
-
-     change->penalty = ChangePen(iIteration,ipu,puno,spec,pu,SM,R,connections,imode,clumptype,iZone,&change->shortfall);
-
-     #ifdef DEBUGCHECKCHANGE
-     if (iDebugMode)
-     {
-        sprintf(debugline,"CheckChange after ChangePen penalty %g\n",change->penalty);
-        AppendDebugTraceFile("CheckChange after ChangePen\n");
-     }
-     #endif
-
-     if (costthresh)
-     {  // Threshold Penalty for costs
-        if (reserve->cost + reserve->connection <= costthresh)
-        {
-           if (change->cost + change->connection + reserve->cost + reserve->connection <= costthresh)
-              threshpen = 0;
-           else
-               threshpen = (change->cost + change->connection +
-                           reserve->cost + reserve->connection - costthresh) *
-                           ThresholdPenalty(tpf1,tpf2,timeprop);
-        }
-        else
-        {
-            if (change->cost + change->connection + reserve->cost + reserve->connection <= costthresh)
-               threshpen = (reserve->cost + reserve->connection - costthresh) * ThresholdPenalty(tpf1,tpf2,timeprop);
-            else
-                threshpen = (change->cost + change->connection) * ThresholdPenalty(tpf1,tpf2,timeprop);
-        }
-     }
-
-     change->threshpen = threshpen;
-
-     if (threshtype ==1)
-     {
-        change->connection = tchangeconnection;
-        reserve->connection = tresconnection;
-     }
-
-     change->total = change->cost + change->connection + change->penalty + change->threshpen;
-
-     #ifdef DEBUGCHECKCHANGE
-     if (iDebugMode)
-     {
-        sprintf(debugline,"%i,%i,%i,%g,%g,%g,%g,%g\n",ipu,pu[ipu].id,R[ipu],change->total,change->cost,change->connection,change->penalty,change->threshpen);
-        AppendDebugFile("debug_MarZone_CheckChange.csv",debugline,fnames);
-     }
-     #endif
-
-     #ifdef DEBUGCHECKCHANGE
-     if (iDebugMode)
-        AppendDebugTraceFile("CheckChange end\n");
-     #endif
-}  // Check Change
-
 //  new species Penalty
 double NewPenalty(int ipu,int isp,struct sspecies spec[],struct spustuff pu[],struct spu SM[],int imode)
 {
@@ -1530,232 +1331,9 @@ double NewPenalty(int ipu,int isp,struct sspecies spec[],struct spustuff pu[],st
        return(newpen);
 }  // species Penalty
 
-// * * * * Good Change * * * *
-int GoodChange(struct scost change,double temp)
-{
-    return (exp(-change.total/temp)> rand1()) ? 1 : 0;
-
-} // Good Change
-
-// * * * * Do Change * * * *
-void DoChange(int ipu,int puno,int *R,struct scost *reserve,struct scost change,
-              struct spustuff pu[],struct spu SM[],struct sspecies spec[],struct sconnections connections[],
-              int imode,int iZone,int clumptype)
-{    int i,ism,isp, iArrayIndexOrigon, iArrayIndexDestination;
-     double rAmount, rCurrentContribAmount, rNewContribAmount;
-     #ifdef ANNEALING_TEST
-     char debugbuffer[1000];
-     #endif
-
-     #ifdef EXTRADEBUGTRACE
-     #endif
-
-     reserve->cost += change.cost;
-     reserve->connection += change.connection;
-     reserve->penalty += change.penalty;
-     reserve->shortfall += change.shortfall;
-
-     if (pu[ipu].richness)
-        for (i=0;i<pu[ipu].richness;i++)
-        {
-            ism = pu[ipu].offset + i;
-            isp = SM[ism].spindex;
-
-            rAmount = SM[ism].amount;
-
-            if (spec[isp].target2 && rAmount > 0)
-            {
-               if (imode == 1)
-               {
-                  AddNewPU(ipu,isp,connections,spec,pu,SM,clumptype);
-               }
-               else
-               {
-                   RemPu(ipu,isp,connections,spec,pu,SM,clumptype);
-               }
-               if (spec[isp].occurrence < 0)
-               {
-                  printf("Warning Warning ! isp %i occ %i \n",isp,spec[isp].occurrence);
-                  ShowPauseProg();
-               }
-            } // Type 4 species and this will impact them
-            else
-            {
-                iArrayIndexOrigon = (isp * iZoneCount) + (R[ipu] - 1);
-                iArrayIndexDestination = (isp * iZoneCount) + (iZone - 1);
-
-                // remove amount at current zone R[ipu]
-                // add amount at new zone iZone
-                rCurrentContribAmount = rtnConvertZoneAmount(R[ipu]-1,isp,ipu,puno,rAmount);
-                rNewContribAmount = rtnConvertZoneAmount(iZone-1,isp,ipu,puno,rAmount);
-
-                spec[isp].occurrence += (rNewContribAmount > 0) - (rCurrentContribAmount > 0);
-                spec[isp].amount += rNewContribAmount - rCurrentContribAmount;
-
-                // remove areas from origon Zone
-                ZoneSpec[iArrayIndexOrigon].occurrence -= (rAmount > 0);
-                ZoneSpec[iArrayIndexOrigon].amount -= rAmount;
-
-                // add areas to destination Zone
-                ZoneSpec[iArrayIndexDestination].occurrence += (rAmount > 0);
-                ZoneSpec[iArrayIndexDestination].amount += rAmount;
-
-                #ifdef ANNEALING_TEST
-                sprintf(debugbuffer,"DoChange ipu %i isp %i spec.amount %g imode %i\n"
-                                   ,ipu,isp,spec[isp].amount,imode);
-                AppendDebugTraceFile(debugbuffer);
-                #endif
-            }  // None clumping species
-
-            if (spec[isp].sepnum>0) // Count separation but only if it is possible that it has changed
-               if ((imode ==1 && spec[isp].separation < spec[isp].sepnum) || (imode == -1 && spec[isp].separation >1))
-                  spec[isp].separation = CountSeparation2(isp,0,NULL,puno,R,pu,SM,spec,0);
-        }
-
-     R[ipu] = iZone;
-     reserve->total = reserve->cost + reserve->connection + reserve->penalty;
-
-} // Do Change
-
-
 // * * * * * * * * * * * * * * * * * * * * * * * * *****
 // * * * * *** Post Processing * * * * * * * * * * * * *
 // * * * * * * * * * * * * * * * * * * * * * * * * *****
-
-// ***  Counts the number of species missing from the reserve ***
-int CountMissing(int spno,struct sspecies spec[],double misslevel,double *shortfall,double *rMinimumProportionMet)
-{
-    int i,j,isp = 0,iArrayIndex;
-    double rFeatureShortfall, rProportionMet;
-    #ifdef DEBUG_COUNT_MISSING
-    char debugbuffer[1000];
-    #endif
-
-    #ifdef DEBUG_COUNT_MISSING
-    sprintf(debugbuffer,"CountMissing start\n");
-    AppendDebugTraceFile(debugbuffer);
-    #endif
-
-    *shortfall = 0;
-    *rMinimumProportionMet = 1;
-    for (i=0;i<spno;i++)
-    {
-        rFeatureShortfall = 0;
-        rProportionMet = 1;
-
-        if (spec[i].target > 0)
-           if (spec[i].amount < spec[i].target)
-           {
-              rFeatureShortfall += spec[i].target - spec[i].amount;
-              rProportionMet = spec[i].amount / spec[i].target;
-
-              if (rProportionMet < *rMinimumProportionMet)
-                 *rMinimumProportionMet = rProportionMet;
-           }
-        if (spec[i].targetocc > 0)
-           if (spec[i].occurrence < spec[i].targetocc)
-           {
-              rFeatureShortfall += spec[i].targetocc - spec[i].occurrence;
-              rProportionMet = spec[i].occurrence / spec[i].targetocc;
-
-              if (rProportionMet < *rMinimumProportionMet)
-                 *rMinimumProportionMet = rProportionMet;
-           }
-        if (spec[i].target > 0)
-           if ( spec[i].amount/spec[i].target < misslevel)
-           {
-              isp++;
-              //continue;
-           }
-
-        for (j=0;j<iZoneCount;j++)
-        {
-            iArrayIndex = (i*iZoneCount)+j;
-            if (_ZoneTarget[iArrayIndex].target > 0)
-            {
-               if (ZoneSpec[iArrayIndex].amount < _ZoneTarget[iArrayIndex].target)
-               {
-                  rFeatureShortfall += _ZoneTarget[iArrayIndex].target - ZoneSpec[iArrayIndex].amount;
-
-                  rProportionMet = ZoneSpec[iArrayIndex].amount / _ZoneTarget[iArrayIndex].target;
-
-                  if (rProportionMet < *rMinimumProportionMet)
-                     *rMinimumProportionMet = rProportionMet;
-               }
-               if (ZoneSpec[iArrayIndex].amount/_ZoneTarget[iArrayIndex].target < misslevel)
-                  isp++;
-            }
-            if (_ZoneTarget[iArrayIndex].occurrence > 0)
-            {
-               if (ZoneSpec[iArrayIndex].occurrence < _ZoneTarget[iArrayIndex].occurrence)
-               {
-                  rFeatureShortfall += _ZoneTarget[iArrayIndex].occurrence - ZoneSpec[iArrayIndex].occurrence;
-
-                  rProportionMet = ZoneSpec[iArrayIndex].occurrence / _ZoneTarget[iArrayIndex].occurrence;
-
-                  if (rProportionMet < *rMinimumProportionMet)
-                     *rMinimumProportionMet = rProportionMet;
-               }
-               if (ZoneSpec[iArrayIndex].occurrence/_ZoneTarget[iArrayIndex].occurrence < misslevel)
-                  isp++;
-            }
-        }
-
-        if (spec[i].targetocc)
-           if ((double)spec[i].occurrence/(double)spec[i].targetocc < misslevel)
-           {
-              isp++;
-              /* occshort++; */
-              //continue;
-           }
-        if (spec[i].sepdistance && spec[i].separation < 3)
-        {
-           isp++;  /* count species if not met separation and not already counted */
-           /* sepshort++; */
-        }
-
-        *shortfall += rFeatureShortfall;
-
-        #ifdef DEBUG_COUNT_MISSING
-        sprintf(debugbuffer,"CountMissing spid %i shortfall %g sum %g\n",spec[i].name,rFeatureShortfall,*shortfall);
-        AppendDebugTraceFile(debugbuffer);
-        #endif
-    }
-
-    #ifdef DEBUG_COUNT_MISSING
-    sprintf(debugbuffer,"CountMissing end shortfall %g\n",*shortfall);
-    AppendDebugTraceFile(debugbuffer);
-    #endif
-
-    return(isp);
-}  // CountMissing
-
-void CountPuZones(char *sLine,int puno,int R[])
-{
-     int i,*ZoneCount;
-     char sCount[20];
-     ZoneCount = (int *) calloc(iZoneCount,sizeof(int));
-     for (i=0;i<iZoneCount;i++)
-         ZoneCount[i] = 0;
-
-     for (i=0;i<puno;i++)
-         if (R[i] > 0)
-            ZoneCount[R[i]-1] += 1;
-
-     strcpy(sLine,"");
-     for (i=0;i<iZoneCount;i++)
-         {
-            strcat(sLine," ");
-            strcat(sLine,Zones[i].name);
-            sprintf(sCount,"%i",ZoneCount[i]);
-            strcat(sLine," ");
-            strcat(sLine,sCount);
-
-            //printf("CPZ %s\n",sLine);
-         }
-
-     free(ZoneCount);
-}
 
 void printPuZones(int puno,int R[])
 {
@@ -1825,57 +1403,17 @@ void printPuZones(int puno,int R[])
 }
 
 // * * * * Reporting Value of a Reserve * * * *
-void PrintResVal (int puno, int spno,int R[],struct scost reserve,
-                  struct sspecies spec[],double misslevel)
-{    int i, iMissing;
-     double connectiontemp = 0;
-     double shortfall, rMPM;
-     char sPuZones[1000];
+// TODO - move to Reserve object
+void PrintResVal(Reserve& reserve, Species& spec, Zones& zones, double misslevel)
+{
+    int i, iMissing;
+    double shortfall, rMPM;
 
-     //printf("P_1\n");
+    iMissing = reserve.CountMissing(spec, zones, misslevel, rMPM);
+    string sPuZones = reserve.CountPuZones(zones);
 
-     for (i=0;i<puno;i++)
-         //if ((R[i]!=iAvailableEquivalentZone) && (R[i] != 0))
-         {
-            connectiontemp += ConnectionCost2Linear(i,R[i],pu,connections,R,1,0);
-         }
-         
-     //ShowGenProg("P_2\n");
-     //printf("P_2\n");
-
-     iMissing = CountMissing(spno,spec,misslevel,&shortfall,&rMPM);
-     CountPuZones(sPuZones,puno,R);
-     //strcpy(sPuZones," __");
-     
-     //printf("P_3\n");
-     
-     //printf("sPuZones is >%s<\n",sPuZones);
-
-     //ShowProg("Value %.1f\n",
-     //         reserve.total);
-     //ShowProg("Cost %.1f\n",
-     //         reserve.cost);
-     //ShowProg("%s\n",
-     //         sPuZones);
-     //ShowProg("Connection %.1f\n",
-     //         connectiontemp);
-     //ShowProg("Missing %i\n",
-     //         iMissing);
-     //ShowProg("Shortfall %.2f\n",
-     //         shortfall);
-     //ShowProg("Penalty %.1f\n",
-     //         reserve.penalty);
-     //ShowProg("MPM %.1f\n",
-     //         rMPM);
-
-     ShowProg("Value %.1f Cost %.1f %s Connection %.1f Missing %i Shortfall %.2f Penalty %.1f MPM %.1f\n",
-              reserve.total,reserve.cost,sPuZones,connectiontemp,iMissing,shortfall,reserve.penalty,rMPM);
-     //ShowProg("Value %.1f Cost %.1f Connection %.1f Missing %i Shortfall %.2f Penalty %.1f MPM %.1f\n",
-     //         reserve.total,reserve.cost,connectiontemp,iMissing,shortfall,reserve.penalty,rMPM);
-              
-     //printPuZones(puno,R);
-              
-     //printf("P_4\n");
+    ShowProg("Value %.1f Cost %.1f %s Connection %.1f Missing %i Shortfall %.2f Penalty %.1f MPM %.1f\n",
+             reserve.objective.total, reserve.objective.cost, sPuZones.c_str(), reserve.objective.connection, iMissing, shortfall, reserve.objective.penalty, rMPM);
 
 } /* * * * Print Reserve Value * * * * */
 
@@ -1891,245 +1429,6 @@ void ChangeCost(struct scost *cost,double changemult)
      cost->cost *= changemult;
 
 }  /* ChangeCost */
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ***/
-/* * * * ****** Annealing Specific Functions * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ***/
-
-void ConnollyInit(int irun,int puno,int spno,struct spustuff pu[],sconnections connections[],sspecies spec[],
-                  struct spu SM[], struct sanneal *anneal,int aggexist,
-                  int R[],double prop,int clumptype, int iZoneCount,int verbose)
-{
-     int i,ipu,imode, iZone, iOldR, iPreviousR,j;
-     double deltamin = 0,deltamax = 0, iLoopCounter;
-     double localdelta;
-     #ifdef DEBUGTRACEFILE
-     char debugbuffer[1000], sRun[20];
-     FILE *fp;
-     char *writename;
-     #endif
-
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"ConnollyInit start\n");
-     AppendDebugTraceFile(debugbuffer);
-     #endif
-
-     localdelta = 1E-10;
-
-     if (aggexist)
-        ClearClumps(spno,spec,pu,SM);
-
-     #ifdef DEBUG_CONNOLLYINIT
-     AppendDebugTraceFile("ConnollyInit before ZonationCost\n");
-     sprintf(sRun,"%i",irun);
-     writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debug_marzone_ConnollyInit_.csv") + strlen(sRun) + 2, sizeof(char));
-     strcpy(writename,fnames.outputdir);
-     strcat(writename,"debug_marzone_ConnollyInit_");
-     strcat(writename,sRun);
-     strcat(writename,".csv");
-     fp = fopen(writename,"w");
-     if (fp==NULL)
-        ShowErrorMessage("cannot create debug_marzone_ConnollyInit file %s\n",writename);
-
-     sprintf(debugbuffer,"creating file >%s<\n",writename);
-     AppendDebugTraceFile(debugbuffer);
-
-     free(writename);
-     fprintf(fp,"i,ipu,puid,R,imode,iZone,total,max,min\n");
-     fflush(fp);
-     #endif
-
-     ZonationCost(irun,puno,spno,R,pu,connections,SM,spec,aggexist,&reserve,clumptype,prop,1);
-
-     #ifdef DEBUG_CONNOLLYINIT
-     AppendDebugTraceFile("ConnollyInit after ZonationCost\n");
-     #endif
-
-     for (i=1;i<= (*anneal).iterations/100; i++)
-     {
-         #ifdef DEBUG_CONNOLLYINIT
-         sprintf(debugbuffer,"ConnollyInit i %i\n",i);
-         AppendDebugTraceFile(debugbuffer);
-         #endif
-
-         // toggle a random planning unit to a random zone
-         do
-           ipu = RandNum(puno);
-
-         while ((pu[ipu].status > 1) || (pu[ipu].fPULock == 1));
-
-         iPreviousR = R[ipu];
-
-         iLoopCounter = 0;
-
-         if (pu[ipu].fPUZone == 1)
-         {
-            // enforce locked into range of zones
-            do
-            {
-              iZone = RandNum(iZoneCount) + 1;
-
-              iLoopCounter++;
-
-              if (iLoopCounter > 5000)
-              {
-                 #ifdef DEBUGTRACEFILE
-                 DumpPuZone_Debug(iPuZoneCount,PuZone,fnames,999);
-                 AppendDebugTraceFile("PuZone endless loop in Annealing detected\n");
-                 sprintf(debugbuffer,"puid %i iZone %i\n",pu[ipu].id,iZone);
-                 AppendDebugTraceFile(debugbuffer);
-                 for (j=0;j<pu[ipu].iPUZones;j++)
-                 {
-                     sprintf(debugbuffer,"j %i zone %i\n",j,PuZone[pu[ipu].iPUZone + j].zoneid);
-                     AppendDebugTraceFile(debugbuffer);
-                 }
-                 #endif
-                 ShowGenProg("\nPuZone endless loop in Annealing detected\n");
-                 ShowGenProg("Internal error detected.  Please inform the Marxan with Zones developers.\n\n");
-                 ShowPauseExit();
-                 exit(1);
-              }
-            }
-            while ((iZone == iPreviousR) || (PuNotInAllowedZone(pu[ipu],iZone,PuZone,0,'c')));
-         }
-         else
-         {
-             // allowed in any zone
-             do
-               iZone = RandNum(iZoneCount) + 1;
-
-             while (iZone == iPreviousR);
-         }
-
-         //if (iZone == iAvailableEquivalentZone)
-         //   imode = -1;
-         //else
-             imode = 1;
-
-         CheckChange(i,ipu,puno,pu,connections,spec,SM,R,imode,iZone,&change,&reserve,0,0,0,0,clumptype,1);
-
-         #ifdef DEBUG_CONNOLLYINIT
-         AppendDebugTraceFile("ConnollyInit after CheckChange\n");
-         #endif
-
-         DoChange(ipu,puno,R,&reserve,change,pu,SM,spec,connections,imode,iZone,clumptype);
-
-         #ifdef DEBUG_CONNOLLYINIT
-         AppendDebugTraceFile("ConnollyInit after DoChange\n");
-         #endif
-
-         if (change.total > deltamax)
-            deltamax = change.total;
-         if (change.total >localdelta && (deltamin < localdelta || change.total < deltamin))
-            deltamin = change.total;
-
-         #ifdef DEBUG_CONNOLLYINIT
-         sprintf(debugbuffer,"ConnollyInit i %i puid %i R %i imode %i total %g max %g min %g\n"
-                            ,i,pu[ipu].id,R[ipu],imode,change.total,deltamax,deltamin);
-         AppendDebugTraceFile(debugbuffer);
-         fprintf(fp,"%i,%i,%i,%i,%i,%i,%g,%g,%g\n",i,ipu,pu[ipu].id,iOldR,imode,iZone,change.total,deltamax,deltamin);
-         fflush(fp);
-         #endif
-     }  /** Run through this bit for iterations/100 times */
-
-     (*anneal).Tinit = deltamax;
-     deltamin *= 0.1;
-
-     if ((*anneal).Tinit)
-     {
-         if ((*anneal).Titns)
-         {
-             (*anneal).Tcool = exp(log(deltamin/ (*anneal).Tinit)/(double)(*anneal).Titns);
-         }
-         else
-         {
-             (*anneal).Tcool = 1;
-         }
-     }
-
-     #ifdef DEBUG_CONNOLLYINIT
-     fclose(fp);
-     #endif
-
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"Tinit %g Titns %i Tcool %g\n",(*anneal).Tinit,(*anneal).Titns,(*anneal).Tcool);
-     AppendDebugTraceFile(debugbuffer);
-     AppendDebugTraceFile("ConnollyInit end\n");
-     #endif
-
-} /** Init Annealing Schedule According to Connolly Scheme **/
-
-/* * * * Adaptive Annealing 2 * * * * * * * * *****/
-/**** Initial Trial Runs. Run for some small time to establish sigma. ****/
-void AdaptiveInit(int irun,int puno,int spno,double prop,int R[],struct spustuff pu[],
-                  struct sconnections connections[],struct spu SM[],struct sspecies spec[],
-                  int aggexist,struct sanneal *anneal,int clumptype,int iZoneCount)
-{
-     int i,isamples;
-     double sum = 0,sum2 = 0;
-     double sigma;
-     struct scost cost;
-     double c = 10;  /* An initial temperature acceptance number */
-     #ifdef DEBUGTRACEFILE
-     char debugbuffer[1000];
-     #endif
-
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("AdaptiveInit start\n");
-     #endif
-
-     isamples = 1000; /* Hardwired number of samples to take */
-
-     for (i=0;i<isamples;i++)
-     {   /* Generate Random Reserve */
-         //InitReserve(puno,prop,R,pu,iZoneCount);
-         //AddReserve(puno,iAvailableEquivalentZone,pu,R,iZoneCount,PuZone);
-         /* Score Random reserve */
-         ZonationCost(irun,puno,spno,R,pu,connections,SM,spec,aggexist,&cost,clumptype,prop,1);
-         /* Add Score to Sum */
-         sum += cost.total;
-         sum2 += cost.total*cost.total;
-     } /* Sample space iterations/100 times */
-
-     sigma = sqrt(sum2 - pow(sum/isamples,2))/(isamples-1);
-
-     (*anneal).Tinit = c * sigma;
-     (*anneal).sigma = sigma;
-     (*anneal).temp = (*anneal).Tinit;
-     (*anneal).tempold = (*anneal).temp;
-     (*anneal).sum = 0;
-     (*anneal).sum2 = 0;
-
-     #ifdef DEBUGTRACEFILE
-     sprintf(debugbuffer,"Tinit %g Titns %i Tcool %g\n",(*anneal).Tinit,(*anneal).Titns,(*anneal).Tcool);
-     AppendDebugTraceFile(debugbuffer);
-     #endif
-
-     #ifdef DEBUGTRACEFILE
-     AppendDebugTraceFile("AdaptiveInit end\n");
-     #endif
-
-} /**** Adaptive Annealing Initialisation *****/
-
-/**** Set TInitial from this as well ****/
-
-/**** Function to decrement T and decide if it is time to stop? *****/
-void AdaptiveDec(struct sanneal *anneal)
-{
-     double omega = 0.7; /* Control parameter */
-     double sigmanew,sigmamod;
-     double lambda = 0.7; /* control parameter*/
-
-
-     sigmanew = ((*anneal).sum2 - pow(((*anneal).sum/(*anneal).Tlen),2))/((*anneal).Tlen-1);
-     sigmamod = (1-omega)*sigmanew + omega * (*anneal).sigma *((*anneal).temp/(*anneal).tempold);
-     (*anneal).tempold = (*anneal).temp;
-     (*anneal).temp = exp(-lambda*(*anneal).temp/sigmamod);
-     (*anneal).sigma = sigmamod;
-     (*anneal).sum = 0;
-     (*anneal).sum2 = 0;
-
-} /* Adaptive Decrement. Sets the new temperature based on old values */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ****/
 /*                                                                                  */
@@ -2256,7 +1555,6 @@ void Annealing(int spno, int puno, struct sconnections connections[],int R[],
             iRowLimit = floor(anneal.iterations / fnames.annealingtracerows);
      }
 
-     ShowGenProgInfo("  Main Annealing Section.\n");
      for (itime = 1;itime<=anneal.iterations;itime++)
      {
          // toggle a random planning unit between reserved and available
@@ -4304,368 +3602,7 @@ double GreedyPen(int ipu,int puno, int spno, sspecies spec[],int R[],struct spus
        return(famount);  /* Negative means decrease in amount missing */
 } /** Greedy Species Penalty **/
 
-/* * * * * Greedy Score an alternative to the normal objective function *****/
-double GreedyScore(int ipu,int puno, int spno, sspecies *spec,struct spu SM[],
-                   struct sconnections connections[],int R[],struct spustuff pu[],int clumptype)
-{
-       double currpen,currcost,currscore;
-
-       currpen = GreedyPen(ipu,puno,spno,spec,R,pu,SM,clumptype);
-       currcost = pu[ipu].cost + ConnectionCost2(ipu,R[ipu],connections,R,1,0);
-       if (currcost <= 0)
-       {
-          currscore = -1.0/delta;
-       } /* otherwise this 'free pu' will have +score */
-       else
-       {
-           currscore = currpen/currcost;
-       }
-
-       return(currscore);
-} /* Score for a planning unit based upon greedy algorithm */
-
-/* * * * *** Rarity Settup. Sets up rare score for each species ******/
-/**** score is total abundance / smallest species abundance * * * * */
-void SetRareness(int puno, int spno, double Rare[],struct spustuff pu[],struct spu SM[],int R[])
-{
-     double smallest = 0;
-     double *fcount;
-     int i, ism, isp,ipu;
-
-     fcount = (double *) calloc(spno,sizeof(double));
-
-     for (isp=0;isp<spno;isp++)
-         fcount[isp] = 0;
-
-     for (ipu=0;ipu<puno;ipu++)
-         if (pu[ipu].richness)
-            for (i=0;i<pu[ipu].richness;i++)
-            {
-                ism = pu[ipu].richness + i;
-                isp = SM[ism].spindex;
-                //if (R[ipu] < 2)
-                if ((R[ipu] > 0) && (pu[ipu].status < 2) && (pu[ipu].fPULock != 1) && (pu[ipu].fPUZone != 1))
-                   fcount[isp] += rtnAmountSpecAtPu(pu,SM,ipu,isp);
-            }
-
-     for (isp=0;isp<spno;isp++)
-     {
-         if (smallest == 0 || (fcount[isp] < smallest && fcount[isp] > 0))
-            smallest = fcount[isp];
-         Rare[isp] = fcount[isp];
-     }
-
-     if (smallest == 0)
-        ShowErrorMessage("Serious Error in calculating Rarenesses. No species detected.\n");
-
-     for (isp=0;isp<spno;isp++)
-         Rare[isp] /= smallest;
-
-     free(fcount);
-}  /* SetRareness */
-
-/**** RareScore The score for a particular conservation value on a particular PU */
-double RareScore(int isp,int ipu,int puno,sspecies spec[],struct spu SM[], int R[],
-                 struct sconnections connections[],struct spustuff pu[],int clumptype)
-{
-       double currpen,currcost,currscore;
-       double fold, newamount;
-
-       fold = (spec[isp].target - spec[isp].amount);
-       if (fold > 0)
-       {
-          if (spec[isp].target2)
-             newamount = NewPenalty4(ipu,isp,puno,spec,pu,SM,R,connections,1,clumptype);
-          else
-              newamount = NewPenalty(ipu,isp,spec,pu,SM,1);
-          currpen = newamount - fold;
-       } /* Add new penalty if species isn't already in the system */
-
-       currcost = pu[ipu].cost + ConnectionCost2(ipu,R[ipu],connections,R,1,0);
-       if (currcost <= 0)
-       {
-          currscore = -1.0/delta;
-       } /* otherwise this 'free pu' will have +score */
-       else
-       {
-           currscore = currpen/currcost;
-       }
-
-    return(currscore);
-} /* RareScore */
-
-/* * * * **** Max Rare Score Heuristic. PU scores based on rarest beast on PU */
-double MaxRareScore(int ipu,int puno,struct sspecies spec[],struct spu SM[],
-                    int R[],struct sconnections connections[],struct spustuff pu[],double Rare[],int clumptype)
-{
-       int i, ism, isp,rareno = -1;
-       double rarest,rarescore;
-
-       for (i=0;i<pu[ipu].richness;i++)
-       {
-           ism = pu[ipu].offset + i;
-           isp = SM[ism].spindex;
-           if (SM[ism].amount && (spec[isp].target > spec[isp].amount || (spec[isp].sepdistance && spec[isp].separation < 3)))
-              if (1.0/Rare[isp] < rarest || rareno < 0)
-              {
-                 rareno = isp;
-                 rarest = Rare[isp];
-              }  /* Determine which is the rarest species */
-       }
-
-       if (rareno > -1)
-          rarescore = RareScore(rareno,ipu,puno,spec,SM,R,connections,pu,clumptype)/rarest;
-       else
-           rarescore = 1.0 / delta;
-
-       return(rarescore);
-} /* Max Rare Score */
-
-/* * * * * * * * * Best Rarity Score. Determines each species rare score * * * * */
-double BestRareScore(int ipu,int puno,struct sspecies spec[],struct spu SM[],
-                     int R[],struct sconnections connections[],struct spustuff pu[],double Rare[],int clumptype)
-{
-       int i, ism, isp,rareno = -1;
-       double rarest = 0,rarescore;
-
-       if (pu[ipu].richness)
-       for (i=0;i<pu[ipu].richness;i++)
-       {
-           ism = pu[ipu].offset + i;
-           isp = SM[ism].spindex;
-           if (SM[ism].amount && (spec[isp].target > spec[isp].amount || (spec[isp].sepdistance && spec[isp].separation < 3)))
-           {
-              rarescore = RareScore(isp,ipu,puno,spec,SM,R,connections,pu,clumptype)/Rare[isp];
-              if (rarescore > rarest || rareno < 0)
-              {
-                 rarest = rarescore;
-                 rareno = isp;
-              }
-           }
-       }
-
-       return(rarescore);
-} /* Best Rare Score */
-
-/***** Average Rare Score. Rare Score for each scoring species/number scoring species **/
-double AveRareScore(int ipu,int puno,struct sspecies spec[],struct spu SM[],
-                    int R[],struct sconnections connections[],struct spustuff pu[],double Rare[],int clumptype)
-{
-       int i, ism, isp, rareno = 0;
-       double rarescore = 0;
-
-       if (pu[ipu].richness)
-       for (i=0;i<pu[ipu].richness;i++)
-       {
-           ism = pu[ipu].offset + i;
-           isp = SM[ism].spindex;
-           if (SM[ism].amount && (spec[isp].target > spec[isp].amount || (spec[isp].sepdistance && spec[isp].separation < 3)))
-           {
-              rarescore += RareScore(isp,ipu,puno,spec,SM,R,connections,pu,clumptype)/Rare[isp];
-              rareno++;
-           }
-       }
-
-       return(rarescore/rareno);
-} /* Ave Rare Score */
-
-/***** Sum of Rare Score for each scoring species **/
-double SumRareScore(int ipu,int puno,struct sspecies spec[],struct spu SM[],
-                    int R[],struct sconnections connections[],struct spustuff pu[],double Rare[],int clumptype)
-{
-       int i, ism, isp;
-       double rarescore = 0;
-
-       if (pu[ipu].richness)
-       for (i=0;i<pu[ipu].richness;i++)
-       {
-           ism = pu[ipu].offset + i;
-           isp = SM[ism].spindex;
-           if (SM[ism].amount && (spec[isp].target > spec[isp].amount || (spec[isp].sepdistance && spec[isp].separation < 3)))
-              rarescore += RareScore(isp,ipu,puno,spec,SM,R,connections,pu,clumptype)/Rare[isp];
-       }
-
-       return(rarescore);
-} /* Sum Rare Score */
-
-/****** Set Abundances ******/
-void SetAbundance(int puno,double Rare[],struct spustuff pu[],struct spu SM[])
-{
-     int i,j, ism, isp;
-
-     for (i=0;i<puno;i++)
-         if (pu[i].richness)
-            for (j=0;j<pu[i].richness;j++)
-            {
-                ism = pu[i].offset + j;
-                isp = SM[ism].spindex;
-                Rare[isp] += SM[ism].amount;
-            }
-} /* Set Abundance */
-
-/***** Irreplaceability For site for species *****/
-double Irreplaceability(int ipu,int isp, double Rare[],struct spustuff pu[],struct spu SM[],sspecies *spec)
-{
-       double buffer,effamount;
-
-       buffer = Rare[isp] < spec[isp].target ? 0 : Rare[isp] - spec[isp].target;
-       if (spec[isp].amount > spec[isp].target)
-          return(0);
-       effamount = rtnAmountSpecAtPu(pu,SM,ipu,isp);
-       return(buffer<effamount ? 1 : effamount/buffer);
-}
-
-/***** Product Irreplaceability for a single site ****/
-double ProdIrr(int ipu,double Rare[],struct spustuff pu[],struct spu SM[],sspecies *spec)
-{
-       int i, ism, isp;
-       double product = 1;
-
-       if (pu[ipu].richness)
-       for (i=0;i<pu[ipu].richness;i++)
-       {
-           ism = pu[ipu].offset + i;
-           isp = SM[ism].spindex;
-           if (SM[ism].amount && (spec[isp].target - spec[isp].amount)> 0)
-              product *= (1-Irreplaceability(ipu,isp,Rare,pu,SM,spec));
-       }
-
-       return(1-product);
-} /* Product Irreplaceability */
-
-/***** Sum Irreplaceability for a single site *****/
-double SumIrr(int ipu,double Rare[],struct spustuff pu[],struct spu SM[],sspecies *spec)
-{
-       int i, ism, isp;
-       double sum = 0;
-
-       if (pu[ipu].richness)
-          for (i=0;i<pu[ipu].richness;i++)
-          {
-              ism = pu[ipu].offset + i;
-              isp = SM[ism].spindex;
-              if (SM[ism].amount && (spec[isp].target - spec[isp].amount)> 0)
-                 sum += (Irreplaceability(ipu,isp,Rare,pu,SM,spec));
-          }
-
-       return(sum);
-} /* Sum Irreplaceability */
-
-/* * * * ***** Main Heuristic Engine * * * * * * * * ****/
-void Heuristics(int spno,int puno,struct spustuff pu[],struct sconnections connections[],
-                int R[],sspecies *spec,struct spu SM[], struct scost *reserve,
-                double costthresh, double tpf1,double tpf2, int imode,int clumptype)
-     /** imode = 1: 2: 3: 4: */
-     /** imode = 5: 6: Prod Irreplaceability, 7: Sum Irreplaceability */
-{
-     int i,j,bestpu,iZone=0,iArrayIndex;
-     double bestscore,currscore;
-     struct scost change;
-     double *Rare;
-
-
-     /**** Irreplacability ****/
-
-     if (imode >= 6 && imode <= 7)
-     {
-        Rare = (double *) calloc(spno,sizeof(double));
-        SetAbundance(puno,Rare,pu,SM);
-     }
-
-     if (imode >= 2 && imode <= 5) /* Rareness Setups */
-     {
-        Rare = (double *) calloc(spno,sizeof(double));
-        SetRareness(puno,spno,Rare,pu,SM,R);
-     }
-
-     do
-     {
-       bestpu = 0;
-       bestscore = 0;
-
-       for (i=0;i<puno;i++)
-           //if ((R[i] != iAvailableEquivalentZone) && (R[i] != 0)) /* Only look for new PUS */
-           {
-              // choose a non-available zone to score this available site for
-              // we are changing from the available zone to the non-available zone
-              //do
-                iZone = RandNum(iZoneCount) + 1;
-
-              //while (iZone != iAvailableEquivalentZone);
-
-              /* Set the score for the given Planning Unit */
-              currscore = 1; /* null if no other mode set */
-              if (imode == 0)
-                 currscore = GreedyScore(i,puno,spno,spec,SM,connections,R,pu,clumptype);
-              if (imode == 1)
-              {
-                 CheckChange(i,i,puno,pu,connections,spec,SM,R,1,iZone,&change,reserve,
-                             costthresh,tpf1,tpf2,1, clumptype,0);
-                 currscore = change.total;
-              }
-              if (imode == 2)
-                 currscore = MaxRareScore(i,puno,spec,SM,R,connections,pu,Rare, clumptype);
-              if (imode == 3)
-                 currscore = BestRareScore(i,puno,spec,SM,R,connections,pu,Rare,clumptype);
-              if (imode == 4)
-                 currscore = AveRareScore(i,puno,spec,SM,R,connections,pu,Rare,clumptype);
-              if (imode == 5)
-                 currscore = SumRareScore(i,puno,spec,SM,R,connections,pu,Rare,clumptype);
-              if (imode == 6)
-                 currscore = -ProdIrr(i,Rare,pu,SM,spec);
-              if (imode == 7)
-                 currscore = -SumIrr(i,Rare,pu,SM,spec);
-
-              currscore *=(double) rand1()*0.001 + 1.0;
-              if (!costthresh || pu[i].cost + reserve->cost <= costthresh)
-                 if (currscore < bestscore)
-                 {
-                    bestpu = i;
-                    bestscore = currscore;
-                 } /** is this better (ie negative) than bestscore? **/
-
-           } /** I've looked through each pu to find best **/
-
-           if (bestscore)
-           {
-              CheckChange(i,bestpu,puno,pu,connections,spec,SM,R,1,iZone,&change,reserve,
-                          costthresh,tpf1,tpf2,1,clumptype,0);
-              DoChange(bestpu,puno,R,reserve,change,pu,SM,spec,connections,1,iZone,clumptype);
-
-              /* Different Heuristics might have different penalty effects */
-
-              /* Old fashioned penalty and missing counting */
-              reserve->missing = 0;
-              for (i=0;i<spno;i++)
-              {
-                  for (j=0;j<iZoneCount;j++)
-                  {
-                      iArrayIndex = (i*iZoneCount)+j;
-                      if (ZoneSpec[iArrayIndex].amount < _ZoneTarget[iArrayIndex].target)
-                         reserve->missing++;
-                  }
-                  if (spec[i].amount < spec[i].target)
-                     reserve->missing++;
-                  else
-                      if (spec[i].sepdistance && spec[i].separation < 3)
-                         reserve->missing++;
-                  /** Species missing **/
-              } /** checking to see who I am missing **/
-           } /** Add Pu as long as I've found one **/
-
-           if (bestscore)
-              ShowGenProgInfo("P.U. %i score %.6f Cost %.1f Connection %.1f Missing %i Amount %.1f \n",
-                              bestpu,bestscore,reserve->cost,reserve->connection,reserve->missing,
-                              reserve->penalty);
-
-     } while(bestscore);
-     /** Repeat until all good PUs have been added **/
-
-     reserve->total = reserve->cost + reserve->connection + reserve->penalty;
-
-}  /**** Heuristics * * * * ****/
-
-/*** ItImpDiscard * * * * * * * * ******/
+/* ItImpDiscard * * * * * * * * ******/
 /* move a given id from the list to the discard */
 struct slink* ItImpDiscard(int ichoice, struct slink *list, struct slink **discard)
 {
@@ -4846,170 +3783,6 @@ int FindSwap(struct slink **list,double targetval,int itestchoice,int puuntried,
 }  /* Find Swap */
 
 
-/* * * * **** Iterative Improvement * * * * *****/
-/*** Iterative improvement using dynamic memory allocation * * * * */
-void IterativeImprovement(int puno,struct spustuff pu[], struct sconnections connections[],
-                           struct sspecies spec[],struct spu SM[],int R[],
-                           struct scost *reserve,struct scost *change,double costthresh,double tpf1, double tpf2,
-                           int clumptype,int itimptype)
-{
-     struct slink *list, *discard, *lp, *newp, *tempp;
-     int puuntried ,puvalid = 0, i,j,ipu,imode,ichoice,iZone, iLoopCounter;
-     #ifdef DEBUGTRACEFILE
-     char debugbuffer[1000];
-     #endif
-
-     #ifdef DEBUGTRACEFILE
-     //sprintf(debugbuffer,"IterativeImprovement begin puvalid %d\n",puvalid);
-     //AppendDebugTraceFile(debugbuffer);
-     #endif
-
-     list = NULL;
-     discard = NULL;
-     for (ipu=0;ipu<puno;ipu++)
-     {
-         #ifdef DEBUGTRACEFILE
-         //sprintf(debugbuffer,"IterativeImprovement ipu %i puno %i R[ipu] %i pu[ipu].status %i pu[ipu].fPULock %i pu[ipu].fPUZone %i puvalid %d\n"
-         //                   ,ipu,puno,R[ipu],pu[ipu].status,pu[ipu].fPULock,pu[ipu].fPUZone,puvalid);
-         //AppendDebugTraceFile(debugbuffer);
-         #endif
-
-         //if (R[i] < 2)
-         if ((R[ipu] > 0) && (pu[ipu].status < 2) && (pu[ipu].fPULock != 1) && (pu[ipu].fPUZone != 1))
-            for (j=0;j<(iZoneCount*2);j++)  // add each planning unit iZoneCount*2 times to allow adequate sampling of zones
-            {   // creating original link list
-                #ifdef DEBUGTRACEFILE
-                //sprintf(debugbuffer,"IterativeImprovement puvalid %d\n",puvalid);
-                //AppendDebugTraceFile(debugbuffer);
-                #endif
-
-                newp = (struct slink *) malloc(sizeof(struct slink));
-                newp->id = ipu;
-                newp->next = list;
-                list = newp;
-                puvalid++;
-            }   // creating original link list
-     }
-
-     puuntried = puvalid;
-
-     #ifdef DEBUGTRACEFILE
-     //sprintf(debugbuffer,"IterativeImprovement puuntried %d puvalid %d\n",puuntried,puvalid);
-     //AppendDebugTraceFile(debugbuffer);
-     #endif
-
-     /***** Doing the improvements ****/
-     while (puuntried > 0)
-     {
-           ipu = RandNum(puuntried);
-           lp = list;
-           if (ipu == 0)
-           {
-              ichoice = list->id;
-           }
-           else
-           {
-               while (lp->next && --ipu > 0)
-                      lp = lp->next;
-               ichoice = lp->next->id;
-           }
-
-           //if (R[ichoice]==iAvailableEquivalentZone)
-           {
-              // we are changing from the available zone to the non-available zone
-              imode = 1;
-
-              if (pu[ichoice].fPUZone == 1)
-              {
-                 // enforce locked into range of zones
-
-                 iLoopCounter = 0;
-
-                 do
-                 {
-                   iZone = RandNum(iZoneCount) + 1;
-
-                   iLoopCounter++;
-
-                   if (iLoopCounter > 5000)
-                   {
-                      #ifdef DEBUGINITIALISERESERVE
-                      DumpPuZone_Debug(iPuZoneCount,PuZone,fnames,999);
-                      AppendDebugTraceFile("PuZone endless loop in IterativeImprovement detected\n");
-                      sprintf(debugbuffer,"puid %i iZone %i\n",pu[ichoice].id,iZone);
-                      AppendDebugTraceFile(debugbuffer);
-                      #endif
-                      ShowGenProg("\nPuZone endless loop in IterativeImprovement detected\n");
-                      ShowGenProg("Internal error detected.  Please inform the Marxan with Zones developers.\n\n");
-                      ShowPauseExit();
-                      exit(1);
-                   }
-                 }
-                 //while ((iZone == iAvailableEquivalentZone) || (PuNotInAllowedZone(pu[ichoice],iZone,PuZone,0,'I')));
-                 while (PuNotInAllowedZone(pu[ichoice],iZone,PuZone,0,'I'));
-              }
-              else
-              {
-                 // allowed in any zone
-                 //do
-                   iZone = RandNum(iZoneCount) + 1;
-
-                 //while (iZone == iAvailableEquivalentZone);
-              }
-           }
-           //else
-           //{
-           //    // we are changing from a non-available zone to the available zone
-           //    imode = -1;
-           //    iZone = iAvailableEquivalentZone;
-           //}
-
-           CheckChange(puuntried,ichoice,puno,pu,connections,spec,SM,R,imode,iZone,change,reserve,
-                       costthresh,tpf1,tpf2,1,clumptype,1);
-           if (change->total < 0)
-           {
-              #ifdef DEBUGTRACEFILE
-              sprintf(debugbuffer,"IterativeImprovement good change imode %i puid %i\n",imode,ichoice);
-              AppendDebugTraceFile(debugbuffer);
-              #endif
-
-              ShowGenProgInfo("It Imp has changed %i with change value %lf \n",ichoice,change->total);
-              DoChange(ichoice,puno,R,reserve,*change,pu,SM,spec,connections,imode,iZone,clumptype);
-              puuntried = puvalid-1;
-              list = ItImpUndiscard(list,&discard);
-
-           }   /* I've just made a good change */
-           else
-           {
-               puuntried--; /* it was another bad choice */
-           }
-           list = ItImpDiscard(ichoice,list,&discard);  /* Remove ichoice from list whether good or bad */
-
-     }/* no untested PUs left */
-
-     /*** Clean Up & post processing */
-     //tempp= list;
-     while (list)
-     {
-           tempp = list;
-           list = list->next;
-           free(tempp);
-           DebugFree(sizeof(struct slink));
-     }  /* clear list */
-     while (discard)
-     {
-           tempp = discard;
-           discard = discard->next;
-           free(tempp);
-           DebugFree(sizeof(struct slink));
-     } /* Clear discard */
-
-     #ifdef DEBUGTRACEFILE
-     //sprintf(debugbuffer,"IterativeImprovement end\n");
-     //AppendDebugTraceFile(debugbuffer);
-     #endif
-}  /*** Iterative Improvement 2 ***/
-
 void siftDown_ii(struct iimp numbers[], int root, int bottom, int array_size)
 {
      int done, maxChild;
@@ -5068,227 +3841,6 @@ void heapSort_ii(struct iimp numbers[], int array_size)
     }
 }
 
-/*** Time Optimised Iterative Improvement ***/
-void IterativeImprovementOptimise(int puno,struct spustuff pu[], struct sconnections connections[],
-                                  struct sspecies spec[],struct spu SM[],int R[],
-                                  struct scost *reserve,struct scost *change,double costthresh,double tpf1, double tpf2,
-                                  int clumptype,int irun,char *savename)
-{
-    int puvalid =0,i,j,ipu=0,imode,ichoice,iZone,iSamplesForEachPu, iRowCounter, iRowLimit, iLoopCounter, iPreviousR, ichanges = 0;
-    struct iimp *iimparray;
-    double debugfloat;
-    char debugbuffer[1000],tempname2[100];
-    FILE *ttfp,*zonefp;
-    char *writename;
-
-    #ifdef DEBUGTRACEFILE
-    AppendDebugTraceFile("IterativeImprovementOptimise start\n");
-    #endif
-
-    iSamplesForEachPu = (iZoneCount-1)*2; // allow sampling to each zone and back to available for each non available  zone
-
-    // counting pu's we need to test
-    for (i=0;i<puno;i++)
-    {
-        if ((R[ipu] > 0) && (pu[ipu].status < 2) && (pu[ipu].fPULock != 1) && (pu[ipu].fPUZone != 1))
-            puvalid += iSamplesForEachPu;
-    }
-
-    #ifdef DEBUGTRACEFILE
-    sprintf(debugbuffer,"IterativeImprovementOptimise puvalid %i\n",puvalid);
-    AppendDebugTraceFile(debugbuffer);
-    #endif
-
-    if (fnames.saveitimptrace)
-    {
-        if (fnames.saveitimptrace==3)
-        {
-            sprintf(tempname2,"%s_itimp_objective%05i.csv",savename,irun%10000);
-        } else {
-            if (fnames.saveitimptrace==2)
-                sprintf(tempname2,"%s_itimp_objective%05i.txt",savename,irun%10000);
-            else
-                sprintf(tempname2,"%s_itimp_objective%05i.dat",savename,irun%10000);
-        }
-
-        writename = (char *) calloc(strlen(fnames.outputdir) + strlen(tempname2) + 2, sizeof(char));
-        strcpy(writename,tempname2);
-        if ((ttfp = fopen(writename,"w"))==NULL)
-            ShowErrorMessage("cannot create threshold trace file %s\n",writename);
-        free(writename);
-        if (fnames.saveitimptrace > 1)
-            fprintf(ttfp,"improvement,total,cost,connection,penalty\n");
-        else
-            fprintf(ttfp,"improvement total cost connection penalty\n");
-
-        if (fnames.saveitimptrace==3)
-            sprintf(tempname2,"%s_itimp_zones%05i.csv",savename,irun%10000);
-        else
-        if (fnames.saveitimptrace==2)
-            sprintf(tempname2,"%s_itimp_zones%05i.txt",savename,irun%10000);
-        else
-            sprintf(tempname2,"%s_itimp_zones%05i.dat",savename,irun%10000);
-
-        writename = (char *) calloc(strlen(fnames.outputdir) + strlen(tempname2) + 2, sizeof(char));
-        strcat(writename,tempname2);
-        if ((zonefp = fopen(writename,"w"))==NULL)
-            ShowErrorMessage("cannot create threshold trace file %s\n",writename);
-        free(writename);
-        fprintf(zonefp,"configuration");
-        if (fnames.saveitimptrace > 1)
-        {
-            for (i = 0;i<puno;i++)
-                fprintf(zonefp,",%i",pu[i].id);
-            fprintf(zonefp,"\n0");
-
-            for (i = 0;i<puno;i++)
-                fprintf(zonefp,",%i",R[i]);
-        } else {
-            for (i = 0;i<puno;i++)
-                fprintf(zonefp," %i",pu[i].id);
-            fprintf(zonefp,"\n0");
-
-            for (i = 0;i<puno;i++)
-                fprintf(zonefp," %i",R[i]);
-        }
-        fprintf(zonefp,"\n");
-
-        iRowCounter = 0;
-        if (fnames.itimptracerows == 0)
-            iRowLimit = 0;
-        else
-            iRowLimit = floor(puvalid / fnames.itimptracerows);
-    }
-
-    if (puvalid > 0)
-    {
-        iimparray = (struct iimp *) calloc(puvalid,sizeof(struct iimp));
-
-        for (i=0;i<puno;i++)
-        {
-            if ((R[i] > 0) && (pu[i].status < 2) && (pu[i].fPULock != 1) && (pu[i].fPUZone != 1))
-            {
-                for (j=0;j<iSamplesForEachPu;j++)  // add each planning unit iZoneCount*2 times to allow adequate sampling of zones
-                {
-                    iimparray[ipu].puindex = i;
-                    iimparray[ipu].randomfloat = rand1();
-                    ipu++;
-                }
-            }
-        }
-
-        #ifdef DEBUGTRACEFILE
-        sprintf(debugbuffer,"IterativeImprovementOptimise after array init file %s\n",tempname2);
-        AppendDebugTraceFile(debugbuffer);
-        #endif
-
-        // sort the iimp array by the randomindex field
-        heapSort_ii(iimparray,puvalid);
-
-        #ifdef DEBUGTRACEFILE
-        AppendDebugTraceFile("IterativeImprovementOptimise after heapSort_ii\n");
-        #endif
-
-        /***** Doing the improvements ****/
-        for (i=0;i<puvalid;i++)
-        {
-            ichoice = iimparray[i].puindex;
-
-            if ((R[ichoice] > 0) && (pu[ichoice].status < 2) && (pu[ichoice].fPULock != 1) && (pu[ichoice].fPUZone != 1))
-            {
-
-                iPreviousR = R[ichoice];
-
-                if (pu[ichoice].fPUZone == 1)
-                {
-                    // enforce locked into range of zones
-                    iLoopCounter = 0;
-
-                    do
-                    {
-                        iZone = RandNum(iZoneCount) + 1;
-                        iLoopCounter++;
-
-                        if (iLoopCounter > 5000)
-                        {
-                            #ifdef DEBUGTRACEFILE
-                            DumpPuZone_Debug(iPuZoneCount,PuZone,fnames,999);
-                            AppendDebugTraceFile("PuZone endless loop in IterativeImprovementOptimise detected\n");
-                            sprintf(debugbuffer,"puid %i iZone %i\n",pu[ichoice].id,iZone);
-                            AppendDebugTraceFile(debugbuffer);
-                            #endif
-                            ShowGenProg("\nPuZone endless loop in IterativeImprovementOptimise detected\n");
-                            ShowGenProg("Internal error detected.  Please inform the Marxan with Zones developers.\n\n");
-                            ShowPauseExit();
-                            exit(1);
-                        }
-                    }
-                    while ((iZone == iPreviousR) || (PuNotInAllowedZone(pu[ichoice],iZone,PuZone,0,'I')));
-                } else {
-                    // allowed in any zone
-                    do
-                        iZone = RandNum(iZoneCount) + 1;
-                    while (iZone == iPreviousR);
-                }
-
-                imode = 1;
-
-                CheckChange(i,ichoice,puno,pu,connections,spec,SM,R,imode,iZone,change,reserve,
-                            costthresh,tpf1,tpf2,1,clumptype,1);
-                if (change->total < 0)
-                {
-                    ichanges++;
-                    ShowGenProgInfo("It Imp has changed %i with change value %lf \n",ichoice,change->total);
-                    DoChange(ichoice,puno,R,reserve,*change,pu,SM,spec,connections,imode,iZone,clumptype);
-                }   /* I've just made a good change */
-            }
-
-            if (fnames.saveitimptrace)
-            {
-                iRowCounter++;
-                if (iRowCounter > iRowLimit)
-                    iRowCounter = 1;
-
-                if (iRowCounter == 1)
-                {
-                    fprintf(zonefp,"%i",i);
-
-                    if (fnames.saveitimptrace > 1)
-                    {
-                        fprintf(ttfp,"%i,%f,%f,%f,%f\n",
-                                    i,reserve->total,
-                                    reserve->cost,reserve->connection,reserve->penalty); // i,costthresh,cost,connection,penalty
-
-                        for (j = 0;j<puno;j++)
-                            fprintf(zonefp,",%i",R[j]);
-                    } else {
-                        fprintf(ttfp,"%i %f %f %f %f\n",
-                                     i,reserve->total,reserve->cost,reserve->connection,reserve->penalty);
-
-                        for (j = 0;j<puno;j++)
-                            fprintf(zonefp," %i",R[j]);
-                    }
-
-                    fprintf(zonefp,"\n");
-                }
-            }
-        }/* no untested PUs left */
-
-        free(iimparray);
-    }
-
-    if (fnames.saveitimptrace)
-    {
-        fclose(ttfp);
-        fclose(zonefp);
-    }
-
-    #ifdef DEBUGTRACEFILE
-    sprintf(debugbuffer,"IterativeImprovementOptimise end changes %i\n",ichanges);
-    AppendDebugTraceFile(debugbuffer);
-    #endif
-} // IterativeImprovementOptimise
-
 // ran1() from numerical recipes - produces a random number between 0 and 1
 #define IA 16807
 #define IM 2147483647
@@ -5300,44 +3852,6 @@ void IterativeImprovementOptimise(int puno,struct spustuff pu[], struct sconnect
 #define EPS 1.2e-7
 #define RNMX (1.0-EPS)
 
-long    RandomIY;
-long    RandomIV[NTAB];
-
-// ran1() from numerical recipes - produces a random number between 0 and 1
-double rand1(void)
-{
-    int j;
-    long k;
-    double temp;
-
-    if (RandSeed1 <= 0 || !RandomIY)    // Initialize
-    {
-        RandSeed1 = -RandSeed1;
-        for (j = NTAB+7; j >= 0; j--)
-        {
-            k = RandSeed1/IQ;
-            RandSeed1 = IA * (RandSeed1 - k * IQ) - IR * k;
-            if (RandSeed1 < 0)
-                RandSeed1 += IM;
-            if (j < NTAB)
-                RandomIV[j] = RandSeed1;
-        }
-        RandomIY=RandomIV[0];
-    }
-    k=RandSeed1/IQ;        /* The stuff we do on calls after the first */
-    RandSeed1 = IA * (RandSeed1 - k * IQ) - IR * k;
-    if (RandSeed1 < 0)
-        RandSeed1 += IM;
-    j = RandomIY/NDIV;
-    RandomIY=RandomIV[j];
-    RandomIV[j] = RandSeed1;
-    temp=AM*RandomIY;
-    if (temp > RNMX)
-        return(RNMX);
-    else
-        return(temp);
-}
-
 void InitRandSeed(int iSeed)
 {
     if (iSeed>0)
@@ -5346,20 +3860,6 @@ void InitRandSeed(int iSeed)
         RandSeed1 = (long int)time(NULL);
     if (RandSeed1 > 0)
         RandSeed1 = -RandSeed1;
-}
-
-/* Returns a random number between 0 and num - 1, where num is an int */
-int RandNum (int num)
-{
-    int temp;
-
-    if(num == 0)
-        return(0);
-    temp = (int)(rand1() * num);
-    if (temp == num)
-        return(0);
-    else
-        return((int)temp);
 }
 
 // penalty associated with separation

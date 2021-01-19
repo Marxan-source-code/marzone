@@ -176,6 +176,26 @@ class Pu {
         return specOcc;
     }
 
+    // Total species amount vector based on status and pu for pu that do not have zone limitations
+    // puStatusZone is a given reserve configuration.
+    vector<double> TotalSpeciesAmountByAvailable(int spno, vector<int> puStatusZone) {
+        vector<double> specAmount(spno, 0);
+        int ism, isp;
+
+        for (int ipu = 0; ipu < puno; ipu++)
+            // only count species amounts for pu that meet a certain status
+            if ((puList[ipu].richness) && (puStatusZone[ipu] >= 0) 
+            && (puList[ipu].status) < 2 && (puList[ipu].fPULock != 1) && (puList[ipu].numZones == 0))
+                for (int i = 0; i < puList[ipu].richness; i++)
+                {
+                    ism = puList[ipu].richness + i;
+                    isp = puvspr[ism].spindex;
+                    specAmount[isp] += puvspr[ism].amount;
+                }
+        
+        return specAmount
+    }
+
     // Aggregates areas and occurrences only pu.status == 2 and pu.status == 3
     void TotalSpeciesAmountByStatus(vector<int>& TO_2, vector<int>& TO_3, vector<double>& TA_2, vector<double>& TA_3) {
         int isp,ism;
@@ -258,14 +278,60 @@ class Pu {
     }
 
     // returns the amount of a species at a planning unit, if the species doesn't occur here, returns 0
-    double RtnAmountSpecAtPu(int iPUIndex, int iSpecIndex)
+    double RtnAmountSpecAtPu(int puindex, int iSpecIndex)
     {
-        if (puList[iPUIndex].richness > 0)
-            for (int i=0;i<puList[iPUIndex].richness;i++)
-                if (puvspr[puList[iPUIndex].offset + i].spindex == iSpecIndex)
-                    return puvspr[puList[iPUIndex].offset + i].amount;
+        if (puList[puindex].richness > 0)
+            for (int i=0;i<puList[puindex].richness;i++)
+                if (puvspr[puList[puindex].offset + i].spindex == iSpecIndex)
+                    return puvspr[puList[puindex].offset + i].amount;
 
         return 0;
+    }
+
+    // Returns all the spec info for a pu
+    vector<double> RtnAmountAllSpecAtPu(int puindex, int spno)
+    {
+        vector<double> amounts(spno, 0.0);
+        spu term;
+
+        if (puList[puindex].richness > 0)
+            for (int i=0;i<puList[puindex].richness;i++)
+            {   
+                term = puvspr[puList[puindex].offset + i];
+                amounts[term.spindex] += term.amount;
+            }
+
+        return amounts;
+    }
+
+    // Given a pu and current zone, returns a different but valid zone for the pu.
+    // Used for randomly selecting the next zone.
+    int RtnValidZoneForPu(int puindex, int iPreviousZone, uniform_int_distribution<int>& randomDist, mt19937 &rngEngine, int zoneCount) {
+        int chosenZoneInd,iZone;
+
+        if (puList[puindex].numZones > 1)
+        {
+            // pick a random available zone for this pu that is different to the current zone
+            chosenZoneInd = randomDist(rngEngine) % puList[puindex].numZones;
+            iZone = puZone[puindex][chosenZoneInd] - 1;
+
+            // if zone is already chosen, just increment it
+            if (iZone == iPreviousZone)
+            {
+                chosenZoneInd = (chosenZoneInd + 1) % puList[puindex].numZones;
+                iZone = puZone[puindex][chosenZoneInd] - 1;
+            }
+        }
+        else if (puList[puindex].numZones == 0)
+        {
+            // pu can be in  any zone.
+            iZone = randomDist(rngEngine) % zoneCount;
+            if (iZone == iPreviousZone)
+            {
+                iZone = (iZone + 1) % zoneCount;
+            }
+        }
+        return iZone;
     }
 
     void WriteSolutionsMatrixHeader(string filename, int delimType, int iIncludeHeaders) {

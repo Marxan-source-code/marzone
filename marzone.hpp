@@ -559,32 +559,11 @@ void Heuristics(int spno,int puno,struct spustuff pu[],struct sconnections conne
                 double costthresh, double tpf1,double tpf2, int imode,int clumptype);
 
 /* HEURISTIC.H END */
-/* ************************************************************************** */
-/* ITIMP.H START */
 
-struct slink* ItImpDiscard(int ichoice, struct slink *list, struct slink **discard);
-struct slink* ItImpUndiscard(struct slink *list, struct slink **discard);
-int FindSwap(struct slink **list,double targetval,int itestchoice,int puuntried,
-             int puno,struct spustuff pu[], struct sconnections connections[],
-             struct sspecies spec[],struct spu SM[],
-             int R[], struct scost *reserve, struct scost *change,
-             double costthresh, double tpf1, double tpf2, int clumptype);
-void IterativeImprovement(int puno,struct spustuff pu[], struct sconnections connections[],
-                           struct sspecies spec[],struct spu SM[],int R[],
-                           struct scost *reserve,struct scost *change,double costthresh,double tpf1, double tpf2,
-                           int clumptype,int itimptype);
-void IterativeImprovementOptimise(int puno,struct spustuff pu[], struct sconnections connections[],
-                                   struct sspecies spec[],struct spu SM[],int R[],
-                                   struct scost *reserve,struct scost *change,double costthresh,double tpf1, double tpf2,
-                                   int clumptype,int irun,char *savename);
-
-/* ITIMP.H END */
 /* ************************************************************************** */
 /* RANDOM.H START */
 
-double rand1(void);
 void InitRandSeed(int iSeed);
-int RandNum (int num);
 
 /* RANDOM.H END */
 /* ************************************************************************** */
