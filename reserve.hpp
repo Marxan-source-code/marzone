@@ -538,6 +538,7 @@ namespace marzone
       objective.total = objective.cost + objective.connection + objective.penalty;
     }
 
+    // Writes the current solution to a file.
     void WriteSolution(string filename, Pu &pu, int imode)
     {
       ofstream myfile;

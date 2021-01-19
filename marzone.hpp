@@ -52,8 +52,6 @@ namespace marzone {
         int occurrence;
     } typezonespec;
 
-    typezonespec *ZoneSpec;
-
     typedef struct spu
     {
         double amount;
@@ -66,8 +64,6 @@ namespace marzone {
         double amount;
         int puindex;
     } typepusporder;
-
-    typepusporder *SMsporder;
 
     typedef struct penaltyTerm {
         double amount; // amount contributed
@@ -100,8 +96,6 @@ namespace marzone {
         double threshpen;
         double shortfall;
     } scost;
-
-    //typecost reserve,change,debugcost;
 
     /* General Species information structure */
     typedef struct sgenspec
@@ -253,27 +247,8 @@ namespace marzone {
 
     } srunoptions;
 
-/* Useful link definition */
-
-    struct slink
-    {
-        int id;
-        struct slink *next;
-    }; /* slink struct */
-    typedef struct iimp
-    {
-        double randomfloat;
-        int puindex;
-    } typeiimp;
-
-
-
-
 /* Protytpe function Headers */
 int spex(char sInputFileName[],int style);
-void AddReserve(int puno,struct spustuff pu[],int R[],int iZoneCount,struct puzonestruct PuZone[]);
-void SetBlockDefs(int gspno,int spno,int puno,struct sgenspec gspec[], struct sspecies spec[],struct spustuff PU[], struct spu SM[]);
-void SetDefs(int spno, struct sspecies spec[]);
 void SetRunOptions(int runopts, struct srunoptions *runoptions);
 int CalcPenalties(int puno,int spno,struct spustuff pu[],struct sspecies spec[],
                   struct sconnections connections[],struct spu SM[],int aggexist,int clumptype,

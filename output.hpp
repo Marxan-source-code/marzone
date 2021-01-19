@@ -1061,6 +1061,7 @@ void DumpSparseMatrix(int iSMno, struct spu SM[],struct sfname fnames)
 /* * * * ***** Output Solutions * * * * * * * */
 /** imode = 1   Output Summary Stats only ******/
 /** imode = 2    Output Everything * * * * *****/
+
 void OutputSummary(int puno,int spno,int R[],struct sspecies spec[],struct scost reserve,
                    int itn,char savename[],double misslevel,int imode)
 {
@@ -1111,6 +1112,7 @@ void OutputSummary(int puno,int spno,int R[],struct sspecies spec[],struct scost
     fclose(fp);
     return;
 } // OutputSummary
+
 
 void AppendSolutionsMatrix(int iRun,int puno,int R[],char savename[],int iOutputType,int iIncludeHeaders)
 {
