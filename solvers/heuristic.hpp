@@ -34,6 +34,7 @@ class Heuristic {
         int bestpu = 0, iZone = 0, bestZone = 0, iPreviousR, iArrayIndex;
         double bestscore = 0, currscore;
         uniform_int_distribution<int> randomDist(0, numeric_limits<int>::max());
+        uniform_real_distribution<double> rand1(0.0, 1.0);
 
         do
         {
@@ -68,7 +69,7 @@ class Heuristic {
                 if (heuristicMode == 7)
                     currscore = -SumIrr(i, r, pu, spec, zones);
 
-                currscore *=(double) rand1()*0.001 + 1.0;
+                currscore *=(double) rand1(rngEngine)*0.001 + 1.0;
                 if (!costthresh || pu.puList[i].cost + r.objective.cost <= costthresh)
                     if (currscore < bestscore)
                     {
@@ -249,8 +250,7 @@ class Heuristic {
         {
             if (spec.specList[isp].target2)
             {
-                // TODO - enable
-                //newamount = NewPenalty4(ipu, isp, puno, spec, pu, SM, R, connections, 1, clumptype);
+                newamount = spec.specList[isp].target - r.speciesAmounts[isp].amount - r.PartialPen4(spec.specList[isp].target2, pu.RtnAmountSpecAtPu(ipu,isp));
             }
             else
                 newamount = spec.specList[isp].target - r.speciesAmounts[isp].amount - pu.RtnAmountSpecAtPu(ipu,isp);
@@ -302,7 +302,6 @@ class Heuristic {
             rare[isp] /= smallest;
     }
 
-    ostringstream debugBuffer; // TODO - print buffer once logging library
     mt19937 &rngEngine;
     int heuristicMode;
 

@@ -23,16 +23,16 @@ class SimulatedAnnealing {
         }
     }
 
-    void Initialize(Species& spec, Pu& pu, Zones& zones) {
+    void Initialize(Species& spec, Pu& pu, Zones& zones, int clumptype) {
         if (settings.type >= 2)
         {
             if (settings.type == 2)
             {
-                ConnollyInit(spec, pu, zones);
+                ConnollyInit(spec, pu, zones, clumptype);
             }
             else if (settings.type == 3)
             {
-                AdaptiveInit(spec, pu, zones);
+                AdaptiveInit(spec, pu, zones, clumptype);
             }
         }
     }
@@ -204,7 +204,6 @@ class SimulatedAnnealing {
         return pair<int,int>(ipu, iZone);
     }
 
-    // Todo make private
     private:
     // * * * * Good Change * * * *
     int GoodChange(schange& change, uniform_real_distribution<double>& float_range)
@@ -234,13 +233,13 @@ class SimulatedAnnealing {
         settings.sum2 = 0;
     }
 
-    void ConnollyInit(Species& spec, Pu& pu, Zones& zones) {
+    void ConnollyInit(Species& spec, Pu& pu, Zones& zones, int clumptype) {
         double localdelta = numeric_limits<double>::epsilon();
         uniform_int_distribution<int> random_dist(0, numeric_limits<int>::max());
         uniform_int_distribution<int> random_pu_dist(0, pu.puno-1);
 
         // Set reserve to a random and evaluate 
-        Reserve r(spec, zones);
+        Reserve r(spec, zones, clumptype);
         r.InitializeSolution(pu.puno);
         r.RandomiseSolution(pu, rngEngine);
         r.EvaluateObjectiveValue(pu, spec, zones);
@@ -280,7 +279,6 @@ class SimulatedAnnealing {
             schange change = r.CheckChangeValue(ipu, r.solution[ipu], chosenZone, pu, zones, spec, 0);
 
             // apply change
-            // (int ipu, int iZone, schange& change, Pu& pu, Zones& zones, Species& spec)
             r.ApplyChange(ipu, chosenZone, change, pu, zones, spec);
 
             if (change.total > deltamax)
@@ -314,11 +312,11 @@ class SimulatedAnnealing {
 
     /* * * * Adaptive Annealing 2 * * * * * * * * *****/
     /**** Initial Trial Runs. Run for some small time to establish sigma. ****/
-    void AdaptiveInit(Species& spec, Pu& pu, Zones& zones) {
+    void AdaptiveInit(Species& spec, Pu& pu, Zones& zones, int clumptype) {
         int i, isamples = 1000; /* Hardwired number of samples to take */
         double sum = 0, sum2 = 0;
         double sigma;
-        Reserve r(spec, zones);
+        Reserve r(spec, zones, clumptype);
         double c = 10; /* An initial temperature acceptance number */
 
         r.InitializeSolution(pu.puno);

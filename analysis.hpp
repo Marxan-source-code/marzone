@@ -3,6 +3,9 @@
 #include "util.hpp"
 #include "pu.hpp"
 #include "zones.hpp"
+#include "reserve.hpp"
+
+#include <omp.h>
 
 /*
   Deals with calculation of any output analysis of solutions, reserves and other.
@@ -20,6 +23,9 @@ class Analysis {
     // initialize analysis objects.
     sumSoln.resize(puno, 0);
     zoneSumSoln.resize(puno*zoneCount, 0);
+
+    // Init locks
+    omp_init_lock(&sumLock);
   }
 
   // Writes both sumSoln and zoneSumSoln
@@ -50,9 +56,28 @@ class Analysis {
     myfile.close();
   }
 
+  // Should be threadsafe. Applies the solution in Reserve to sums
+  void ApplyReserveToSumSoln(Reserve& r) {
+    int iZoneSumSolnIndex;
+    int rSize = r.solution.size();
+
+    omp_set_lock(&sumLock);
+    for (int i = 0; i < rSize; i++) {
+      if (r.solution[i] >= 0) {
+        sumSoln[i] ++;
+        iZoneSumSolnIndex = rSize * (r.solution[i]) + i;
+        zoneSumSoln[iZoneSumSolnIndex]++;
+      }
+    }
+    omp_unset_lock(&sumLock);
+  }
+
   private:
   vector<int> sumSoln; // size puno
   vector<int> zoneSumSoln; //size puno*zoneCount
+
+  // thread safety
+  omp_lock_t sumLock;
 };
 
 } // namespace marzone

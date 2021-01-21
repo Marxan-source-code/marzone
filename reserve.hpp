@@ -22,16 +22,23 @@ namespace marzone
     vector<pair<int,int>> specListChangeOcc;
     vector<pair<int, double>> zoneTargetChange;
     vector<pair<int, int>> zoneOccChange;
+    vector<pair<int, double>> speciesClumpChange;
   }
   schange;
 
   class Reserve
   {
   public:
-    Reserve(Species &spec, Zones &zones)
+    Reserve() // Empty constructor.
+    {
+    }
+
+    Reserve(Species &spec, Zones &zones, int clumptype, int id = 0) : clumptype(clumptype), id(id)
     {
       InitializeZoneSpec(spec.spno, zones.zoneCount);
       speciesAmounts.resize(spec.spno, {}); // init amounts struct
+      if (spec.aggexist)
+        speciesClump.resize(spec.spno);
     }
 
     // Sets all amounts and occurences to 0
@@ -75,11 +82,12 @@ namespace marzone
         if (puTerm.numZones > 0)
         { // enforce puzone
           int zoneInd = random_dist(rngEngine) % puTerm.numZones;
-          solution[i] = pu.puZone[i][zoneInd] - 1; //TODO - change this depending on later design, but for now it is the zero-indexed zone.
+          solution[i] = pu.puZone[i][zoneInd] - 1; // solution array stores the zero-indexed zone.
         }
       }
     }
 
+    // Recomputes and updates all speciesAmounts and zoneSpec, including clumps, from scratch.
     void ComputeSpeciesAmounts(Pu &pu, Species &spec, Zones &zones)
     {
       int isp, ism, iZoneSpecIndex;
@@ -90,23 +98,25 @@ namespace marzone
       {
         speciesAmounts[isp].amount = 0;
         speciesAmounts[isp].occurrence = 0;
+        // Clear map clumps for this species
+
         if (spec.specList[isp].target2)
-          SpeciesAmounts4(isp, spec, clumptype); //TODO
+          ClearClumps(isp); // for target2 species, clear existing pu.
       }
 
       for (int ipu = 0; ipu < solution.size(); ipu++)
       {
         if (pu.puList[ipu].richness)
         {
-          if (solution[ipu] != 0)
+          if (solution[ipu] >= 0)
           {
             for (int i = 0; i < pu.puList[ipu].richness; i++)
             {
               ism = pu.puList[ipu].offset + i;
               isp = pu.puvspr[ism].spindex;
+              rContribAmount = pu.puvspr[ism].amount*zones.GetZoneContrib(ipu, pu.puno, isp, solution[ipu]+1); // convert zoneindex to zoneid.
               if (spec.specList[isp].target2 == 0)
               {
-                rContribAmount = 0.0; // Todo
                 if (rContribAmount)
                 {
                   speciesAmounts[isp].amount += rContribAmount;
@@ -117,9 +127,21 @@ namespace marzone
                   zoneSpec[iZoneSpecIndex].occurrence++;
                 }
               }
+              else {
+                // Add amount to species clumping.
+                if (rContribAmount)
+                  AddNewPuToClump(ipu, isp, rContribAmount);
+              }
             }
           }
         }
+      }
+
+      //Compute species amounts for target2 species.
+      for (int isp = 0; isp < speciesAmounts.size(); isp++)
+      {
+        if (spec.specList[isp].target2)
+          SpeciesAmounts4(isp, spec.specList[isp].target2); // for target2 species, recompute
       }
     }
 
@@ -233,6 +255,66 @@ namespace marzone
       return sLine.str();
     }
 
+    /* * * * * Set Penalties for a given Type 4 Species ***/
+    /* Returns 1 if the species is a 'bad species' and -1 if it is a 'good species' */
+    // Used for initial penalty calculation. and updates spec with the penalty.
+    // NOTE: currently does no support sepnum/sepdistance feature.
+    int ComputePenaltyType4(sspecies& spec, vector<penaltyTerm>& costTerms, int isp, double target, double target2, int targetocc) {
+      int sepCount;
+
+      /* Check first to see if I've already satisfied targets for this species with the current clump setup*/
+      SpeciesAmounts4(isp, target2); // recompute amounts for this species.
+      /* NOTE - reenable later if we have time to migrate the separation code.
+      if (spec.specList[isp].sepnum > 0)
+      {
+        sepCount = CountSeparation2(isp);
+        speciesAmounts[isp].separation = sepCount == -1 ? spec.specList[isp].sepnum : sepCount;
+      }
+      */
+
+      if ((speciesAmounts[isp].amount >= target) 
+        && (speciesAmounts[isp].occurrence >= targetocc)) {
+          // Targets met for this spec can exit
+          return -1;
+      }
+
+      // Go down costTerms until an amount is less than target2, or target is met
+      bool targetMet = false;
+      for (penaltyTerm &p : costTerms)
+      {
+        if (p.amount > target2)
+        {
+          speciesAmounts[isp].amount += p.amount;
+          speciesAmounts[isp].occurrence++;
+          spec.penalty += p.cost;
+        }
+
+        // Check if targets met
+        if (speciesAmounts[isp].amount >= target && speciesAmounts[isp].occurrence >= targetocc)
+        {
+          targetMet = true;
+          break;
+        }
+      }
+
+      if (targetMet)
+        return -1;
+      else
+      {
+        double scaleFactor = 1;
+        // scale up the penalty
+        if (speciesAmounts[isp].amount == 0)
+          speciesAmounts[isp].amount = numeric_limits<double>::epsilon(); 
+        if (speciesAmounts[isp].amount < target)
+          scaleFactor = target/speciesAmounts[isp].amount;
+        if (speciesAmounts[isp].occurrence && speciesAmounts[isp].occurrence < targetocc)
+          scaleFactor += (double) targetocc/ (double) speciesAmounts[isp].occurrence;
+        spec.penalty *= scaleFactor;
+
+        return 1;
+      }
+    }
+
     // * * * * **** Change in penalty for moving single PU between zones ******
     // we need to know the penalty with ipu in its existing zone and the penalty with ipu in its proposed zone.
     // change in penalty = penalty in proposed configuration - penalty in existing configuration
@@ -262,8 +344,15 @@ namespace marzone
             rNewShortfall = 0, rNewShortFraction = 0, iNewShortfall = 0;
 
             // shortfall with respect to overall targets
-            rCurrentContribAmount = pu.puvspr[ism].amount*zones.GetZoneContrib(ipu, pu.puno, isp, iPreZone);
-            rNewContribAmount = pu.puvspr[ism].amount*zones.GetZoneContrib(ipu, pu.puno, isp, iPreZone);
+            rCurrentContribAmount = pu.puvspr[ism].amount*zones.GetZoneContrib(ipu, pu.puno, isp, iPreZone+1);
+            rNewContribAmount = pu.puvspr[ism].amount*zones.GetZoneContrib(ipu, pu.puno, isp, iPostZone+1);
+
+            // Apply any target2 requirements on these contrib amounts.
+            if (spec.specList[isp].target2) {
+              change.speciesClumpChange.push_back(pair<int,double>(isp, rNewContribAmount));
+              rCurrentContribAmount = rCurrentContribAmount > spec.specList[isp].target2 ? rCurrentContribAmount : PartialPen4(spec.specList[isp].target2, rCurrentContribAmount);
+              rNewContribAmount = rNewContribAmount > spec.specList[isp].target2 ? rNewContribAmount : PartialPen4(spec.specList[isp].target2, rNewContribAmount);
+            } 
 
             // Set change vectors
             change.specListChangeTarget[i] = pair<int, double>(isp, rNewContribAmount - rCurrentContribAmount); // spec index and expected change
@@ -389,7 +478,7 @@ namespace marzone
             }
 
             rDeltaPenalty = spec.specList[isp].penalty * spec.specList[isp].spf * (rNewShortFraction - rShortFraction);
-/* TODO - renable
+/* renable if needed
 #ifdef DEBUG_PEW_CHANGE_PEN
             // rDeltaPenalty,spec[isp].penalty,spec[isp].spf,rNewShortFraction,rShortFraction
             AppendDebugTraceFile("rDeltaPenalty,spec.penalty,spec.spf,rNewShortFraction,rShortFraction\n");
@@ -403,7 +492,7 @@ namespace marzone
 
           } // Only worry about PUs where species occurs
 
-/* TODO - renable
+/* renable if needed
 #ifdef DEBUG_PEW_CHANGE_PEN
           sprintf(debugline, "rSumDeltaPenalty %g\n", rSumDeltaPenalty);
           AppendDebugTraceFile(debugline);
@@ -419,7 +508,7 @@ namespace marzone
         }
       }
 
-      /* TODO - renable
+      /* renable if needed
         #ifdef DEBUG_CHANGE_PEN
        sprintf(debugline,"ChangePen end rSumDeltaPenalty %g\n",rSumDeltaPenalty);
        AppendDebugTraceFile(debugline);
@@ -430,7 +519,6 @@ namespace marzone
     }
 
     // Computes the change in value of a pu from preZone to postZone
-    // TODO: determine what tpf1 , tpf2 and timeprop are. - if unsure set as defaults
     schange CheckChangeValue(int puindex, int iPreZone, int iPostZone, Pu& pu, Zones& zones, Species& spec, 
     double costthresh, double tpf1 = 0, double tpf2 = 0, double timeprop = 1) {
       schange change = {};
@@ -487,9 +575,8 @@ namespace marzone
     }
 
     // Applies changes described. Switches puindex to zone, and applies scost change.
-    // TODO - refactor this so that all changes are precomputed and just need to be applied here.
     void ApplyChange(int ipu, int iZone, schange& change, Pu& pu, Zones& zones, Species& spec) {
-      int i,ism,isp, iArrayIndexOrigon, iArrayIndexDestination;
+      int i,ism,isp, iPreviousZone, iArrayIndexDestination;
       double rAmount, rCurrentContribAmount, rNewContribAmount;
 
       objective.cost += change.cost;
@@ -500,30 +587,31 @@ namespace marzone
       // iterate over amount/target changes and any clumping
       for (int i = 0; i < change.specListChangeTarget.size(); i++) {
         isp = change.specListChangeTarget[i].first; // contains spindex
+
         if (change.specListChangeTarget[i].second != 0) { //only need to worry if there's an actual change
-          if (spec.specList[isp].target2) {
-            /* TODO: clump logic - might be different from regular logic
-            if (imode == 1)
-            {
-              AddNewPU(ipu, isp, connections, spec, pu, SM, clumptype);
-            }
-            else
-            {
-              RemPu(ipu, isp, connections, spec, pu, SM, clumptype);
-            }
-            */
-          }
-          else {
             // Apply amounts as usual
             speciesAmounts[isp].amount += change.specListChangeTarget[i].second;
             speciesAmounts[isp].occurrence += change.specListChangeOcc[i].second;
-          }
+
         }
-        /* TODO - clarify what this is intended to do
+        /* feature does not work - disable for now.
         if (spec[isp].sepnum > 0) // Count separation but only if it is possible that it has changed
           if ((imode == 1 && spec[isp].separation < spec[isp].sepnum) || (imode == -1 && spec[isp].separation > 1))
             spec[isp].separation = CountSeparation2(isp, 0, NULL, puno, R, pu, SM, spec, 0);
         */
+      }
+
+      // Iterate through clump changes (if any)
+      for (int i = 0; i < change.speciesClumpChange.size(); i++) {
+        isp = change.specListChangeTarget[i].first; // contains spindex
+        if (change.specListChangeTarget[i].second) {
+          // add or modify existing pu clump
+          AddNewPuToClump(ipu, isp, change.specListChangeTarget[i].second);
+        }
+        else {
+          // Contrib is now 0, remove
+          RemovePuFromClump(ipu, isp);
+        }
       }
 
       // Iterate through zone changes
@@ -623,30 +711,49 @@ namespace marzone
         {
           if (spec.specList[i].target2)
           {
-            // TODO - renable target2 since this is a huge amount of code involved
-            //newamount = NewPenalty4(ipu, i, puno, spec, pu, SM, R, connections, 1, clumptype);
+            // Convert contribution down to tagret4 penalty version.
+            double newSpecValue = PartialPen4(spec.specList[i].target2, specValuesForPu[i]);
+            newpen = spec.specList[i].target - speciesAmounts[i].amount - newSpecValue;
           }
           else
           {
             newpen = spec.specList[i].target - speciesAmounts[i].amount - specValuesForPu[i];
-            newamount = (newpen < 0) ? 0 : newpen;
           }
+          newamount = (newpen < 0) ? 0 : newpen;
           famount += (newamount - fold) * spec.specList[i].spf;
         } /* Add new penalty if species isn't already in the system */
       }
       return (famount); /* Negative means decrease in amount missing */
     } /** Greedy Species Penalty **/
 
+    /**** Partial Penalty for type 4 species ***/
+    double PartialPen4(double target2, double amount)
+    {
+      if (amount >= target2)
+        return (amount); /* I'm not a partial penalty */
+      else
+        switch (clumptype)
+        {
+        case 0:
+          return (0.0); /* default step function */
+        case 1:
+          return (amount / 2.0); /* nicer step function */
+        case 2:
+          if (target2)
+            return (amount / target2 * amount);
+        default:
+          return (0.0);
+        }
+    } /* Partial Penalty for type 4 species */
+
     // * * * * ****** Value of a Zonation System * * * *
+    // Note! This call is expensive as it does a full recompute of the reserve value, based on the current solution.
     void EvaluateObjectiveValue(Pu &pu, Species &spec, Zones &zones)
     {
       // Evaluate the existing solution and update the scost values
       objective.cost = 0, objective.penalty = 0, objective.connection = 0, objective.shortfall = 0;
       double rShortfall, iShortfall, rShortFraction, rTotalShortfall;
       int specZoneIndex, iMissingFeatures;
-
-      //if (aggexist)
-      //    SetSpeciesClumps(puno,R,spec,pu,SM,connections,clumptype);
 
       ComputeSpeciesAmounts(pu, spec, zones);
 
@@ -725,7 +832,7 @@ namespace marzone
       for (int j = 0; j < pu.puno; j++)
       {
         objective.cost += zones.AggregateTotalCostByPuAndZone(solution[j], pu.puList[j].costBreakdown);
-        objective.connection += pu.ConnectionCost2Linear(zones, j, 1, solution); // TODO - confirm imode 1
+        objective.connection += pu.ConnectionCost2Linear(zones, j, 1, solution); // confirm imode 1
       }
 
       objective.total = objective.cost + objective.connection + objective.penalty;
@@ -788,18 +895,159 @@ namespace marzone
       myfile.close();
     }
 
+    // Not threadsafe.
+    void AppendSolutionsMatrix(string filename, int zoneCount, int delimType, int iIncludeHeaders) {
+      ofstream myfile;
+      myfile.open(filename);
+      string sDelimiter = delimType == 3 ? "," : "    ";
+
+      for (int i = 1; i <= zoneCount; i++)
+      {
+        if (iIncludeHeaders == 1)
+        {
+          myfile << "Z" << i << "S" << id << sDelimiter; 
+        }
+
+        for (int j = 0; j < solution.size(); j++)
+        {
+          if (j > 0)
+          myfile << sDelimiter;
+
+          if (solution[j] == i-1)
+            myfile << "1";
+          else
+            myfile << "0";
+        }
+
+        myfile << "\n";
+      }
+
+      myfile.close();
+    }
+
+    // Not threadsafe.
+    void AppendSolutionsMatrixZone(string filename, int iZone, int delimType, int iIncludeHeaders)
+    {
+      ofstream myfile;
+      myfile.open(filename);
+      string sDelimiter = delimType == 3 ? "," : "    ";
+
+      if (iIncludeHeaders == 1)
+      {
+        myfile << "S" << id << sDelimiter;
+      }
+
+      for (int j = 0; j < solution.size(); j++)
+      {
+        if (j > 0)
+          myfile << sDelimiter;
+
+        if (solution[j] == iZone)
+          myfile << "1";
+        else
+          myfile << "0";
+      }
+
+      myfile << "\n";
+
+      myfile.close();
+    }
+
     vector<zonespecstruct> zoneSpec;
 
     // Species data and amounts
     vector<reservespecies> speciesAmounts;
+    
+    // spec -> map of pu contributing to it (for species4 only!). Amount contains the puvspr value with zonecontrib applied.
+    vector<map<int,sclumps>> speciesClump; 
 
     // Pu configuration (assignment)
     vector<int> solution; // contains the zone index in the corresponding to a supplied Pu
 
     // Reserve metadata/objective values
     scost objective;
+    int id;
+    int clumptype;
 
   private:
+    // This is a modified form of count separation where the user can specify any
+    // maximum separation distance rather than just assuming a sep distance of three
+    /* NOTE - separation does not seem to work. If there's time we can implement it later.
+    int CountSeparation2(int isp, int sepdistance) {
+      double targetdist = sepdistance*sepdistance;
+      if (targetdist == 0)
+        return -1; //Shortcut if sep not apply to this species
+    }
+    */
+
+    // For a given species with target2 requirements, sum up its clumping pu amounts
+    // and set into speciesAmounts.
+    void SpeciesAmounts4(int isp, double target2) {
+      double totalAmount = 0, ftemp;
+      int totalOcc = 0;
+      for (auto& [ipu, clump]: speciesClump[isp]) {
+        ftemp = PartialPen4(target2, clump.amount);
+        totalAmount += ftemp;
+        totalOcc += clump.occs*(ftemp>0);
+      }
+    }
+
+    /* Clumping functionality functions */
+    // Sets a clump number for a species in this reserve
+    void SetClumpSpecAtPu(int spindex, int puindex, int iSetClump)
+    {
+      sclumps& current = RtnClumpSpecAtPu(spindex, puindex);
+      if (current.clumpid == 0)
+        speciesClump[spindex][puindex] = {iSetClump, 0, 0};
+      else 
+        current.clumpid = iSetClump;
+    }
+
+    // overwrites an entire sclump.
+    void SetClumpSpecAtPu(int spindex, int puindex, sclumps& current)
+    {
+        speciesClump[spindex][puindex] = current;
+    }
+
+    sclumps RtnClumpSpecAtPu(int spindex, int puindex) {
+      auto it = speciesClump[spindex].find(puindex);
+      if (it != speciesClump[spindex].end())
+        return it->second;
+      return {0, 0, 0};
+    }
+
+    // Add new pu to clump of a species.
+    void AddNewPuToClump(Pu& pu, int ipu, int isp) {
+      double rAmount = pu.RtnAmountSpecAtPu(ipu, isp);
+      AddNewPuToClump(ipu, isp, rAmount);
+    }
+
+    // Adds or updates existing clump with amount
+    void AddNewPuToClump(int ipu, int isp, double amount) {
+      sclumps& clump = RtnClumpSpecAtPu(isp, ipu); // keep reference so it can be changed later.
+      if (clump.clumpid) {
+        // For some reason, species already has this pu as its clump.
+        if (amount == clump.amount)
+          return; // nothing to do here, pu is already included
+      }
+
+      // Now set up the new clump. Set clump id to ipu.
+      clump.clumpid = ipu;
+      clump.amount = amount;
+      clump.occs = (amount > 0);
+    }
+
+    // Removes a pu from clump in isp, does nothing if clump does not exist.
+    void RemovePuFromClump(int ipu, int isp) {
+      auto it = speciesClump[isp].find(ipu);
+      if (it != speciesClump[isp].end())
+        speciesClump[isp].erase(it);
+    }
+
+    void ClearClumps(int isp) {
+      speciesClump[isp].clear();
+    }
+
     string ReturnStringIfTargetMet(double targetArea, double area, int targetOcc, int occ, double &rMPM, double &misslevel)
     {
       string temp = "yes";

@@ -20,7 +20,6 @@ using namespace std;
 class Pu {
     public:
     Pu(sfname& fnames, Costs& costs, int asymmetric) : puno(0), puLockCount(0), puZoneCount(0) {
-        // TODO - ignore pulock/puzone for pu that are not defined in pu.dat
         if (!fnames.pulockname.empty())
         {
             LoadPuLock(fnames.inputdir + fnames.pulockname);
@@ -244,7 +243,7 @@ class Pu {
     } // * * * * Connection Cost Type 1 * * * *
     
     // Returns the connection cost of a puindex, given the zones of the other pu.
-    // imode = TODO check specifics of this param. For now I am assuming 1, 0 or -1
+    // imode = check specifics of this param. For now I am assuming 1, 0 or -1
     double ConnectionCost2Linear(Zones& zones, int puindex, int imode, vector<int>& solution) {
         double fcost, rResult, rZoneConnectionCost;
         int iCurrentZone = solution[puindex];
@@ -268,7 +267,7 @@ class Pu {
         fcost = connections[puindex].fixedcost*imode;
 
         // Asymmetric connectivity not supported in marzone, so we can ignore it.
-        // We can add it back in the future if needed TODO.
+        // We can add it back in the future if needed.
         for (sneighbour& p: connections[puindex].first) {
             rZoneConnectionCost = zones.GetZoneConnectionCost(curZone, solution[p.nbr]);
             fcost += imode*p.cost*rZoneConnectionCost;
@@ -280,12 +279,23 @@ class Pu {
     // returns the amount of a species at a planning unit, if the species doesn't occur here, returns 0
     double RtnAmountSpecAtPu(int puindex, int iSpecIndex)
     {
+        int smIndex = RtnIndexSpecAtPu(puindex, iSpecIndex);
+        if (smIndex != -1) {
+            return puvspr[smIndex].amount;
+        }
+
+        return 0;
+    }
+
+    // returns index of a species at puvspr
+    int RtnIndexSpecAtPu(int puindex, int iSpecIndex)
+    {
         if (puList[puindex].richness > 0)
             for (int i=0;i<puList[puindex].richness;i++)
                 if (puvspr[puList[puindex].offset + i].spindex == iSpecIndex)
-                    return puvspr[puList[puindex].offset + i].amount;
+                    return puList[puindex].offset + i;
 
-        return 0;
+        return -1;
     }
 
     // Returns all the spec info for a pu
@@ -606,26 +616,6 @@ class Pu {
         fclose(fp);
         puno = puList.size();
     } // ReadPUData
-
-    /* * * * ***** Read Name List File * * * * * * * * ******/
-    /****** This file reads in the name list file * * * * ***/
-    // This is here for backwards compat. TODO - remove.
-    void ReadNameList(string filename)
-    {
-        FILE *fp = openFile(filename);
-        int itemp;
-
-        while (fscanf(fp, "%d", &itemp) == 1)
-        {
-            spustuff temp = {}; // init new pu to 0
-            temp.id = itemp;
-
-            puList.push_back(temp);
-            lookup[temp.id] = puno;
-            puno++;
-        } /* Scanning Through list of file names */
-        fclose(fp);
-    }
 
     void LoadPuLock(string filename)
     {

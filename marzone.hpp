@@ -8,8 +8,7 @@
 
 namespace marzone {
     using namespace std;
-
-    int *bestyet;
+    
     double delta;
 
     // type definitions for Marxan with Zones data structures
@@ -115,7 +114,6 @@ namespace marzone {
         double amount;
         int occurrence;
         int clumps;
-        vector<sclumps> head;  /* needed for clumping species */
         int separation;
     } reservespecies;
 
@@ -154,8 +152,6 @@ namespace marzone {
       int clumpid;
       double amount;
       int occs;
-      struct sclumppu *head;
-      struct sclumps *next;
     }; /* Clump nodes for species Clump Structure */
 
 
