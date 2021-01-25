@@ -48,15 +48,12 @@ namespace marzone
     /* FILEOUT.H START */
 
     void SaveSeed(int iseed);
-    void OutputSummary(int puno, int spno, int R[], struct sspecies spec[], struct scost reserve,
-                       int itn, char savename[], double misslevel, int imode);
+    string OutputSummaryString(Pu& pu, Species& spec, Zones& zones, Reserve& r, double misslevel, int imode);
+    void OutputSummary(Pu& pu, Zones& zones, vector<string>& summaries, string filename, int imode);
     void OutputScenario(int puno,int spno, int zoneCount, int costCount, Logger& logger,
                         sanneal& anneal, srunoptions& runoptions,
                         string filename);
-    void OutputSolution(int puno, int R[], struct spustuff pu[], char savename[], int imode);
     void OutputFeatures(std::string filename, marzone::Zones &zones, marzone::Reserve &reserve, marzone::Species &spec, int imode, double misslevel);
-    void OutputSumSoln(int puno, int sumsoln[], int ZoneSumSoln[], int R[], struct spustuff pu[], char savename[], int imode);
-    void OutputSpeciesData(int spno, struct sspecies spec[], char savename[]);
 
     /* FILEOUT.H END */
     /* ************************************************************************** */
@@ -98,18 +95,7 @@ namespace marzone
 
     void StartDebugFile(char sFileName[], char sHeader[], struct sfname fnames);
     void AppendDebugFile(char sFileName[], char sLine[], struct sfname fnames);
-    void OutputPenalty(int spno, struct sspecies spec[], char savename[], int iOutputType);
-    void LoadPenalty(int spno, struct sspecies spec[], struct sfname fnames);
-    void InitSolutionsMatrix(int puno, struct spustuff pu[], char savename[], int iOutputType, int iIncludeHeaders);
-    void AppendSolutionsMatrix(int iRun, int puno, int R[], char savename[], int iOutputType, int iIncludeHeaders);
-    void AppendSolutionsMatrixZone(int iZone, int iRun, int puno, int R[], char savename[], int iOutputType, int iIncludeHeaders);
 
     void WriteSecondarySyncFileRun(int iSyncRun);
-    void OutputZoneConnectivitySum(int puno, int R[], char savename[], int imode);
-
-    void OutputTotalAreas(int puno, int spno, struct spustuff pu[], struct sspecies spec[], struct spu SM[], char savename[], int iOutputType);
-    void WriteStopErrorFile(char sMess[]);
-    void CountPuZones2(char *sNames, char *sCounts, int imode, int puno, int R[]);
-    void CostPuZones(char *sNames, char *sCounts, int imode, int puno, int R[]);
 
 } // namespace marzone

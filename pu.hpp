@@ -380,6 +380,10 @@ class Pu {
         return -1;
     }
 
+    vector<double> GetCostBreakdown(int puindex) {
+        return puList[puindex].costBreakdown;
+    }
+
     // Gets the species -> pu map sorted in amount/cost order. 
     // if ignoreLocked is set, then 
     vector<vector<penaltyTerm>> getPuAmountsSorted(int spno, bool ignoreLocked) {

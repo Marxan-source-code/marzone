@@ -229,6 +229,23 @@ class Zones {
         return zoneNameIndexed[index].name;
     }
 
+    // Formats all zone names into a string
+    string ZoneNameHeaders(int imode, string othertext) {
+        string d = imode > 1 ? "," : "    ";
+        stringstream text;
+
+        for (int i = 0; i < zoneCount; i++)
+        {
+            text << d;
+            if (imode == 2)
+                text << "\"";
+            text << zoneNameIndexed[i].name << othertext;
+            if (imode == 2)
+                text << "\"";
+        }
+        return text.str();
+    }
+
     void WriteZoneTargetHeaders(string filename, int imode) {
         ofstream myfile;
         myfile.open(filename);

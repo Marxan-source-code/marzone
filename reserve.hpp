@@ -953,6 +953,45 @@ namespace marzone
       myfile.close();
     }
 
+    // Returns a formatted string for zone count based on this reserve configuration
+    void CountPuZones2(Zones& zones, int imode, string& sCounts) {
+      stringstream s2; 
+      string d = imode > 1 ? "," : "    ";
+
+      vector<int> zCounts(zones.zoneCount, 0);
+      for (int i = 0; i < solution.size(); i++) {
+        zCounts[solution[i]]++;
+      }
+
+      for (int i = 0; i < zones.zoneCount; i++) {
+        s2 << d << zCounts[i];
+      }
+
+      sCounts = s2.str();
+    }
+
+    void CostPuZones(Pu &pu, Zones &zones, string &sCount, int imode, int puno)
+    {
+      int i;
+      string d = imode > 1 ? "," : "    ";
+      double rZoneCost;
+      stringstream sCounts;
+      vector<double> zCosts(zones.zoneCount, 0.0);
+
+      for (int i = 0; i < puno; i++)
+      {
+        rZoneCost = zones.AggregateTotalCostByPuAndZone(solution[i], pu.GetCostBreakdown(i));
+        zCosts[solution[i]] += rZoneCost;
+      }
+
+      for (int i = 0; i < zones.zoneCount; i++)
+      {
+        sCounts << d << zCosts[i];
+      }
+
+      sCount = sCounts.str();
+    }
+
     vector<zonespecstruct> zoneSpec;
 
     // Species data and amounts

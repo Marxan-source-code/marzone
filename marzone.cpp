@@ -49,7 +49,7 @@
 
 #include "analysis.hpp"
 #include "logger.hpp"
-#include "output.hpp"
+//#include "output.hpp"
 #include "marzone.hpp"
 
 // Solver filers
@@ -77,10 +77,8 @@ long int RandSeed1;
 //   asymmetric connectivity
 //   multiple connectivity files
 int iVerbosity;
-char* savelogname;
 int iOptimisationIterativeImprovement = 1, iPuZoneCount = 0;
 int iOptimisationCalcPenalties = 1;
-double rClocksPerSec;
 int asymmetricconnectivity = 0;
 int iZoneContrib3On = 0;
 int iZonationCost = 0;
@@ -121,12 +119,11 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     string tempname;
     double rBestScore;
 
-    rClocksPerSec = CLOCKS_PER_SEC;
-
     ShowStartupScreen();
 
     SetOptions(sInputFileName, runoptions, anneal, fnames);
     logger.verbosity = runoptions.verbose;
+    iVerbosity = runoptions.verbose;
     SetRunOptions(runoptions);
 
     #ifdef DEBUGTRACEFILE
@@ -244,7 +241,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     if (fnames.savesumsoln)
     {
         logger.AppendDebugTraceFile("before InitSumSoln\n");
-        analysis.initSumSolution(puno, iZoneCount);
+        analysis.initSumSolution(puno, zones.zoneCount);
         logger.AppendDebugTraceFile("after InitSumSoln\n");
     }
 
@@ -429,6 +426,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     // TODO - parallelize
     // for each repeat run
     Reserve bestR;
+    vector<string> summaries(runoptions.repeats);
     bestR.objective.total = numeric_limits<double>::max();
     int maxThreads = omp_get_max_threads();
     logger.ShowGenProg("Running multithreaded over number of threads: " + to_string(maxThreads) + "\n");
@@ -454,9 +452,9 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             sa.Initialize(spec, pu, zones, runoptions.clumptype);
             debugbuffer << "after Annealling Init run " << irun << "\n";
 
-            progbuffer << "  Using Calculated Tinit = " << anneal.Tinit << "Tcool = " << anneal.Tcool "\n";
+            progbuffer << "  Using Calculated Tinit = " << anneal.Tinit << "Tcool = " << anneal.Tcool << "\n";
             anneal.temp = anneal.Tinit;
-        } // Annealing Settup
+        } // Annealing Setup
 
         progbuffer << "  creating the initial reserve \n";
         debugbuffer << "before ZonationCost run " << irun << "%i\n";
@@ -466,7 +464,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         if (runoptions.verbose > 1)
         {
            progbuffer << "\n  Init:";
-           progbuffer << PrintResVal(reserve, spec, zones, runoptions.misslevel);
+           PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
         }
 
         if (runoptions.verbose > 5)
@@ -483,7 +481,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             debugbuffer << "before Annealing run " << irun << "\n";
             progbuffer << "  Main Annealing Section.\n";
 
-            sa.RunAnneal(reserve, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
+            sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
 
             debugbuffer << "after Annealing run " << irun << "\n";
         } // End of Annealing On
@@ -492,12 +490,12 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         {
            debugbuffer << "before Heuristics run " << irun << "\n";
            Heuristic heur = Heuristic(rngEngine, runoptions.heurotype);
-           heur.RunHeuristic(reserve, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
+           heur.RunHeuristic(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
 
            if (runoptions.verbose > 1 && (runoptions.runopts == 2 || runoptions.runopts == 5))
            {
               progbuffer << "\n  Heuristic:";
-              progbuffer << PrintResVal(reserve,spec,zones,runoptions.misslevel);
+              PrintResVal(reserveThread,spec,zones,runoptions.misslevel, progbuffer);
            }
 
            debugbuffer << "after Heuristics run " << irun << "\n";
@@ -507,13 +505,13 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         {
             debugbuffer << "before IterativeImprovementOptimise run " << irun << "\n";
             IterativeImprovement itImp = IterativeImprovement(rngEngine, fnames, runoptions.itimptype);
-            itImp.Run(reserve, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
+            itImp.Run(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
             debugbuffer << "after IterativeImprovementOptimise run " << irun << "\n";
 
            if (runoptions.verbose > 1)
            {
               progbuffer << "  Iterative Improvement:";
-              progbuffer << PrintResVal(reserve,spec,zones,runoptions.misslevel);
+              PrintResVal(reserveThread,spec,zones,runoptions.misslevel, progbuffer);
            }
         } // Activate Iterative Improvement
 
@@ -524,28 +522,21 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         if (fnames.saverun)
         {
             tempname2 = fnames.savename + "_r" + to_string(irun) + getFileSuffix(fnames.saverun);
-            reserve.WriteSolution(tempname2, pu, fnames.saverun);
+            reserveThread.WriteSolution(tempname2, pu, fnames.saverun);
         }
 
-        debugbuffer << "OutputSolution ran\n";
+        debugbuffer << "WriteSolution ran\n";
 
         if (fnames.savespecies && fnames.saverun)
         {   
             // output species distribution for a run (specific reserve)
             tempname2 = fnames.savename + "_mv" + to_string(irun) + getFileSuffix(fnames.savespecies);
-            OutputFeatures(tempname2, zones, reserve, spec,fnames.savespecies, runoptions.misslevel);
+            OutputFeatures(tempname2, zones, reserveThread, spec,fnames.savespecies, runoptions.misslevel);
         }
 
         if (fnames.savesum)
         {
-            tempname2 = fnames.savename + "_sum" + to_string(irun) + getFileSuffix(fnames.savesum);
-
-            /* TODO
-           if (irun == 1)
-              OutputSummary(puno,spno,R,spec,reserve,irun,tempname2,misslevel,fnames.savesum);
-           else
-               OutputSummary(puno,spno,R,spec,reserve,irun,tempname2,misslevel,fnames.savesum);
-            */ 
+            summaries[irun] = OutputSummaryString(pu, spec, zones, reserveThread, runoptions.misslevel, fnames.savesum);
         }
 
         #ifdef DEBUGFPERROR
@@ -562,7 +553,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 if (runoptions.verbose > 1)
                 {
                     progbuffer << "  Best:";
-                    progbuffer << PrintResVal(bestR, spec, zones, runoptions.misslevel);
+                    PrintResVal(bestR, spec, zones, runoptions.misslevel, progbuffer);
                 }
             }
         }
@@ -598,7 +589,17 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         if (runoptions.verbose > 1)
            logger.ShowTimePassed(startTime);
 
+        // print the logs/debugs
+        logger.ShowProg(progbuffer.str());
+        logger.AppendDebugTraceFile(debugbuffer.str());
     } // ** the repeats  **
+
+    // Output summary
+    if (fnames.savesum)
+    {
+        string tempname2 = fnames.savename + "_sum" + to_string(irun) + getFileSuffix(fnames.savesum);
+        OutputSummary(pu, zones, summaries, tempname2, fnames.savesum);
+    }
 
     logger.AppendDebugTraceFile("before final file output\n");
 
@@ -608,7 +609,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         bestR.WriteSolution(saveBestName, pu, fnames.savebest);
 
         logger.AppendDebugTraceFile("Best solution is run " + to_string(bestR.id) + "\n");
-        logger.ShowGenProg("\nBest solution is run " + bestR.id +"\n";
+        logger.ShowGenProg("\nBest solution is run " + bestR.id + "\n");
 
         if (fnames.savezoneconnectivitysum)
         {
@@ -777,7 +778,7 @@ int CalcPenalties(Pu& pu, Species& spec, Zones& zones, Reserve& r, int clumptype
 
         // If target not met with available pu, scale the penalty. 
         if (!targetMet) {
-            ShowGenProgInfo("Species %d (%s) cannot reach target %.2f there is only %.2f available.\n",
+            logger.ShowGenProgInfo("Species %d (%s) cannot reach target %.2f there is only %.2f available.\n",
                             spec.specList[i].name, spec.specList[i].sname, rZoneSumTarg, ftarget);
 
             if (ftarget == 0)
@@ -794,7 +795,7 @@ int CalcPenalties(Pu& pu, Species& spec, Zones& zones, Reserve& r, int clumptype
     }
 
     if (goodspecies)
-         ShowGenProg("%i species are already adequately represented.\n",goodspecies);
+        logger.ShowGenProg(to_string(goodspecies) + " species are already adequately represented.\n");
 
     logger.AppendDebugTraceFile("CalcPenalties end\n");
 
@@ -828,7 +829,6 @@ double ReturnPuZoneCost(int ipu,int iZone, Pu& pu, Zones& zones)
 // * * * * * * * * * * * * * * * * * * * * * * * * *****
 
 // * * * * Reporting Value of a Reserve * * * *
-// TODO - move to Reserve object
 void PrintResVal(Reserve& reserve, Species& spec, Zones& zones, double misslevel, stringstream& buffer)
 {
     int i, iMissing;
@@ -846,6 +846,71 @@ void PrintResVal(Reserve& reserve, Species& spec, Zones& zones, double misslevel
         << "Penalty " << reserve.objective.penalty << " "
         << "MPM " << rMPM << "\n";
 } /* * * * Print Reserve Value * * * * */
+
+/*
+    Output functions
+*/
+
+/* * * * ***** Output Solutions * * * * * * * */
+/** imode = 1   Output Summary Stats only ******/
+/** imode = 2    Output Everything * * * * *****/
+void OutputSummary(Pu& pu, Zones& zones, vector<string>& summaries, string filename, int imode) {
+    ofstream fp;  /* Imode = 1, REST output, Imode = 2, Arcview output */
+    fp.open(filename);
+
+    if (!fp.is_open())
+        logger.ShowErrorMessage("Cannot save output to " + filename + " \n");
+
+    string sZoneNames = zones.ZoneNameHeaders(imode, " PuCount");
+    string sZoneCostNames = zones.ZoneNameHeaders(imode, " Cost");
+
+    if (imode > 1)
+    {
+        fp << "\"Run Number\",\"Score\",\"Cost\",\"Planning Units\"" << sZoneNames << sZoneCostNames;
+        fp << ",\"Connection Strength\",\"Penalty\",\"Shortfall\",\"Missing_Values\",\"MPM\"\n";
+    }
+    else
+    {
+        fp << "Run no.    Score      Cost   Planning Units  " << sZoneNames << sZoneCostNames;
+        fp << "  Connection_Strength   Penalty  Shortfall Missing_Values MPM\n";
+    }
+
+    // write all summaries in run order
+    for (string& s: summaries) {
+        fp << s;
+    }
+
+    fp.close();
+}
+
+// formats a summary string for a particular run.
+string OutputSummaryString(Pu& pu, Species& spec, Zones& zones, Reserve& r, double misslevel, int imode)
+{
+    int ino=0,isp;
+    double connectiontemp = 0,rMPM;
+    stringstream s;
+    string d = imode > 1 ? "," : "    ";
+
+    string sZoneNames,sZonePuCount,sZoneCostNames,sZoneCost;
+    r.CountPuZones2(zones, imode, sZonePuCount);
+    r.CostPuZones(pu, zones, sZoneCost, imode);
+
+    /*** Ouput the Summary Statistics *****/
+    for (int i=0;i<pu.puno;i++)
+        if (r.solution[i] < 0)
+            ino ++;
+
+    isp = r.CountMissing(spec, zones, misslevel, rMPM);
+    for (int i=0;i<pu.puno;i++)
+    {
+        connectiontemp += pu.ConnectionCost2Linear(zones, i, 1, r.solution);
+    } /* Find True (non modified) connection */
+
+    s << r.id << d << r.objective.total << d << r.objective.cost << d << ino << d << sZonePuCount << d
+      << d << sZoneCost << d << connectiontemp << d << r.objective.penalty << d << r.objective.shortfall << d << isp << d << rMPM << "\n";
+
+    return s.str();
+} // OutputSummary
 
 /* * * * * * * * * * * * * * * * * * * * ****/
 /* * * *   Main functions * * * * * * * * ***/
@@ -900,7 +965,7 @@ void WriteSecondarySyncFileRun(int iSyncRun)
 /* SecondaryExit does not deliver a message prior to exiting, but creates a file so C-Plan knows marxan has exited */
 void SecondaryExit(void)
 {
-     WriteSecondarySyncFileRun();
+    WriteSecondarySyncFileRun(0);
 }
 
 void ShowPauseProg(void)
@@ -1051,102 +1116,6 @@ void SetOptions(string &sInputFileName, srunoptions &runoptions, sanneal &anneal
         logger.ShowErrorMessage(errorMessage.str());
 
 } /***** Set Options 2* * * */
-
-void CountPuZones2(char *sNames,char *sCounts,int imode,int puno,int R[])
-{
-     int i,*ZoneCount;
-     char sCount[100];
-     char sDelimiter[100];
-
-     if (imode > 1)
-        strcpy(sDelimiter,",");
-     else
-         strcpy(sDelimiter,"   ");
-
-     ZoneCount = (int *) calloc(iZoneCount,sizeof(int));
-     for (i=0;i<iZoneCount;i++)
-         ZoneCount[i] = 0;
-
-     for (i=0;i<puno;i++)
-         if (R[i] > 0)
-            ZoneCount[R[i]-1] += + 1;
-
-     strcpy(sNames,"");
-     strcpy(sCounts,"");
-     for (i=0;i<iZoneCount;i++)
-     {
-         strcat(sNames,sDelimiter);
-         if (imode == 2)
-            strcat(sNames,"\"");
-         strcat(sNames,Zones[i].name);
-         strcat(sNames," PuCount");
-         if (imode == 2)
-            strcat(sNames,"\"");
-
-         strcat(sCounts,sDelimiter);
-         sprintf(sCount,"%i",ZoneCount[i]);
-         strcat(sCounts,sCount);
-     }
-
-     free(ZoneCount);
-}
-
-void CostPuZones(char *sNames,char *sCounts,int imode,int puno,int R[])
-{
-     int i;
-     double *ZoneCosts;
-     char sCount[1000];
-     char sDelimiter[20];
-     double rZoneCost;
-     #ifdef DEBUGTRACEFILE
-     char debugbuffer[1000];
-     #endif
-
-     if (imode > 1)
-        strcpy(sDelimiter,",");
-     else
-         strcpy(sDelimiter,"   ");
-
-     ZoneCosts = (double *) calloc(iZoneCount,sizeof(double));
-     for (i=0;i<iZoneCount;i++)
-         ZoneCosts[i] = 0;
-
-     for (i=0;i<puno;i++)
-     {
-         rZoneCost = ReturnPuZoneCost(i,R[i]);
-
-         #ifdef DEBUGTRACEFILE
-         //sprintf(debugbuffer,"CostPuZones ipu %i R %i zonecost %f\n",i,R[i],rZoneCost);
-         //logger.AppendDebugTraceFile(debugbuffer);
-         #endif
-
-         ZoneCosts[R[i]-1] += rZoneCost;
-     }
-
-     strcpy(sNames,"");
-     strcpy(sCounts,"");
-     for (i=0;i<iZoneCount;i++)
-     {
-         #ifdef DEBUGTRACEFILE
-         sprintf(debugbuffer,"CostPuZones zone %i zonecost %f\n",i,ZoneCosts[i]);
-         logger.AppendDebugTraceFile(debugbuffer);
-         #endif
-
-         strcat(sNames,sDelimiter);
-         if (imode == 2)
-            strcat(sNames,"\"");
-         strcat(sNames,Zones[i].name);
-         strcat(sNames," Cost");
-         if (imode == 2)
-            strcat(sNames,"\"");
-
-         strcat(sCounts,sDelimiter);
-         sprintf(sCount,"%f",ZoneCosts[i]);
-         strcat(sCounts,sCount);
-     }
-
-     free(ZoneCosts);
-}
 
 void InitRandSeed(int iSeed)
 {
@@ -1348,6 +1317,151 @@ void CalcTotalAreas(Pu& pu, Species& spec, string filename = "MarZoneTotalAreas.
         spec.WriteTotalAreasAndOccs(filename, TotalOccurrences, TO_2, TO_3, TA_2, TA_3);
     }
 } // CalcTotalAreas
+
+void StartDebugFile(string sFileName,string sHeader, sfname& fnames)
+{
+    string writename = fnames.outputdir + sFileName;
+    ofstream myfile;
+    myfile.open(writename);
+    myfile << sHeader;
+    myfile.close();
+}
+
+void AppendDebugFile(string sFileName,string& sLine, sfname& fnames)
+{
+    string writename = fnames.outputdir + sFileName;
+    ofstream myfile;
+    myfile.open(writename);
+    myfile << sLine;
+    myfile.close();
+}
+
+void DumpFileNames(sfname& fnames, Logger& logger)
+{
+    FILE *fp;
+    string writename;
+
+    writename = fnames.outputdir + "debugFileNames.csv";
+    fp = fopen(writename.c_str(),"w");
+    if (fp==NULL)
+        logger.ShowErrorMessage("cannot create DumpFileNames file " + writename + "\n";
+
+    fprintf(fp,"input name,file name\n");
+
+    fprintf(fp,"zonesname,%s\n",fnames.zonesname);
+    fprintf(fp,"costsname,%s\n",fnames.costsname);
+    fprintf(fp,"zonecontribname,%s\n",fnames.zonecontribname);
+    fprintf(fp,"zonecontrib2name,%s\n",fnames.zonecontrib2name);
+    fprintf(fp,"zonecontrib3name,%s\n",fnames.zonecontrib3name);
+    fprintf(fp,"zonetargetname,%s\n",fnames.zonetargetname);
+    fprintf(fp,"zonetarget2name,%s\n",fnames.zonetarget2name);
+    fprintf(fp,"zonecostname,%s\n",fnames.zonecostname);
+    fprintf(fp,"pulockname,%s\n",fnames.pulockname);
+    fprintf(fp,"puzonename,%s\n",fnames.puzonename);
+    fprintf(fp,"zoneconnectioncostname,%s\n",fnames.relconnectioncostname);
+
+    fclose(fp);
+}
+
+void OutputScenario(int puno,int spno, int zoneCount, int costCount, Logger& logger,
+                    sanneal& anneal, srunoptions& runoptions,
+                    string filename)
+{
+    ofstream fp;
+    string temp;
+    fp.open(filename);
+    if (!fp.is_open())
+    {
+        logger.ShowErrorMessage("Error: Cannot save to log file " + filename + "\n");
+    } /* open failed */
+
+    fp << "Number of Planning Units " << puno << "\n";
+    fp << "Number of Conservation Values " << spno << "\n";
+    fp << "Number of Zones " << zoneCount << "\n";
+    fp << "Number of Costs " << costCount << "\n";
+    fp << "Starting proportion " << runoptions.prop << "\n";
+    switch (runoptions.clumptype)
+    {
+        case 0: temp = "Clumping - default step function\n";break;
+        case 1: temp = "Clumping - two level step function.\n";break;
+        case 2: temp = "Clumping - rising benefit function\n";break;
+    }
+    fp << temp;
+
+    /* Use character array here and set up the name of the algorithm used */
+    switch (runoptions.runopts)
+    {
+        case 0: temp="Annealing and Heuristic";break;
+        case 1: temp="Annealing and Iterative Improvement";break;
+        case 2: temp="Annealing and Both";break;
+        case 3: temp="Heuristic only";break;
+        case 4: temp="Iterative Improvement only";break;
+        case 5: temp="Heuristic and Iterative Improvement";
+    }
+    fp << "Algorithm Used :" << temp << "\n";
+    if (runoptions.runopts == 0 || runoptions.runopts == 3 || runoptions.runopts == 5)
+    {
+        switch (runoptions.heurotype)
+        {
+            case 0: temp="Richness";break;
+            case 1: temp="Greedy";break;
+            case 2: temp="Maximum Rarity";break;
+            case 3: temp="Best Rarity";break;
+            case 4: temp="Average Rarity";break;
+            case 5: temp="Summation Rarity";break;
+            case 6: temp="Product Irreplaceability";break;
+            case 7: temp="Summation Irreplaceability";break;
+            default: temp="Unkown Heuristic Type";
+        }
+        fp << "Heuristic type : " << temp << "\n";
+    }
+    else
+        fp << "No Heuristic used \n";
+
+    if (runoptions.runopts <= 2)
+    {
+        fp << "Number of iterations " << anneal.iterations << "\n";
+        if (anneal.Tinit >= 0)
+        {
+            fp << "Initial temperature " << anneal.Tinit << "\n";
+            fp << "Cooling factor " << anneal.Tcool << "\n";
+        }
+        else
+        {
+            fp << "Initial temperature set adaptively" << "\n";
+            fp << "Cooling factor set adaptively" << "\n";
+        }
+        fp << "Number of temperature decreases " << anneal.Titns << "\n\n";
+    }
+    else
+    {
+        fp << "Number of iterations N/A\nInitial temperature N/A\nCooling Factor N/A\n";
+        fp << "Number of temperature decreases N/A\n\n";
+    }
+
+    if (runoptions.costthresh)
+    {
+        fp << "Cost Threshold Enabled: " << runoptions.costthresh << "\n";
+        fp << "Threshold penalty factor A " << runoptions.tpf1 << "\n";
+        fp << "Threshold penalty factor B " << runoptions.tpf2 << "\n\n";
+    }
+    else
+    {
+        fp << "Cost Threshold Disabled\nThreshold penalty factor A N/A\n";
+        fp << "Threshold penalty factor B N/A\n\n";
+    }
+
+    fp << "Random Seed " << runoptions.iseed << "\n";
+    fp << "Number of runs " << runoptions.repeats << "\n";
+    fp.close();
+}  /*** OutputScenario ****/
+
+// Output Feature report (missing values report)
+void OutputFeatures(std::string filename, marzone::Zones& zones, marzone::Reserve& reserve, marzone::Species& spec, int imode, double misslevel)
+{
+    zones.WriteZoneTargetHeaders(filename, imode);
+    reserve.WriteSpeciesAmounts(filename,spec, zones, imode, misslevel);
+} // OutputFeatures
 
 } // namespace marzone
 

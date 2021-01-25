@@ -8,6 +8,7 @@
 
 namespace marzone {
 
+/* TODO move to Costs
 void DumpCostValues(int iCostCount, int puno,double **CostValues,struct sfname fnames)
 {
     FILE *fp;
@@ -41,6 +42,7 @@ void DumpCostValues(int iCostCount, int puno,double **CostValues,struct sfname f
     }
     fclose(fp);
 }
+*/
 
 /* TODO - rewrite
 void Dump_ZoneContrib(int puno,int spno,typesp spec[],int iZoneCount,double _ZoneContrib[],struct sfname fnames)
@@ -309,71 +311,7 @@ void DumpZoneSpec(int iMessage,int spno,int iZoneCount,struct zonespecstruct Zon
 }
 
 */
-#ifdef DEBUGTRACEFILE
-void DumpR(int iMessage,char sMessage[],int puno,int reservedarray[],struct spustuff pu[],struct sfname fnames)
-{
-    FILE *fp;
-    char *writename;
-    int i;
-    char messagebuffer[1000];
-    char debugbuffer[1000];
 
-    sprintf(messagebuffer,"%s%i",sMessage,iMessage);
-
-    sprintf(debugbuffer,"DumpR %s %i\n",sMessage,iMessage);
-    AppendDebugTraceFile(debugbuffer);
-
-    writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debugR_.csv") + strlen(messagebuffer) + 2, sizeof(char));
-    strcpy(writename,fnames.outputdir);
-    strcat(writename,"debugR_");
-    strcat(writename,messagebuffer);
-    strcat(writename,".csv");
-    fp = fopen(writename,"w");
-    if (fp==NULL)
-        ShowErrorMessage("cannot create DumpR file %s\n",writename);
-    free(writename);
-
-    // write header row
-    fprintf(fp,"puid,reservedarray\n");
-
-    for (i=0;i<puno;i++)
-    {
-        fprintf(fp,"%i,%i\n",pu[i].id,reservedarray[i]);
-    }
-
-    fclose(fp);
-
-    sprintf(debugbuffer,"DumpR %s %i end\n",sMessage,iMessage);
-    AppendDebugTraceFile(debugbuffer);
-}
-#endif
-
-void DumpFileNames(sfname& fnames, Logger& logger)
-{
-    FILE *fp;
-    string writename;
-
-    writename = fnames.outputdir + "debugFileNames.csv";
-    fp = fopen(writename.c_str(),"w");
-    if (fp==NULL)
-        logger.ShowErrorMessage("cannot create DumpFileNames file " + writename + "\n";
-
-    fprintf(fp,"input name,file name\n");
-
-    fprintf(fp,"zonesname,%s\n",fnames.zonesname);
-    fprintf(fp,"costsname,%s\n",fnames.costsname);
-    fprintf(fp,"zonecontribname,%s\n",fnames.zonecontribname);
-    fprintf(fp,"zonecontrib2name,%s\n",fnames.zonecontrib2name);
-    fprintf(fp,"zonecontrib3name,%s\n",fnames.zonecontrib3name);
-    fprintf(fp,"zonetargetname,%s\n",fnames.zonetargetname);
-    fprintf(fp,"zonetarget2name,%s\n",fnames.zonetarget2name);
-    fprintf(fp,"zonecostname,%s\n",fnames.zonecostname);
-    fprintf(fp,"pulockname,%s\n",fnames.pulockname);
-    fprintf(fp,"puzonename,%s\n",fnames.puzonename);
-    fprintf(fp,"zoneconnectioncostname,%s\n",fnames.relconnectioncostname);
-
-    fclose(fp);
-}
 
 /*
 void DumpPuLockZone(int puno,struct spustuff pu[])
@@ -400,6 +338,7 @@ void DumpPuLockZone(int puno,struct spustuff pu[])
 }
 */
 
+/*
 void OutputZonationCostDebugTable(int spno,struct sspecies spec[],char savename[])
 {
     FILE *fp;
@@ -454,193 +393,14 @@ void OutputZonationCostDebugTable(int spno,struct sspecies spec[],char savename[
 
     fclose(fp);
 }
-
-void WriteSecondarySyncFile(void)
-{
-    FILE* fsync;
-
-    fsync = fopen("sync","w");
-    fprintf(fsync,"sync");
-    fclose(fsync);
-}
-
-/* ShowProg displays fundamental progress information. Basic run summary */
-
-void StartDebugFile(string sFileName,string sHeader, sfname& fnames)
-{
-    string writename = fnames.outputdir + sFileName;
-    ofstream myfile;
-    myfile.open(writename);
-    myfile << sHeader;
-    myfile.close();
-}
-
-void AppendDebugFile(string sFileName,string& sLine, sfname& fnames)
-{
-    string writename = fnames.outputdir + sFileName;
-    ofstream myfile;
-    myfile.open(writename);
-    myfile << sLine;
-    myfile.close();
-}
-
-/* * * * ***** Output Solutions * * * * * * * */
-/** imode = 1   Output Summary Stats only ******/
-/** imode = 2    Output Everything * * * * *****/
-
-void OutputSummary(int puno,int spno,int R[],struct sspecies spec[],struct scost reserve,
-                   int itn,char savename[],double misslevel,int imode)
-{
-    FILE *fp;  /* Imode = 1, REST output, Imode = 2, Arcview output */
-    int i,ino=0,isp;
-    double shortfall,connectiontemp,rMPM;
-    char sZoneNames[1000],sZonePuCount[1000],sZoneCostNames[1000],sZoneCost[1000];
-
-    CountPuZones2(sZoneNames,sZonePuCount,imode,puno,R);
-    CostPuZones(sZoneCostNames,sZoneCost,imode,puno,R);
-
-    if (itn==1)
-        fp = fopen(savename,"w");
-    else
-        fp = fopen(savename,"a");
-    if (!fp)
-        ShowErrorMessage("Cannot save output to %s \n",savename);
-
-    /*** Ouput the Summary Statistics *****/
-    for (i=0;i<=puno-1;i++)
-        if (R[i] != 0)
-            ino ++;
-    isp = CountMissing(spno,spec,misslevel,&shortfall,&rMPM);
-    for (i=0,connectiontemp = 0;i<puno;i++)
-    {
-        connectiontemp += ConnectionCost2Linear(i,R[i],pu,connections,R,1,0);
-    } /* Find True (non modified) connection */
-
-    if (itn==1)
-    {
-        if (imode > 1)
-        {
-            fprintf(fp,"\"Run Number\",\"Score\",\"Cost\",\"Planning Units\"%s%s",sZoneNames,sZoneCostNames);
-            fprintf(fp,",\"Connection Strength\",\"Penalty\",\"Shortfall\",\"Missing_Values\",\"MPM\"\n");
-        }
-        else
-        {
-            fprintf(fp,"Run no.    Score      Cost   Planning Units  %s%s",sZoneNames,sZoneCostNames);
-            fprintf(fp,"  Connection_Strength   Penalty  Shortfall Missing_Values MPM\n");
-        }
-    }
-    if (imode > 1)
-        fprintf(fp,"%i,%f,%f,%i%s%s,%f,%f,%f,%i,%f\n",
-                   itn,reserve.total,reserve.cost,ino,sZonePuCount,sZoneCost,connectiontemp,reserve.penalty,shortfall,isp,rMPM);
-    else
-        fprintf(fp,"%-4i    %8.2f  %8.2f  %8i%s%s     %8.2f         %8.2f   %8.2f       %i   %8.2f\n",
-                   itn,reserve.total,reserve.cost,ino,sZonePuCount,sZoneCost,connectiontemp,reserve.penalty,shortfall,isp,rMPM);
-    fclose(fp);
-    return;
-} // OutputSummary
+*/
 
 /* * * * ***** Scenario Output File * * * * * * * */
 /*** OutputScenario ****/
-void OutputScenario(int puno,int spno, int zoneCount, int costCount, Logger& logger,
-                    sanneal& anneal, srunoptions& runoptions,
-                    string filename)
-{
-    ofstream fp;
-    string temp;
-    fp.open(filename);
-    if (!fp.is_open())
-    {
-        logger.ShowErrorMessage("Error: Cannot save to log file " + filename + "\n");
-    } /* open failed */
 
-    fp << "Number of Planning Units " << puno << "\n";
-    fp << "Number of Conservation Values " << spno << "\n";
-    fp << "Number of Zones " << zoneCount << "\n";
-    fp << "Number of Costs " << costCount << "\n";
-    fp << "Starting proportion " << runoptions.prop << "\n";
-    switch (runoptions.clumptype)
-    {
-        case 0: temp = "Clumping - default step function\n";break;
-        case 1: temp = "Clumping - two level step function.\n";break;
-        case 2: temp = "Clumping - rising benefit function\n";break;
-    }
-    fp << temp;
 
-    /* Use character array here and set up the name of the algorithm used */
-    switch (runoptions.runopts)
-    {
-        case 0: temp="Annealing and Heuristic";break;
-        case 1: temp="Annealing and Iterative Improvement";break;
-        case 2: temp="Annealing and Both";break;
-        case 3: temp="Heuristic only";break;
-        case 4: temp="Iterative Improvement only";break;
-        case 5: temp="Heuristic and Iterative Improvement";
-    }
-    fp << "Algorithm Used :" << temp << "\n";
-    if (runoptions.runopts == 0 || runoptions.runopts == 3 || runoptions.runopts == 5)
-    {
-        switch (runoptions.heurotype)
-        {
-            case 0: temp="Richness";break;
-            case 1: temp="Greedy";break;
-            case 2: temp="Maximum Rarity";break;
-            case 3: temp="Best Rarity";break;
-            case 4: temp="Average Rarity";break;
-            case 5: temp="Summation Rarity";break;
-            case 6: temp="Product Irreplaceability";break;
-            case 7: temp="Summation Irreplaceability";break;
-            default: temp="Unkown Heuristic Type";
-        }
-        fp << "Heuristic type : " << temp << "\n";
-    }
-    else
-        fp << "No Heuristic used \n";
 
-    if (runoptions.runopts <= 2)
-    {
-        fp << "Number of iterations " << anneal.iterations << "\n";
-        if (anneal.Tinit >= 0)
-        {
-            fp << "Initial temperature " << anneal.Tinit << "\n";
-            fp << "Cooling factor " << anneal.Tcool << "\n";
-        }
-        else
-        {
-            fp << "Initial temperature set adaptively" << "\n";
-            fp << "Cooling factor set adaptively" << "\n";
-        }
-        fp << "Number of temperature decreases " << anneal.Titns << "\n\n";
-    }
-    else
-    {
-        fp << "Number of iterations N/A\nInitial temperature N/A\nCooling Factor N/A\n";
-        fp << "Number of temperature decreases N/A\n\n";
-    }
-
-    if (runoptions.costthresh)
-    {
-        fp << "Cost Threshold Enabled: " << runoptions.costthresh << "\n";
-        fp << "Threshold penalty factor A " << runoptions.tpf1 << "\n";
-        fp << "Threshold penalty factor B " << runoptions.tpf2 << "\n\n";
-    }
-    else
-    {
-        fp << "Cost Threshold Disabled\nThreshold penalty factor A N/A\n";
-        fp << "Threshold penalty factor B N/A\n\n";
-    }
-
-    fp << "Random Seed " << runoptions.iseed << "\n";
-    fp << "Number of runs " << runoptions.repeats << "\n";
-    fp.close();
-}  /*** OutputScenario ****/
-
-// Output Feature report (missing values report)
-void OutputFeatures(std::string filename, marzone::Zones& zones, marzone::Reserve& reserve, marzone::Species& spec, int imode, double misslevel)
-{
-    zones.WriteZoneTargetHeaders(filename, imode);
-    reserve.WriteSpeciesAmounts(filename,spec, zones, imode, misslevel);
-} // OutputFeatures
-
+/*
 void DumpAsymmetricConnectionFile(int puno,struct sconnections connections[],struct spustuff pu[],struct sfname fnames)
 {
     #ifdef ASYMCON
@@ -669,5 +429,6 @@ void DumpAsymmetricConnectionFile(int puno,struct sconnections connections[],str
     fclose(fp);
     #endif
 }
+*/
 
 } // namespace marzone
