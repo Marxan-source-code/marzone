@@ -69,7 +69,6 @@ string sDebugTraceFileName = "DebugTraceFile_Marxan_with_Zones.txt";
 
 int iMemoryUsed=0;
 int fSpecPROPLoaded = 0;
-long int RandSeed1;
 // version 2.0 introduces these features;
 //   enhanced flexibility in objectives
 //   probabilistic treatment of threats (1D prob)
@@ -313,7 +312,8 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     if (!fnames.blockdefname.empty())
     {
         logger.ShowDetProg("    Setting Block Definitions \n");
-        spec.SetSpeciesBlockDefinitions(pu.TotalSpeciesAmount(spec.spno));
+        vector<double> totalSpecAmount = pu.TotalSpeciesAmount(spec.spno);
+        spec.SetSpeciesBlockDefinitions(totalSpecAmount);
     }
 
     spec.SetSpeciesDefaults();
@@ -597,7 +597,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     // Output summary
     if (fnames.savesum)
     {
-        string tempname2 = fnames.savename + "_sum" + to_string(irun) + getFileSuffix(fnames.savesum);
+        string tempname2 = fnames.savename + "_sum" + getFileSuffix(fnames.savesum);
         OutputSummary(pu, zones, summaries, tempname2, fnames.savesum);
     }
 
@@ -609,7 +609,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         bestR.WriteSolution(saveBestName, pu, fnames.savebest);
 
         logger.AppendDebugTraceFile("Best solution is run " + to_string(bestR.id) + "\n");
-        logger.ShowGenProg("\nBest solution is run " + bestR.id + "\n");
+        logger.ShowGenProg("\nBest solution is run " + to_string(bestR.id) + "\n");
 
         if (fnames.savezoneconnectivitysum)
         {
@@ -700,10 +700,10 @@ int CalcPenalties(Pu& pu, Species& spec, Zones& zones, Reserve& r, int clumptype
     int badspecies = 0, goodspecies = 0, itargetocc;
     double rZoneSumTarg, iZoneSumOcc, penalty, ftarget, rAmount, ftemp;
 
-    vector<double>& specTargetZones = zones.AggregateTargetAreaBySpecies();
-    vector<int>& specOccurrenceZones = zones.AggregateTargetOccurrenceBySpecies();
+    vector<double> specTargetZones = zones.AggregateTargetAreaBySpecies();
+    vector<int> specOccurrenceZones = zones.AggregateTargetOccurrenceBySpecies();
 
-    vector<vector<penaltyTerm>>& specPuAmounts = pu.getPuAmountsSorted(spec.spno, true); // list of pus that contribute to a species.
+    vector<vector<penaltyTerm>> specPuAmounts = pu.getPuAmountsSorted(spec.spno, true); // list of pus that contribute to a species.
 
     for (int i = 0; i < spec.spno; i++)
     {
@@ -719,7 +719,7 @@ int CalcPenalties(Pu& pu, Species& spec, Zones& zones, Reserve& r, int clumptype
 
         if (specTerm.target2 || specTerm.sepnum)
         {
-            int j = r.ComputePenaltyType4(specTerm, specPuAmounts[i], i, rZoneSumTarg, specTerm.target2, iZoneSumOcc, clumptype); // TODO
+            int j = r.ComputePenaltyType4(specTerm, specPuAmounts[i], i, rZoneSumTarg, specTerm.target2, iZoneSumOcc); 
             badspecies += (j > 0);
             goodspecies += (j < 0);
 
@@ -778,8 +778,8 @@ int CalcPenalties(Pu& pu, Species& spec, Zones& zones, Reserve& r, int clumptype
 
         // If target not met with available pu, scale the penalty. 
         if (!targetMet) {
-            logger.ShowGenProgInfo("Species %d (%s) cannot reach target %.2f there is only %.2f available.\n",
-                            spec.specList[i].name, spec.specList[i].sname, rZoneSumTarg, ftarget);
+            logger.ShowGenProgInfo("Species " + to_string(spec.specList[i].name) + "(" +
+                spec.specList[i].sname + ") cannot reach target " + to_string(rZoneSumTarg) + " there is only " + to_string(ftarget) + " available.\n");
 
             if (ftarget == 0)
                 ftarget = delta; // Protect against divide by zero
@@ -903,7 +903,7 @@ string OutputSummaryString(Pu& pu, Species& spec, Zones& zones, Reserve& r, doub
     isp = r.CountMissing(spec, zones, misslevel, rMPM);
     for (int i=0;i<pu.puno;i++)
     {
-        connectiontemp += pu.ConnectionCost2Linear(zones, i, 1, r.solution);
+        connectiontemp += zones.ConnectionCost2Linear(pu, i, 1, r.solution);
     } /* Find True (non modified) connection */
 
     s << r.id << d << r.objective.total << d << r.objective.cost << d << ino << d << sZonePuCount << d
@@ -1117,15 +1117,6 @@ void SetOptions(string &sInputFileName, srunoptions &runoptions, sanneal &anneal
 
 } /***** Set Options 2* * * */
 
-void InitRandSeed(int iSeed)
-{
-    if (iSeed>0)
-        RandSeed1 = iSeed;
-    else
-        RandSeed1 = (long int)time(NULL);
-    if (RandSeed1 > 0)
-        RandSeed1 = -RandSeed1;
-}
 
 // penalty associated with separation
 /*
@@ -1294,7 +1285,7 @@ void ApplySpecProp(Species& spec, Pu& pu)
     spec.SetSpeciesProportionTarget(speciesSums);
 }
 
-void CalcTotalAreas(Pu& pu, Species& spec, string filename = "MarZoneTotalAreas.csv", bool save = false)
+void CalcTotalAreas(Pu& pu, Species& spec, string filename /*= "MarZoneTotalAreas.csv"*/, bool save /*= false*/)
 {
     int ipu, i, ism, isp;
     vector<int> TotalOccurrences, TO_2, TO_3;
@@ -1344,7 +1335,7 @@ void DumpFileNames(sfname& fnames, Logger& logger)
     writename = fnames.outputdir + "debugFileNames.csv";
     fp = fopen(writename.c_str(),"w");
     if (fp==NULL)
-        logger.ShowErrorMessage("cannot create DumpFileNames file " + writename + "\n";
+        logger.ShowErrorMessage("cannot create DumpFileNames file " + writename + "\n");
 
     fprintf(fp,"input name,file name\n");
 

@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <iostream>
 #include <map>
+#include <random>
 #include <string>
 #include "costs.hpp"
 #include "common.hpp"
@@ -191,7 +192,7 @@ class Pu {
                     specAmount[isp] += puvspr[ism].amount;
                 }
         
-        return specAmount
+        return specAmount;
     }
 
     // Aggregates areas and occurrences only pu.status == 2 and pu.status == 3
@@ -241,40 +242,6 @@ class Pu {
         return(fcost);
     } // * * * * Connection Cost Type 1 * * * *
     
-    // Returns the connection cost of a puindex, given the zones of the other pu.
-    // imode = check specifics of this param. For now I am assuming 1, 0 or -1
-    double ConnectionCost2Linear(Zones& zones, int puindex, int imode, vector<int>& solution) {
-        double fcost, rResult, rZoneConnectionCost;
-        int iCurrentZone = solution[puindex];
-
-        fcost = connections[puindex].fixedcost*imode;
-        for (sneighbour& p: connections[puindex].first) {
-            if (p.nbr > puindex) {
-                rZoneConnectionCost = zones.GetZoneConnectionCost(iCurrentZone, solution[p.nbr]);
-                fcost += imode*p.cost*rZoneConnectionCost;
-            }
-        }
-
-        return fcost;
-    }
-
-    // Connection cost but we can specify which zone to calculate the current pu for
-    double ConnectionCost2(Zones& zones, int puindex, int imode, vector<int>& solution, int curZone) {
-        double fcost, rZoneConnectionCost;
-
-        // Initial fixed cost
-        fcost = connections[puindex].fixedcost*imode;
-
-        // Asymmetric connectivity not supported in marzone, so we can ignore it.
-        // We can add it back in the future if needed.
-        for (sneighbour& p: connections[puindex].first) {
-            rZoneConnectionCost = zones.GetZoneConnectionCost(curZone, solution[p.nbr]);
-            fcost += imode*p.cost*rZoneConnectionCost;
-        }
-
-        return fcost;
-    }
-
     // returns the amount of a species at a planning unit, if the species doesn't occur here, returns 0
     double RtnAmountSpecAtPu(int puindex, int iSpecIndex)
     {
@@ -287,6 +254,7 @@ class Pu {
     }
 
     // returns index of a species at puvspr
+    // Todo - binary search this.
     int RtnIndexSpecAtPu(int puindex, int iSpecIndex)
     {
         if (puList[puindex].richness > 0)
@@ -380,7 +348,7 @@ class Pu {
         return -1;
     }
 
-    vector<double> GetCostBreakdown(int puindex) {
+    vector<double>& GetCostBreakdown(int puindex) {
         return puList[puindex].costBreakdown;
     }
 
@@ -450,7 +418,7 @@ class Pu {
 
     private:
 
-    bool penaltyTermSortOperator(penaltyTerm t1, penaltyTerm t2) {
+    static bool penaltyTermSortOperator(penaltyTerm& t1, penaltyTerm& t2) {
         if (t1.cost == 0 && t2.cost == 0) {
             return t1.amount > t2.amount; // return higher amount
         }
@@ -597,7 +565,7 @@ class Pu {
 
         /* Scan header. We expect id header, and number of cost headers */
         fgets(sLine, 999, fp);
-        vector<string> headerNames = getFileHeaders(sLine);
+        vector<string> headerNames = getFileHeaders(sLine, filename);
 
         /* While there are still lines left feed information into temporary link list */
         while (fgets(sLine, 999, fp))

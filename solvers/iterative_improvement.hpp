@@ -1,3 +1,5 @@
+#pragma once
+
 #include <chrono>
 #include <limits>
 #include <random>
@@ -65,7 +67,7 @@ class IterativeImprovement {
                 iZone = pu.RtnValidZoneForPu(ichoice, iPreviousR, randomDist, rngEngine, zones.zoneCount);
 
                 // Check change value
-                schange& change = r.CheckChangeValue(ichoice, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
+                schange change = r.CheckChangeValue(ichoice, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
                 if (change.total < 0) {
                     ichanges++;
                     r.ApplyChange(ichoice, iZone, change, pu, zones, spec);
@@ -142,7 +144,9 @@ class IterativeImprovement {
     }
 
         */
+       
     }
+    
     void WriteItImpTraceRow() {
         /*
                         if (fnames.saveitimptrace)
@@ -175,7 +179,7 @@ class IterativeImprovement {
                 }
             }
         }/* no untested PUs left */
-        */
+        
     }
 
     ostringstream debugBuffer; // TODO - print buffer once logging library

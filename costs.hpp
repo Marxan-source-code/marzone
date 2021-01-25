@@ -52,7 +52,7 @@ class Costs {
         myfile.close();
     }
 
-    int costCount;
+    unsigned costCount;
 
     private:
     void LoadCostNames(string filename)
@@ -82,7 +82,7 @@ class Costs {
     void DefaultCostNames()
     {
         costCount= 1;
-        costNames["cost"] = {1, 0};
+        costNames["cost"] = {1, 0u};
     }
 
     map<string, costField> costNames;

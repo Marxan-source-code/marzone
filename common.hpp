@@ -95,6 +95,8 @@ namespace marzone {
     /* General Species information structure */
     typedef struct sgenspec
     {
+        int name; // id of species
+        string sname;
         int type;
         int targetocc;
         double target;
@@ -115,8 +117,6 @@ namespace marzone {
 
     typedef struct sspecies : sgenspec
     {
-        int name; // id of species
-        string sname;
         double penalty;
         int richness,offset;
         double totalarea;

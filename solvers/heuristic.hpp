@@ -1,3 +1,5 @@
+#pragma once
+
 #include <limits>
 #include <random>
 
@@ -55,7 +57,7 @@ class Heuristic {
 
                 if (heuristicMode == 1)
                 {
-                    schange &change = r.CheckChangeValue(i, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
+                    schange change = r.CheckChangeValue(i, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
                     currscore = change.total;
                 }
 
@@ -172,7 +174,7 @@ class Heuristic {
         double currpen, currcost, currscore;
 
         currpen = r.GreedyPen(ipu, pu, spec);
-        currcost = pu.puList[ipu].cost + pu.ConnectionCost2(zones, ipu, 1, r.solution, r.solution[ipu]);
+        currcost = pu.puList[ipu].cost + zones.ConnectionCost2(pu, ipu, 1, r.solution, r.solution[ipu]);
         if (currcost <= 0)
         {
             currscore = -1.0 / delta;
@@ -188,9 +190,9 @@ class Heuristic {
     // Supports heuristicMode 2,3,4,5
     double RareScoreByMode(int ipu, Reserve& r, Pu& pu, Species& spec, Zones& zones)
     {
-        int ism, isp, 
+        int ism, isp;
         int rareno = heuristicMode != 4 ? -1 : 0; // for mode 4, rareno starts from 0
-        double rarest = 0, 
+        double rarest = 0;
         double rarescore = 0;
 
         for (int i = 0; i < pu.puList[ipu].richness; i++)
@@ -258,7 +260,7 @@ class Heuristic {
             currpen = newamount - fold;
         } /* Add new penalty if species isn't already in the system */
 
-        currcost = pu.puList[ipu].cost + pu.ConnectionCost2(zones, ipu, 1, r.solution, r.solution[ipu]);
+        currcost = pu.puList[ipu].cost + zones.ConnectionCost2(pu, ipu, 1, r.solution, r.solution[ipu]);
         if (currcost <= 0)
         {
             currscore = -1.0 / delta;

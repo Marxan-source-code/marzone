@@ -57,12 +57,12 @@ namespace marzone {
             savelog << msg.str();
     }
 
-    void StartDebugTraceFile(string& my_savelogname) {
+    void StartDebugTraceFile(string my_savelogname) {
         if (verbosity > 2)
             fdebugtrace.open(my_savelogname);
     }
 
-    void SetLogFile(string& my_savelogname) {
+    void SetLogFile(string my_savelogname) {
         savelog.open(my_savelogname);
         if (!savelog.is_open())
         {
@@ -147,7 +147,7 @@ namespace marzone {
         cin >> temp;
         throw runtime_error(sMess);
     }
-    
+
     void CloseLogFile()
     {
         savelog.close();

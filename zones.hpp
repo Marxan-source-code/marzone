@@ -208,9 +208,41 @@ class Zones {
         return rCost;
     }
 
-    // connection cost between two zone indices
-    double GetZoneConnectionCost(int zoneindex1, int zoneindex2) {
-        return zoneConnectionCost[zoneindex1*zoneCount + zoneindex2];
+    // Returns the connection cost of a puindex, given the zones of the other pu.
+    // imode = check specifics of this param. For now I am assuming 1, 0 or -1
+    double ConnectionCost2Linear(Pu& pu, int puindex, int imode, vector<int> &solution)
+    {
+        double fcost, rResult, rZoneConnectionCost;
+        int iCurrentZone = solution[puindex];
+
+        fcost = pu.connections[puindex].fixedcost * imode;
+        for (sneighbour &p : pu.connections[puindex].first)
+        {
+            if (p.nbr > puindex)
+            {
+                rZoneConnectionCost = GetZoneConnectionCost(iCurrentZone, solution[p.nbr]);
+                fcost += imode * p.cost * rZoneConnectionCost;
+            }
+        }
+
+        return fcost;
+    }
+
+    // Connection cost but we can specify which zone to calculate the current pu for
+    double ConnectionCost2(Pu& pu, int puindex, int imode, vector<int>& solution, int curZone) {
+        double fcost, rZoneConnectionCost;
+
+        // Initial fixed cost
+        fcost = pu.connections[puindex].fixedcost*imode;
+
+        // Asymmetric connectivity not supported in marzone, so we can ignore it.
+        // We can add it back in the future if needed.
+        for (sneighbour& p: pu.connections[puindex].first) {
+            rZoneConnectionCost = GetZoneConnectionCost(curZone, solution[p.nbr]);
+            fcost += imode*p.cost*rZoneConnectionCost;
+        }
+
+        return fcost;
     }
 
     vector<vector<double>> InitializeZoneMatrix() {
@@ -373,11 +405,11 @@ class Zones {
     }
 
     bool availableZoneInput;
-    int zoneCount; // number of available zones in the system.
-    int zoneContribCount;
-    int zoneContrib2Count;
-    int zoneContrib3Count;
-    int zoneTarget2Count;
+    unsigned zoneCount; // number of available zones in the system.
+    unsigned zoneContribCount;
+    unsigned zoneContrib2Count;
+    unsigned zoneContrib3Count;
+    unsigned zoneTarget2Count;
     vector<ZoneIndex> zoneNameIndexed; // backward map of index to zoneid/zonename
     map<int, ZoneName> zoneNames; // zoneid to zonename/index mapping
 
@@ -398,6 +430,11 @@ class Zones {
     vector<double> zoneConnectionCost; // zone to zone cost matrix
 
     private:
+    // connection cost between two zone indices
+    double GetZoneConnectionCost(int zoneindex1, int zoneindex2) {
+        return zoneConnectionCost[zoneindex1*zoneCount + zoneindex2];
+    }
+
     void PopulateConnectionCosts(sfname& fnames) {
         if (!fnames.relconnectioncostname.empty())
         {
@@ -525,7 +562,7 @@ class Zones {
         vector<zonecoststruct> tempZoneCost;
         FILE *fp = openFile(filename);
         char sLine[1000], *sVarVal;
-        int zoneid, costid, 
+        int zoneid, costid; 
         double fraction;
 
         fgets(sLine,999,fp);
@@ -734,7 +771,8 @@ class Zones {
     {
         vector<zonecoststruct> tempZoneCost;
         // create the ZoneCost array
-        tempZoneCost.push_back({2, 1, 1});
+        zonecoststruct z = {2, 1, 1.0}; // zoneid, costid, fraction.
+        tempZoneCost.push_back(z);
         return tempZoneCost;
     }
 };

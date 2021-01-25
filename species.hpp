@@ -228,7 +228,7 @@ class Species {
 
         /* Scan header */
         fgets(sLine,999,fp);
-        vector<string> headerNames = getFileHeaders(sLine);
+        vector<string> headerNames = getFileHeaders(sLine, filename);
 
         /* While there are still lines left populate specList */
         while (fgets(sLine,999,fp))

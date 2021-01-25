@@ -22,6 +22,10 @@ namespace marzone
     /* Protytpe function Headers */
     void SetRunOptions(srunoptions &runoptions);
     int CalcPenalties(Pu &pu, Species &spec, Zones &zones, Reserve &r, int clumptype);
+    void CalcTotalAreas(Pu& pu, Species& spec, string filename = "MarZoneTotalAreas.csv", bool save = false);
+    double ReturnPuZoneCost(int ipu,int iZone, Pu& pu, Zones& zones);
+
+    void ApplySpecProp(Species& spec, Pu& pu);
 
     void PrintResVal(Reserve& reserve, Species& spec, Zones& zones, double misslevel,stringstream& buffer);
     void SetOptions(string &sInputFileName, srunoptions &runoptions, sanneal &anneal, sfname &fnames);
@@ -40,14 +44,11 @@ namespace marzone
     void DumpZoneSpec(int iMessage, int spno, int iZoneCount, struct zonespecstruct ZoneSpec[], struct sspecies spec[], struct sfname fnames);
     */
 
-    void BuildZoneSpec(int spno, int iZoneCount, struct zonespecstruct *ZoneSpec[]);
-    void InitZoneSpec(int spno, int iZoneCount, struct zonespecstruct ZoneSpec[]);
-    void InitSumSoln(int puno, int iZoneCount, int sumsoln[], int ZoneSumSoln[]);
-    /* FILEIN.H END */
     /* ************************************************************************** */
     /* FILEOUT.H START */
 
     void SaveSeed(int iseed);
+    void DumpFileNames(sfname& fnames, Logger& logger);
     string OutputSummaryString(Pu& pu, Species& spec, Zones& zones, Reserve& r, double misslevel, int imode);
     void OutputSummary(Pu& pu, Zones& zones, vector<string>& summaries, string filename, int imode);
     void OutputScenario(int puno,int spno, int zoneCount, int costCount, Logger& logger,
@@ -58,12 +59,6 @@ namespace marzone
     /* FILEOUT.H END */
     /* ************************************************************************** */
 
-    /* ************************************************************************** */
-    /* RANDOM.H START */
-
-    void InitRandSeed(int iSeed);
-
-    /* RANDOM.H END */
     /* ************************************************************************** */
     /* SCREENOUT.H START */
 
@@ -93,8 +88,8 @@ namespace marzone
 
     double rtnMaxNonAvailableCost(int ipu, Pu& pu, Zones& zones);
 
-    void StartDebugFile(char sFileName[], char sHeader[], struct sfname fnames);
-    void AppendDebugFile(char sFileName[], char sLine[], struct sfname fnames);
+    void StartDebugFile(string sFileName,string sHeader, sfname& fnames);
+    void AppendDebugFile(string sFileName,string& sLine, sfname& fnames);
 
     void WriteSecondarySyncFileRun(int iSyncRun);
 

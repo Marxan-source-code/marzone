@@ -28,11 +28,12 @@ void HandleOptions(int argc, char *argv[], string& sInputFileName,int& marxanIsS
         {
             switch(argv[i][1])
             {
-            case '0':
-            case 'o':
-            case 'O':
-                oldStyle = 1;
-                break;
+            // No longer supporting oldstyle in new marzone
+            //case '0':
+            //case 'o':
+            //case 'O':
+            //    oldStyle = 1;
+            //    break;
             case 'C':
             case 'c':
             case 'S':
@@ -205,7 +206,8 @@ FILE* openFile(string filename) {
 inline
 // Toks the given header line and returns an ordered list of header names. 
 // We could use set instead of vector, but the size of these sets is very small (i.e under 10) so vector should be equal perf.
-vector<string> getFileHeaders(char* header) {
+// TODO - unit test this
+vector<string> getFileHeaders(char* header, string filename) {
     vector<string> headers;
 
     char* sVarName = strtok(header, " ,;:^*\"/|\t\'\\\n");
@@ -217,7 +219,7 @@ vector<string> getFileHeaders(char* header) {
             headers.push_back(sVarName);
         }
         else {
-            throw invalid_argument("Header name " + string(sVarName) + " has been defined twice in data file.");
+            throw invalid_argument("Header name " + string(sVarName) + " has been defined twice in data file " + filename + ".");
         }
     }
 

@@ -530,8 +530,8 @@ namespace marzone
       change.cost = zones.AggregateTotalCostByPuAndZone(iPostZone, puCostArray) - zones.AggregateTotalCostByPuAndZone(iPreZone, puCostArray);
 
       // Connection cost
-      change.connection = pu.ConnectionCost2(zones, puindex, imode, solution, iPostZone) 
-          - pu.ConnectionCost2(zones, puindex, imode, solution, iPreZone);
+      change.connection = zones.ConnectionCost2(pu, puindex, imode, solution, iPostZone) 
+          - zones.ConnectionCost2(pu, puindex, imode, solution, iPreZone);
 
       change.penalty = ComputeChangePenalty(pu, zones, spec, change, puindex, iPreZone, iPostZone);
 
@@ -832,7 +832,7 @@ namespace marzone
       for (int j = 0; j < pu.puno; j++)
       {
         objective.cost += zones.AggregateTotalCostByPuAndZone(solution[j], pu.puList[j].costBreakdown);
-        objective.connection += pu.ConnectionCost2Linear(zones, j, 1, solution); // confirm imode 1
+        objective.connection += zones.ConnectionCost2Linear(pu, j, 1, solution); // confirm imode 1
       }
 
       objective.total = objective.cost + objective.connection + objective.penalty;
@@ -970,7 +970,7 @@ namespace marzone
       sCounts = s2.str();
     }
 
-    void CostPuZones(Pu &pu, Zones &zones, string &sCount, int imode, int puno)
+    void CostPuZones(Pu &pu, Zones &zones, string &sCount, int imode)
     {
       int i;
       string d = imode > 1 ? "," : "    ";
@@ -978,7 +978,7 @@ namespace marzone
       stringstream sCounts;
       vector<double> zCosts(zones.zoneCount, 0.0);
 
-      for (int i = 0; i < puno; i++)
+      for (int i = 0; i < pu.puno; i++)
       {
         rZoneCost = zones.AggregateTotalCostByPuAndZone(solution[i], pu.GetCostBreakdown(i));
         zCosts[solution[i]] += rZoneCost;
@@ -1048,11 +1048,13 @@ namespace marzone
         speciesClump[spindex][puindex] = current;
     }
 
-    sclumps RtnClumpSpecAtPu(int spindex, int puindex) {
+    // define a "null" clump
+    sclumps nullClump = {0,0,0};
+    sclumps& RtnClumpSpecAtPu(int spindex, int puindex) {
       auto it = speciesClump[spindex].find(puindex);
       if (it != speciesClump[spindex].end())
         return it->second;
-      return {0, 0, 0};
+      return nullClump;
     }
 
     // Add new pu to clump of a species.
