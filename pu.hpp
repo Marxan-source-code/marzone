@@ -9,9 +9,8 @@
 #include <map>
 #include <string>
 #include "costs.hpp"
-#include "marzone.hpp"
+#include "common.hpp"
 #include "species.hpp"
-//#include "zones.hpp"
 #include "util.hpp"
 
 namespace marzone {
@@ -400,6 +399,32 @@ class Pu {
         }
         
         return penaltyTerms;
+    }
+
+    // Debugging functions (dumps original files)
+    void DumpPuLock(string filename) {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "puid,zoneid\n";
+        for (auto& [puid, zoneid]: puLock)
+        {
+            myfile << puid << "," << zoneid << "\n";
+        }
+        myfile.close();
+    }
+
+    void DumpPuZone(string filename)
+    {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "puid,zoneid\n";
+        for (int i = 0; i < puno; i++)
+        {
+            auto& zoneList = puZone[i];
+            for (auto& zoneid: zoneList)
+                myfile << puList[i].id << "," << zoneid << "\n";
+        }
+        myfile.close();
     }
 
     int puno;

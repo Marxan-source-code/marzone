@@ -1,5 +1,6 @@
+#pragma once
 
-#include "marzone.hpp"
+#include "common.hpp"
 #include "util.hpp"
 #include "pu.hpp"
 #include "zones.hpp"

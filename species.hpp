@@ -6,7 +6,7 @@
 #include <fstream>
 #include <map>
 #include <string>
-#include "marzone.hpp"
+#include "common.hpp"
 #include "util.hpp"
 
 namespace marzone {

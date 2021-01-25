@@ -5,7 +5,7 @@
 
 #include <stdexcept>
 #include <map>
-#include "marzone.hpp"
+#include "common.hpp"
 #include "pu.hpp"
 #include "species.hpp"
 #include "util.hpp"
@@ -98,7 +98,6 @@ class Zones {
         int i, j, iSpeciesIndex;
 
         // Zone target files
-        vector<zonetargetstructtemp> zoneTargetsTemp;
         if (!fnames.zonetargetname.empty())
         {
             LoadZoneTarget(fnames.inputdir + fnames.zonetargetname, 1, zoneTargetsTemp);
@@ -261,6 +260,101 @@ class Zones {
         myfile.close();
     }
 
+    /*
+      Debugging functions (for dumping)
+    */
+    void DumpZoneNames(string filename) {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "zoneid,zonename\n";
+        for (int i = 0; i < zoneCount; i++)
+        {
+            myfile << zoneNameIndexed[i].id << "," << zoneNameIndexed[i].name << "\n";
+        }
+        myfile.close();
+    }
+
+    void DumpZoneContrib(string filename)
+    {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "zoneid,speciesid,fraction\n";
+        for (zonecontribstruct& z: zoneContrib)
+        {
+            myfile << z.zoneid << "," << z.speciesid << "," << z.fraction << "\n";
+        }
+        myfile.close();
+    }
+
+    void DumpZoneContrib2(string filename)
+    {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "zoneid,fraction\n";
+        for (zonecontrib2struct& z: zoneContrib2)
+        {
+            myfile << z.zoneid  << "," << z.fraction << "\n";
+        }
+        myfile.close();
+    }
+
+    void DumpZoneContrib3(string filename)
+    {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "zoneid,puid,speciesid,fraction\n";
+        for (zonecontrib3struct& z: zoneContrib3)
+        {
+            myfile << z.zoneid<<","<<z.puid<<","<< z.speciesid<<","<< z.fraction << "\n";
+        }
+        myfile.close();
+    }
+
+    // dumps zone target with a species id
+    void DumpZoneTarget(string filename)
+    {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "zoneid,speciesid,target,targettype\n";
+        for (zonetargetstructtemp& z: zoneTargetsTemp) {
+            if (z.speciesid)
+                myfile<<z.zoneid<<","<<z.speciesid<<","<<z.target<<","<<z.targettype<<"\n";
+        }
+    }
+
+    // dumps zone target WITHOUT a species id (zonetarget2)
+    void DumpZoneTarget2(string filename)
+    {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "zoneid,target,targettype\n";
+        for (zonetargetstructtemp& z: zoneTargetsTemp) {
+            if (z.speciesid == 0)
+            myfile<<z.zoneid<<","<<z.target<<","<<z.targettype<<"\n";
+        }
+    }
+
+    void DumpZoneCost(string filename) {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "zoneid,costid,fraction\n";
+        for (zonecoststruct& z: zoneCostFileLoad)
+        {
+            myfile <<z.zoneid<<","<<z.costid<<","<<z.fraction<<"\n";
+        }
+    }
+
+    void DumpRelConnectionCost(string filename) {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "zoneid1,zoneid2,fraction\n";
+        for (auto& r: zoneRelConnectionCost)
+        {
+            myfile <<r.zoneid1<<","<<r.zoneid2<<","<< r.fraction<<"\n";
+        }
+        myfile.close();
+    }
+
     bool availableZoneInput;
     int zoneCount; // number of available zones in the system.
     int zoneContribCount;
@@ -277,16 +371,17 @@ class Zones {
     vector<double> zoneContribValues; // size depends on whether zonecontrib3 is used. Usually it is spno*zoneCount. Species, then zone. 
 
     // Zone target maps
-    vector<vector<zonetarget>> zoneTarget; //species -> zone target matrix
-    // ordering is [species][zoneid]. should refactor to vector<vector<..>>
+    vector<zonecoststruct> zoneCostFileLoad; // temp zonecost from file
+    vector<zonetargetstructtemp> zoneTargetsTemp; // needed for dump debug.
+    vector<vector<zonetarget>> zoneTarget; //species -> zone target matrix, ordering is [species][zoneid].
 
     // Zone cost
+    vector<relconnectioncoststruct> zoneRelConnectionCost; // temp raw figures.
     vector<double> zoneCost; // flattened cost -> zone -> fraction map.
     vector<double> zoneConnectionCost; // zone to zone cost matrix
 
     private:
     void PopulateConnectionCosts(sfname& fnames) {
-        vector<relconnectioncoststruct> zoneRelConnectionCost;
         if (!fnames.relconnectioncostname.empty())
         {
             zoneRelConnectionCost = LoadRelConnectionCost(fnames.inputdir + fnames.relconnectioncostname);
@@ -302,7 +397,6 @@ class Zones {
 
     void PopulateZoneCosts(sfname& fnames, int costCount) {
         // read zone cost files (if any)
-        vector<zonecoststruct> zoneCostFileLoad;
         if (!fnames.zonecostname.empty())
         {
             zoneCostFileLoad = LoadZoneCost(fnames.inputdir + fnames.zonecostname);

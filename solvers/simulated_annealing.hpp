@@ -1,7 +1,7 @@
 #include <limits>
 #include <random>
 
-#include "../marzone.hpp"
+#include "../common.hpp"
 #include "../pu.hpp"
 #include "../reserve.hpp"
 #include "../zones.hpp"
@@ -14,8 +14,8 @@ using namespace std;
 
 class SimulatedAnnealing {
     public:
-    SimulatedAnnealing(int annealingOn, sanneal& anneal, mt19937& rngEngine, int annealTrace) 
-    : rngEngine(rngEngine), annealTraceType(annealTrace) 
+    SimulatedAnnealing(int annealingOn, sanneal& anneal, mt19937& rngEngine, int annealTrace, int id) 
+    : rngEngine(rngEngine), annealTraceType(annealTrace), id(id)
     {
         if (annealingOn)
         {
@@ -344,6 +344,7 @@ class SimulatedAnnealing {
     sanneal settings;
     ostringstream debugBuffer; // TODO - print buffer once logging library
     mt19937 &rngEngine;
+    int id;
 
     // anneal trace settings
     int annealTraceType;

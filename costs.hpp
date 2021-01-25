@@ -1,5 +1,5 @@
 #pragma once
-#include "marzone.hpp"
+#include "common.hpp"
 #include "util.hpp"
 
 /*
@@ -37,6 +37,19 @@ class Costs {
             return false;
         }
         return true;
+    }
+
+    // Debugging functions (for dumping)
+    void DumpCostNames(string filename)
+    {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "costid,costname\n";
+        for (auto& [name, term]: costNames)
+        {
+            myfile << term.id << "," << name << "\n";
+        }
+        myfile.close();
     }
 
     int costCount;
