@@ -37,6 +37,8 @@ class SimulatedAnnealing {
                 AdaptiveInit(spec, pu, zones, clumptype);
             }
         }
+
+        settings.temp = settings.Tinit;
     }
     
     // TODO - complete.
@@ -206,6 +208,8 @@ class SimulatedAnnealing {
         return pair<int,int>(ipu, iZone);
     }
 
+    sanneal settings;
+
     private:
     // * * * * Good Change * * * *
     int GoodChange(schange& change, uniform_real_distribution<double>& float_range)
@@ -343,7 +347,6 @@ class SimulatedAnnealing {
         settings.sum2 = 0;
     }
 
-    sanneal settings;
     ostringstream debugBuffer; // TODO - print buffer once logging library
     mt19937 &rngEngine;
     int id;

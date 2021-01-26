@@ -170,8 +170,11 @@ class Zones {
     }
 
     // returns an aggregate vector by species containing total zone targets and occurences.
-    vector<double> AggregateTargetAreaBySpecies() {
-        int spno = zoneTarget.size();
+    vector<double> AggregateTargetAreaBySpecies(int spno) {
+        // If zone target is not specified, return a vector of zeroes
+        if (zoneTarget.size() == 0)
+            return vector<double>(spno, 0.0);
+        
         vector<double> toReturn(spno, 0.0);
 
         for (int i = 0; i < spno; i++) {
@@ -183,8 +186,11 @@ class Zones {
         return toReturn;
     }
 
-    vector<int> AggregateTargetOccurrenceBySpecies() {
-        int spno = zoneTarget.size();
+    vector<int> AggregateTargetOccurrenceBySpecies(int spno) {
+        // If zone target is not specified, return a vector of zeroes
+        if (zoneTarget.size() == 0)
+            return vector<int>(spno, 0);
+        
         vector<int> toReturn(spno, 0);
 
         for (int i = 0; i < spno; i++) {

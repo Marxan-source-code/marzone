@@ -89,7 +89,7 @@ chrono::high_resolution_clock::time_point startTime;
 string StartMessage()
 {
     stringstream myfile;
-    myfile << "        " << sVersionString << " \n\n   Marine Reserve Design with Zoning and Annealing\n\n";
+    myfile << "        " << sVersionString << " \n\n  Spatial Prioritization via Zoning and Annealing\n\n";
     myfile << "   Marxan with Zones coded by Matthew Watts\n";
     myfile << "   Written by Ian Ball, Hugh Possingham and Matthew Watts\n\n";
     myfile << "   Based on Marxan coded by Ian Ball, modified by Matthew Watts\n";
@@ -112,7 +112,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     sfname fnames = {};
     sanneal anneal = {};
 
-    int iMessageCounter = 0, iZoneSumSolnIndex, puno,spno,gspno;
+    int iMessageCounter = 0, iZoneSumSolnIndex;
     int seedinit, aggexist=0,sepexist=0;
     int itemp, ipu;
     string tempname;
@@ -124,6 +124,12 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     logger.verbosity = runoptions.verbose;
     iVerbosity = runoptions.verbose;
     SetRunOptions(runoptions);
+
+    if (fnames.savelog)
+    {
+        logger.SetLogFile(fnames.savename + "_log.dat");
+        logger.AppendLogFile(StartMessage());
+    }
 
     #ifdef DEBUGTRACEFILE
     logger.StartDebugTraceFile(sDebugTraceFileName);
@@ -147,12 +153,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     #ifdef DEBUGCALCPENALTIES
     StartDebugFile("debug_MarZone_CalcPenalties.csv","\n",fnames);
     #endif
-
-    if (fnames.savelog)
-    {
-        logger.SetLogFile(fnames.savename + "_log.dat");
-        logger.AppendLogFile(StartMessage());
-    }
 
     delta = numeric_limits<double>::epsilon(); 
     rngEngine = mt19937(runoptions.iseed); // Initialize rng engine
@@ -240,7 +240,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     if (fnames.savesumsoln)
     {
         logger.AppendDebugTraceFile("before InitSumSoln\n");
-        analysis.initSumSolution(puno, zones.zoneCount);
+        analysis.initSumSolution(pu.puno, zones.zoneCount);
         logger.AppendDebugTraceFile("after InitSumSoln\n");
     }
 
@@ -436,7 +436,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         stringstream progbuffer; // buffer to print at the end
 
         // Create new reserve object and init
-        Reserve reserveThread(spec, zones, irun);
+        Reserve reserveThread(spec, zones, runoptions.clumptype, irun);
         reserveThread.InitializeSolution(pu.puno);
         reserveThread.RandomiseSolution(pu, rngEngine);
 
@@ -452,12 +452,11 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             sa.Initialize(spec, pu, zones, runoptions.clumptype);
             debugbuffer << "after Annealling Init run " << irun << "\n";
 
-            progbuffer << "  Using Calculated Tinit = " << anneal.Tinit << "Tcool = " << anneal.Tcool << "\n";
-            anneal.temp = anneal.Tinit;
+            progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
         } // Annealing Setup
 
         progbuffer << "  creating the initial reserve \n";
-        debugbuffer << "before ZonationCost run " << irun << "%i\n";
+        debugbuffer << "before ZonationCost run " << irun << "\n";
         reserveThread.EvaluateObjectiveValue(pu, spec, zones);
         debugbuffer << "after ZonationCost run " << irun << "\n";
 
@@ -482,6 +481,12 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             progbuffer << "  Main Annealing Section.\n";
 
             sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
+
+            if (runoptions.verbose > 1)
+            {
+                progbuffer << "  ThermalAnnealing:";
+                PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
+            }
 
             debugbuffer << "after Annealing run " << irun << "\n";
         } // End of Annealing On
@@ -525,7 +530,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             reserveThread.WriteSolution(tempname2, pu, fnames.saverun);
         }
 
-        debugbuffer << "WriteSolution ran\n";
+        debugbuffer << "WriteSolution ran " << irun << "\n";
 
         if (fnames.savespecies && fnames.saverun)
         {   
@@ -536,7 +541,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
         if (fnames.savesum)
         {
-            summaries[irun] = OutputSummaryString(pu, spec, zones, reserveThread, runoptions.misslevel, fnames.savesum);
+            summaries[irun-1] = OutputSummaryString(pu, spec, zones, reserveThread, runoptions.misslevel, fnames.savesum);
         }
 
         #ifdef DEBUGFPERROR
@@ -700,8 +705,8 @@ int CalcPenalties(Pu& pu, Species& spec, Zones& zones, Reserve& r, int clumptype
     int badspecies = 0, goodspecies = 0, itargetocc;
     double rZoneSumTarg, iZoneSumOcc, penalty, ftarget, rAmount, ftemp;
 
-    vector<double> specTargetZones = zones.AggregateTargetAreaBySpecies();
-    vector<int> specOccurrenceZones = zones.AggregateTargetOccurrenceBySpecies();
+    vector<double> specTargetZones = zones.AggregateTargetAreaBySpecies(spec.spno);
+    vector<int> specOccurrenceZones = zones.AggregateTargetOccurrenceBySpecies(spec.spno);
 
     vector<vector<penaltyTerm>> specPuAmounts = pu.getPuAmountsSorted(spec.spno, true); // list of pus that contribute to a species.
 

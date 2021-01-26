@@ -214,7 +214,7 @@ vector<string> getFileHeaders(char* header, string filename) {
     headers.push_back(sVarName);
 
     while ((sVarName = strtok(NULL, " ,;:^*\"/|\t\'\\\n")) != NULL) {
-        if (find(headers.begin(), headers.end(), sVarName) != headers.end()) {
+        if (find(headers.begin(), headers.end(), sVarName) == headers.end()) {
             // Add to list if not already present.
             headers.push_back(sVarName);
         }

@@ -192,42 +192,44 @@ namespace marzone
           }
         }
 
-        for (int j = 0; j < zones.zoneCount; j++)
-        {
-          iArrayIndex = (i * zones.zoneCount) + j;
-          if (zones.zoneTarget[i][j].target > 0)
+        // only necessary if zoneTarget is set
+        if (zones.zoneTarget.size())
+          for (int j = 0; j < zones.zoneCount; j++)
           {
-            if (zoneSpec[iArrayIndex].amount < zones.zoneTarget[i][j].target)
+            iArrayIndex = (i * zones.zoneCount) + j;
+            if (zones.zoneTarget[i][j].target > 0)
             {
-              rFeatureShortfall += zones.zoneTarget[i][j].target - zoneSpec[iArrayIndex].amount;
-              rProportionMet = zoneSpec[iArrayIndex].amount / zones.zoneTarget[i][j].target;
-
-              if (rProportionMet < rMinimumProportionMet)
-                rMinimumProportionMet = rProportionMet;
-
-              if (rProportionMet < misslevel)
+              if (zoneSpec[iArrayIndex].amount < zones.zoneTarget[i][j].target)
               {
-                specCount++;
+                rFeatureShortfall += zones.zoneTarget[i][j].target - zoneSpec[iArrayIndex].amount;
+                rProportionMet = zoneSpec[iArrayIndex].amount / zones.zoneTarget[i][j].target;
+
+                if (rProportionMet < rMinimumProportionMet)
+                  rMinimumProportionMet = rProportionMet;
+
+                if (rProportionMet < misslevel)
+                {
+                  specCount++;
+                }
+              }
+            }
+            if (zones.zoneTarget[i][j].occurrence > 0)
+            {
+              if (zoneSpec[iArrayIndex].occurrence < zones.zoneTarget[i][j].occurrence)
+              {
+                rFeatureShortfall += zones.zoneTarget[i][j].occurrence - zoneSpec[iArrayIndex].occurrence;
+                rProportionMet = zoneSpec[iArrayIndex].occurrence / zones.zoneTarget[i][j].occurrence;
+
+                if (rProportionMet < rMinimumProportionMet)
+                  rMinimumProportionMet = rProportionMet;
+
+                if (rProportionMet < misslevel)
+                {
+                  specCount++;
+                }
               }
             }
           }
-          if (zones.zoneTarget[i][j].occurrence > 0)
-          {
-            if (zoneSpec[iArrayIndex].occurrence < zones.zoneTarget[i][j].occurrence)
-            {
-              rFeatureShortfall += zones.zoneTarget[i][j].occurrence - zoneSpec[iArrayIndex].occurrence;
-              rProportionMet = zoneSpec[iArrayIndex].occurrence / zones.zoneTarget[i][j].occurrence;
-
-              if (rProportionMet < rMinimumProportionMet)
-                rMinimumProportionMet = rProportionMet;
-
-              if (rProportionMet < misslevel)
-              {
-                specCount++;
-              }
-            }
-          }
-        }
 
         if (spec.specList[i].sepdistance && speciesAmounts[i].separation < 3)
         {
@@ -244,7 +246,7 @@ namespace marzone
       stringstream sLine;
 
       for (int i=0; i < solution.size(); i++) {
-        zoneDist[i] += 1;
+        zoneDist[solution[i]] += 1;
       }
 
       for (int i=0;i<zones.zoneCount;i++)
@@ -405,77 +407,79 @@ namespace marzone
             }
 
             // compute existing & proposed shortfall for this feature across any relevant zone targets
-            for (int k: zonesToTarget)
-            {
-              iArrayIndex = (isp * zones.zoneCount) + k;
-              double currZoneAmount = zoneSpec[iArrayIndex].amount;
-              double currZoneOcc = zoneSpec[iArrayIndex].occurrence;
+            // only necessary if zoneTarget is set
+            if (zones.zoneTarget.size())
+              for (int k: zonesToTarget)
+              {
+                iArrayIndex = (isp * zones.zoneCount) + k;
+                double currZoneAmount = zoneSpec[iArrayIndex].amount;
+                double currZoneOcc = zoneSpec[iArrayIndex].occurrence;
 
-              // compute amount of feature if change is made
-              if (k == iPreZone) // zone is existing zone, reduce zone amount by amount at site
-              {
-                change.zoneTargetChange.push_back(pair<int, double>(iArrayIndex, -pu.puvspr[ism].amount));
-                rNewAmount = currZoneAmount - pu.puvspr[ism].amount;
-                iNewOccurrence = currZoneOcc - 1;
-              }
-              else // zone is proposed zone, increase zone amount by amount at site
-              {
-                change.zoneOccChange.push_back(pair<int, int>(iArrayIndex, pu.puvspr[ism].amount));
-                rNewAmount = currZoneAmount + pu.puvspr[ism].amount;
-                iNewOccurrence = currZoneOcc + 1;
-              }
-
-              // do we have areal zone target?
-              double currZoneTarget = zones.zoneTarget[isp][k].target;
-              if (currZoneTarget > 0)
-              {
-                // compute existing shortfall
-                if (currZoneTarget > currZoneAmount)
+                // compute amount of feature if change is made
+                if (k == iPreZone) // zone is existing zone, reduce zone amount by amount at site
                 {
-                  rOldShortfall += currZoneTarget - currZoneAmount;
-                  rShortFraction += (currZoneTarget - currZoneAmount) / currZoneTarget;
-                  iCurrentShortfall++;
+                  change.zoneTargetChange.push_back(pair<int, double>(iArrayIndex, -pu.puvspr[ism].amount));
+                  rNewAmount = currZoneAmount - pu.puvspr[ism].amount;
+                  iNewOccurrence = currZoneOcc - 1;
+                }
+                else // zone is proposed zone, increase zone amount by amount at site
+                {
+                  change.zoneOccChange.push_back(pair<int, int>(iArrayIndex, pu.puvspr[ism].amount));
+                  rNewAmount = currZoneAmount + pu.puvspr[ism].amount;
+                  iNewOccurrence = currZoneOcc + 1;
                 }
 
-                // compute proposed shortfall
-                if (currZoneTarget > rNewAmount)
+                // do we have areal zone target?
+                double currZoneTarget = zones.zoneTarget[isp][k].target;
+                if (currZoneTarget > 0)
                 {
-                  rNewShortfall += currZoneTarget - rNewAmount;
-                  rNewShortFraction += (currZoneTarget - rNewAmount) / currZoneTarget;
-                  iNewShortfall++;
+                  // compute existing shortfall
+                  if (currZoneTarget > currZoneAmount)
+                  {
+                    rOldShortfall += currZoneTarget - currZoneAmount;
+                    rShortFraction += (currZoneTarget - currZoneAmount) / currZoneTarget;
+                    iCurrentShortfall++;
+                  }
+
+                  // compute proposed shortfall
+                  if (currZoneTarget > rNewAmount)
+                  {
+                    rNewShortfall += currZoneTarget - rNewAmount;
+                    rNewShortFraction += (currZoneTarget - rNewAmount) / currZoneTarget;
+                    iNewShortfall++;
+                  }
+
+                  /*
+                    #ifdef DEBUG_PEW_CHANGE_PEN
+                                      sprintf(debugline, "%i,%i,%i,%i,%i,%i,%i,%g,%g,%g,%g,%g,%g,%g,%g,%i,%i,1\n", iIteration, ipu, isp, pu[ipu].id, spec[isp].name, R[ipu], iZone, zones.zoneTarget[i][j].target, SM[ism].amount, ZoneSpec[iArrayIndex].amount, rNewAmount, change.shortfall, rNewShortfall, rShortFraction, rNewShortFraction, iCurrentShortfall, iNewShortfall);
+                                      AppendDebugFile("debug_MarZone_PewChangePen.csv", debugline, fnames);
+                                      AppendDebugTraceFile("iteration,ipu,isp,puid,spid,Zone,newZone,ZoneTarget,PUAmount,Amount,newAmount,Shortfall,newShortfall,rSF,rNSF,iCSF,iNSF,zone\n");
+                                      AppendDebugTraceFile(debugline);
+                    #endif
+                    */
                 }
 
-                /*
-                  #ifdef DEBUG_PEW_CHANGE_PEN
-                                    sprintf(debugline, "%i,%i,%i,%i,%i,%i,%i,%g,%g,%g,%g,%g,%g,%g,%g,%i,%i,1\n", iIteration, ipu, isp, pu[ipu].id, spec[isp].name, R[ipu], iZone, zones.zoneTarget[i][j].target, SM[ism].amount, ZoneSpec[iArrayIndex].amount, rNewAmount, change.shortfall, rNewShortfall, rShortFraction, rNewShortFraction, iCurrentShortfall, iNewShortfall);
-                                    AppendDebugFile("debug_MarZone_PewChangePen.csv", debugline, fnames);
-                                    AppendDebugTraceFile("iteration,ipu,isp,puid,spid,Zone,newZone,ZoneTarget,PUAmount,Amount,newAmount,Shortfall,newShortfall,rSF,rNSF,iCSF,iNSF,zone\n");
-                                    AppendDebugTraceFile(debugline);
-                  #endif
-                  */
+                // do we have occurrence zone target?
+                double currZoneTargetOcc = zones.zoneTarget[isp][k].occurrence;
+                if (currZoneTargetOcc > 0)
+                {
+                  // compute existing shortfall
+                  if (currZoneTargetOcc > currZoneOcc)
+                  {
+                    rOldShortfall += currZoneTargetOcc - currZoneOcc;
+                    rShortFraction += (currZoneTargetOcc - currZoneOcc) / currZoneTargetOcc;
+                    iCurrentShortfall++;
+                  }
+
+                  // compute proposed shortfall
+                  if (currZoneTargetOcc > iNewOccurrence)
+                  {
+                    rNewShortfall += currZoneTargetOcc - iNewOccurrence;
+                    rNewShortFraction += (currZoneTargetOcc - iNewOccurrence) / currZoneTargetOcc;
+                    iNewShortfall++;
+                  }
+                }
               }
-
-              // do we have occurrence zone target?
-              double currZoneTargetOcc = zones.zoneTarget[isp][k].occurrence;
-              if (currZoneTargetOcc > 0)
-              {
-                // compute existing shortfall
-                if (currZoneTargetOcc > currZoneOcc)
-                {
-                  rOldShortfall += currZoneTargetOcc - currZoneOcc;
-                  rShortFraction += (currZoneTargetOcc - currZoneOcc) / currZoneTargetOcc;
-                  iCurrentShortfall++;
-                }
-
-                // compute proposed shortfall
-                if (currZoneTargetOcc > iNewOccurrence)
-                {
-                  rNewShortfall += currZoneTargetOcc - iNewOccurrence;
-                  rNewShortFraction += (currZoneTargetOcc - iNewOccurrence) / currZoneTargetOcc;
-                  iNewShortfall++;
-                }
-              }
-            }
 
             rDeltaPenalty = spec.specList[isp].penalty * spec.specList[isp].spf * (rNewShortFraction - rShortFraction);
 /* renable if needed
@@ -764,6 +768,7 @@ namespace marzone
 
         // shortfall with respect to overall targets
         if (spec.specList[i].target > 0)
+        {
           if (spec.specList[i].target > speciesAmounts[i].amount)
           {
             rShortfall += spec.specList[i].target - speciesAmounts[i].amount;
@@ -772,8 +777,10 @@ namespace marzone
 
             objective.shortfall += spec.specList[i].target - speciesAmounts[i].amount;
           }
+        }
 
         if (spec.specList[i].targetocc > 0)
+        {
           if (spec.specList[i].targetocc > speciesAmounts[i].occurrence)
           {
             rShortfall += spec.specList[i].targetocc - speciesAmounts[i].occurrence;
@@ -782,32 +789,34 @@ namespace marzone
 
             objective.shortfall += spec.specList[i].targetocc - speciesAmounts[i].occurrence;
           }
+        }
 
         // shortfall with respect to zone targets (removing pu from existing zone)
-        // loop through all zones to compute target achievement
-        for (int k = 0; k < zones.zoneCount; k++)
-        {
-          specZoneIndex = (i * zones.zoneCount) + k;
-          if (zones.zoneTarget[i][k].target > 0)
-            if (zones.zoneTarget[i][k].target > zoneSpec[specZoneIndex].amount)
-            {
-                rShortfall += zones.zoneTarget[i][k].target - zoneSpec[specZoneIndex].amount;
-                rShortFraction += (zones.zoneTarget[i][k].target - zoneSpec[specZoneIndex].amount) / zones.zoneTarget[i][k].target;
-                iShortfall++;
+        // loop through all zones to compute target achievement (only necessary if zoneTarget set)
+        if (zones.zoneTarget.size())
+          for (int k = 0; k < zones.zoneCount; k++)
+          {
+            specZoneIndex = (i * zones.zoneCount) + k;
+            if (zones.zoneTarget[i][k].target > 0)
+              if (zones.zoneTarget[i][k].target > zoneSpec[specZoneIndex].amount)
+              {
+                  rShortfall += zones.zoneTarget[i][k].target - zoneSpec[specZoneIndex].amount;
+                  rShortFraction += (zones.zoneTarget[i][k].target - zoneSpec[specZoneIndex].amount) / zones.zoneTarget[i][k].target;
+                  iShortfall++;
 
-                objective.shortfall += zones.zoneTarget[i][k].target - zoneSpec[specZoneIndex].amount;
-            }
+                  objective.shortfall += zones.zoneTarget[i][k].target - zoneSpec[specZoneIndex].amount;
+              }
 
-          if (zones.zoneTarget[i][k].occurrence > 0)
-            if (zones.zoneTarget[i][k].occurrence > zoneSpec[specZoneIndex].occurrence)
-            {
-                rShortfall += zones.zoneTarget[i][k].occurrence - zoneSpec[specZoneIndex].occurrence;
-                rShortFraction += (zones.zoneTarget[i][k].occurrence - zoneSpec[specZoneIndex].occurrence) / zones.zoneTarget[i][k].occurrence;
-                iShortfall++;
+            if (zones.zoneTarget[i][k].occurrence > 0)
+              if (zones.zoneTarget[i][k].occurrence > zoneSpec[specZoneIndex].occurrence)
+              {
+                  rShortfall += zones.zoneTarget[i][k].occurrence - zoneSpec[specZoneIndex].occurrence;
+                  rShortFraction += (zones.zoneTarget[i][k].occurrence - zoneSpec[specZoneIndex].occurrence) / zones.zoneTarget[i][k].occurrence;
+                  iShortfall++;
 
-                objective.shortfall += zones.zoneTarget[i][k].occurrence - zoneSpec[specZoneIndex].occurrence;
-            }
-        }
+                  objective.shortfall += zones.zoneTarget[i][k].occurrence - zoneSpec[specZoneIndex].occurrence;
+              }
+          }
 
         rTotalShortfall += rShortfall;
         iMissingFeatures += iShortfall;
@@ -875,19 +884,20 @@ namespace marzone
         myfile << d << temp;
 
         int iZoneArrayIndex;
-        for (int i = 0; i < zones.zoneCount; i++)
-        {
-          iZoneArrayIndex = (isp * zones.zoneCount) + i;
-          rTarget = zones.zoneTarget[isp][i].target;
-          rAmountHeld = zoneSpec[iZoneArrayIndex].amount;
-          rOccurrenceTarget = zones.zoneTarget[isp][i].occurrence;
-          rOccurrencesHeld = zoneSpec[iZoneArrayIndex].occurrence;
+        if (zones.zoneTarget.size())
+          for (int i = 0; i < zones.zoneCount; i++)
+          {
+            iZoneArrayIndex = (isp * zones.zoneCount) + i;
+            rTarget = zones.zoneTarget[isp][i].target;
+            rAmountHeld = zoneSpec[iZoneArrayIndex].amount;
+            rOccurrenceTarget = zones.zoneTarget[isp][i].occurrence;
+            rOccurrencesHeld = zoneSpec[iZoneArrayIndex].occurrence;
 
-          myfile << d << rTarget << d << rAmountHeld << d << zones.zoneContribValues[iZoneArrayIndex] << d << rOccurrenceTarget << d << rOccurrencesHeld;
+            myfile << d << rTarget << d << rAmountHeld << d << zones.zoneContribValues[iZoneArrayIndex] << d << rOccurrenceTarget << d << rOccurrencesHeld;
 
-          temp = ReturnStringIfTargetMet(rTarget, rAmountHeld, rOccurrenceTarget, rOccurrencesHeld, rMPM, misslevel);
-          myfile << d << temp;
-        }
+            temp = ReturnStringIfTargetMet(rTarget, rAmountHeld, rOccurrenceTarget, rOccurrencesHeld, rMPM, misslevel);
+            myfile << d << temp;
+          }
 
         myfile << d << rMPM << "\n";
       }

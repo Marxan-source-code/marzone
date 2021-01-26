@@ -441,6 +441,8 @@ class Pu {
     }
 
     void PersistPuZone(vector<puzonestruct>& puZoneTemp) {
+        // resize puzone to puno size
+        puZone.resize(puno);
         for (puzonestruct& term: puZoneTemp) {
             int puindex = lookup[term.puid];
             puZone[puindex].push_back(term.zoneid); // for the public map, we use actual zone number
