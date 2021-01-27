@@ -247,7 +247,7 @@ class SimulatedAnnealing {
         // Set reserve to a random and evaluate 
         Reserve r(spec, zones, clumptype);
         r.InitializeSolution(pu.puno);
-        r.RandomiseSolution(pu, rngEngine);
+        r.RandomiseSolution(pu, rngEngine, zones.zoneCount);
         r.EvaluateObjectiveValue(pu, spec, zones);
 
         int ipu, iPreviousR, chosenZoneInd, chosenZone, imode = 1;
@@ -328,7 +328,7 @@ class SimulatedAnnealing {
         r.InitializeSolution(pu.puno);
         for (i = 0; i < isamples; i++)
         { /* Generate Random Reserve */
-            r.RandomiseSolution(pu, rngEngine);
+            r.RandomiseSolution(pu, rngEngine, zones.zoneCount);
             /* Score Random reserve */
             r.EvaluateObjectiveValue(pu, spec, zones);
 

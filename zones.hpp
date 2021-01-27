@@ -218,37 +218,45 @@ class Zones {
     // imode = check specifics of this param. For now I am assuming 1, 0 or -1
     double ConnectionCost2Linear(Pu& pu, int puindex, int imode, vector<int> &solution)
     {
-        double fcost, rResult, rZoneConnectionCost;
-        int iCurrentZone = solution[puindex];
+        if (pu.connectionsEntered) {
+            double fcost, rResult, rZoneConnectionCost;
+            int iCurrentZone = solution[puindex];
 
-        fcost = pu.connections[puindex].fixedcost * imode;
-        for (sneighbour &p : pu.connections[puindex].first)
-        {
-            if (p.nbr > puindex)
+            fcost = pu.connections[puindex].fixedcost * imode;
+            for (sneighbour &p : pu.connections[puindex].first)
             {
-                rZoneConnectionCost = GetZoneConnectionCost(iCurrentZone, solution[p.nbr]);
-                fcost += imode * p.cost * rZoneConnectionCost;
+                if (p.nbr > puindex)
+                {
+                    rZoneConnectionCost = GetZoneConnectionCost(iCurrentZone, solution[p.nbr]);
+                    fcost += imode * p.cost * rZoneConnectionCost;
+                }
             }
+
+            return fcost;
         }
 
-        return fcost;
+        return 0;
     }
 
     // Connection cost but we can specify which zone to calculate the current pu for
     double ConnectionCost2(Pu& pu, int puindex, int imode, vector<int>& solution, int curZone) {
-        double fcost, rZoneConnectionCost;
+        if (pu.connectionsEntered)
+        {
+            double fcost, rZoneConnectionCost;
+            // Initial fixed cost
+            fcost = pu.connections[puindex].fixedcost * imode;
 
-        // Initial fixed cost
-        fcost = pu.connections[puindex].fixedcost*imode;
+            // Asymmetric connectivity not supported in marzone, so we can ignore it.
+            // We can add it back in the future if needed.
+            for (sneighbour &p : pu.connections[puindex].first)
+            {
+                rZoneConnectionCost = GetZoneConnectionCost(curZone, solution[p.nbr]);
+                fcost += imode * p.cost * rZoneConnectionCost;
+            }
 
-        // Asymmetric connectivity not supported in marzone, so we can ignore it.
-        // We can add it back in the future if needed.
-        for (sneighbour& p: pu.connections[puindex].first) {
-            rZoneConnectionCost = GetZoneConnectionCost(curZone, solution[p.nbr]);
-            fcost += imode*p.cost*rZoneConnectionCost;
+            return fcost;
         }
-
-        return fcost;
+        return 0;
     }
 
     vector<vector<double>> InitializeZoneMatrix() {

@@ -46,7 +46,11 @@ class Pu {
        // Read and set connections
         if (!fnames.connectionname.empty())
         {
+            connectionsEntered = true;
             ReadConnections(fnames.inputdir + fnames.connectionname, asymmetric);
+        }
+        else {
+            connectionsEntered = false;
         }
 
         asymmetric = asymmetric;
@@ -227,6 +231,8 @@ class Pu {
     // Total cost of all connections for PU independant of neighbour status * * * * *
     double ConnectionCost1(int ipu)
     {
+        if (connectionsEntered)
+        {
         double fcost = connections[ipu].fixedcost;
 
         for (sneighbour& p : connections[ipu].first)
@@ -240,6 +246,9 @@ class Pu {
                 fcost += p.cost;
         }
         return(fcost);
+        }
+
+        return 0; // no connections entered. 
     } // * * * * Connection Cost Type 1 * * * *
     
     // returns the amount of a species at a planning unit, if the species doesn't occur here, returns 0
@@ -254,14 +263,19 @@ class Pu {
     }
 
     // returns index of a species at puvspr
-    // Todo - binary search this.
     int RtnIndexSpecAtPu(int puindex, int iSpecIndex)
     {
         if (puList[puindex].richness > 0)
-            for (int i=0;i<puList[puindex].richness;i++)
-                if (puvspr[puList[puindex].offset + i].spindex == iSpecIndex)
-                    return puList[puindex].offset + i;
-
+        {
+            auto start_it = puvspr.begin() + puList[puindex].offset;
+            auto end_it = start_it + puList[puindex].richness;
+            auto spindex_cmp = [](const spu &lhs, int rhs) -> bool { return lhs.spindex < rhs; };
+            auto elem_it = std::lower_bound(start_it, end_it, iSpecIndex, spindex_cmp);
+            if (elem_it != end_it && elem_it->spindex == iSpecIndex)
+            {
+                return elem_it - puvspr.begin();
+            }
+        }
         return -1;
     }
 
@@ -404,6 +418,7 @@ class Pu {
     int puZoneCount;
     double density; // matrix density.
     int asymmetric; // whether asymmetric connectivity is on.
+    bool connectionsEntered;
 
     // TODO - make private.
     map<int, int> puLock; // puid -> zoneid

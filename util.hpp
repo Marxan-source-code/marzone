@@ -2,11 +2,15 @@
 
 // Handles utility operations like parsing arguments, strings etc.
 #include <algorithm>
+#include <cstring>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <stdexcept>
 #include <vector>
+
+#include "common.hpp"
+#include <iostream>
 
 namespace marzone {
 
@@ -146,6 +150,18 @@ std::string cleanDirectoryString(std::string dirName) {
     return dirName;
 }
 
+// given the parsed value of an option and its given value storage, parse it in.
+// For string types, the overload below is given.
+inline
+void readInputOptionValue(stringstream& parsed, string& value) {
+    value = parsed.str();
+}
+
+template<class T> inline
+void readInputOptionValue(stringstream& parsed, T& value) {
+    parsed >> value;
+}
+
 // read value for a single parameter specified in file lines "infile"
 template<class T> inline
 void readInputOption(vector<string>& infile, string varname, T& value, bool crit, bool& present, stringstream& warningBuf, stringstream& errorBuf)
@@ -156,7 +172,7 @@ void readInputOption(vector<string>& infile, string varname, T& value, bool crit
 // present = stores whether variable was found.
 {
     int foundit = 0;
-    string modifiedVar = varname + " "; // pad with space to prevent fields that are  substrings of other fields
+    string modifiedVar = varname;
 
     for (string line : infile)
     {   /* loop through file looking for varname */
@@ -173,7 +189,7 @@ void readInputOption(vector<string>& infile, string varname, T& value, bool crit
 
             // read string representation to specified type T
             stringstream linestream(varValue);
-            linestream >> value; 
+            readInputOptionValue(linestream, value);
 
             if (linestream.fail()) {
                 // some error occurred when reading in value 

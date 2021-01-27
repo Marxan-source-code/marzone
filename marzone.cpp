@@ -336,7 +336,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
 
     logger.AppendDebugTraceFile("before InitialiseReserve\n");
-    reserve.RandomiseSolution(pu, rngEngine);
+    reserve.RandomiseSolution(pu, rngEngine, zones.zoneCount);
     logger.AppendDebugTraceFile("after InitialiseReserve\n");
 
     // * * *  Pre-processing    * * * * ***
@@ -428,171 +428,187 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     Reserve bestR;
     vector<string> summaries(runoptions.repeats);
     bestR.objective.total = numeric_limits<double>::max();
+
+    // lock for bestR
+    omp_lock_t bestR_write_lock;
+    omp_init_lock(&bestR_write_lock);
+
     int maxThreads = omp_get_max_threads();
-    logger.ShowGenProg("Running multithreaded over number of threads: " + to_string(maxThreads) + "\n");
+    logger.ShowGenProg("Running " + to_string(runoptions.repeats) + " runs multithreaded over number of threads: " + to_string(maxThreads) + "\n");
     for (int irun = 1;irun <= runoptions.repeats;irun++)
     {
+
         stringstream debugbuffer; // buffer to print at the end
         stringstream progbuffer; // buffer to print at the end
 
-        // Create new reserve object and init
-        Reserve reserveThread(spec, zones, runoptions.clumptype, irun);
-        reserveThread.InitializeSolution(pu.puno);
-        reserveThread.RandomiseSolution(pu, rngEngine);
-
-        debugbuffer << "annealing start run " << irun << "\n";
-        progbuffer << "\nRun: " << irun << ",";
-
-        SimulatedAnnealing sa(runoptions.AnnealingOn, anneal, rngEngine, fnames.saveannealingtrace, irun);
-        if (runoptions.AnnealingOn)
+        try
         {
-            debugbuffer << "before Annealling Init run " << irun << "\n";
+            // Create new reserve object and init
+            Reserve reserveThread(spec, zones, runoptions.clumptype, irun);
+            reserveThread.InitializeSolution(pu.puno);
+            reserveThread.RandomiseSolution(pu, rngEngine, zones.zoneCount);
 
-            // init sa parameters if setting is appropriate
-            sa.Initialize(spec, pu, zones, runoptions.clumptype);
-            debugbuffer << "after Annealling Init run " << irun << "\n";
+            debugbuffer << "annealing start run " << irun << "\n";
+            progbuffer << "\nRun: " << irun << ",";
 
-            progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
-        } // Annealing Setup
+            SimulatedAnnealing sa(runoptions.AnnealingOn, anneal, rngEngine, fnames.saveannealingtrace, irun);
+            if (runoptions.AnnealingOn)
+            {
+                debugbuffer << "before Annealling Init run " << irun << "\n";
 
-        progbuffer << "  creating the initial reserve \n";
-        debugbuffer << "before ZonationCost run " << irun << "\n";
-        reserveThread.EvaluateObjectiveValue(pu, spec, zones);
-        debugbuffer << "after ZonationCost run " << irun << "\n";
+                // init sa parameters if setting is appropriate
+                sa.Initialize(spec, pu, zones, runoptions.clumptype);
+                debugbuffer << "after Annealling Init run " << irun << "\n";
 
-        if (runoptions.verbose > 1)
-        {
-           progbuffer << "\n  Init:";
-           PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
-        }
+                progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
+            } // Annealing Setup
 
-        if (runoptions.verbose > 5)
-        {
-           logger.ShowTimePassed(startTime);
-        }
-
-        // * * * * * * * * * * * * * * * * * * * ***
-        // * * *  main annealing algorithm * * * * *
-        // * * * * * * * * * * * * * * * * * * * ***
-
-        if (runoptions.AnnealingOn)
-        {
-            debugbuffer << "before Annealing run " << irun << "\n";
-            progbuffer << "  Main Annealing Section.\n";
-
-            sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
+            progbuffer << "  creating the initial reserve \n";
+            debugbuffer << "before ZonationCost run " << irun << "\n";
+            reserveThread.EvaluateObjectiveValue(pu, spec, zones);
+            debugbuffer << "after ZonationCost run " << irun << "\n";
 
             if (runoptions.verbose > 1)
             {
-                progbuffer << "  ThermalAnnealing:";
+                progbuffer << "\n  Init:";
                 PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
             }
 
-            debugbuffer << "after Annealing run " << irun << "\n";
-        } // End of Annealing On
-
-        if (runoptions.HeuristicOn)
-        {
-           debugbuffer << "before Heuristics run " << irun << "\n";
-           Heuristic heur = Heuristic(rngEngine, runoptions.heurotype);
-           heur.RunHeuristic(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
-
-           if (runoptions.verbose > 1 && (runoptions.runopts == 2 || runoptions.runopts == 5))
-           {
-              progbuffer << "\n  Heuristic:";
-              PrintResVal(reserveThread,spec,zones,runoptions.misslevel, progbuffer);
-           }
-
-           debugbuffer << "after Heuristics run " << irun << "\n";
-        }    // Activate Greedy
-
-        if (runoptions.ItImpOn)
-        {
-            debugbuffer << "before IterativeImprovementOptimise run " << irun << "\n";
-            IterativeImprovement itImp = IterativeImprovement(rngEngine, fnames, runoptions.itimptype);
-            itImp.Run(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
-            debugbuffer << "after IterativeImprovementOptimise run " << irun << "\n";
-
-           if (runoptions.verbose > 1)
-           {
-              progbuffer << "  Iterative Improvement:";
-              PrintResVal(reserveThread,spec,zones,runoptions.misslevel, progbuffer);
-           }
-        } // Activate Iterative Improvement
-
-        debugbuffer << "before file output run " << irun << "\n";
-
-        // Start writing output
-        string tempname2;
-        if (fnames.saverun)
-        {
-            tempname2 = fnames.savename + "_r" + to_string(irun) + getFileSuffix(fnames.saverun);
-            reserveThread.WriteSolution(tempname2, pu, fnames.saverun);
-        }
-
-        debugbuffer << "WriteSolution ran " << irun << "\n";
-
-        if (fnames.savespecies && fnames.saverun)
-        {   
-            // output species distribution for a run (specific reserve)
-            tempname2 = fnames.savename + "_mv" + to_string(irun) + getFileSuffix(fnames.savespecies);
-            OutputFeatures(tempname2, zones, reserveThread, spec,fnames.savespecies, runoptions.misslevel);
-        }
-
-        if (fnames.savesum)
-        {
-            summaries[irun-1] = OutputSummaryString(pu, spec, zones, reserveThread, runoptions.misslevel, fnames.savesum);
-        }
-
-        #ifdef DEBUGFPERROR
-        debugbuffer << "OutputSummary ran\n";
-        #endif
-
-        // Saving the best from all the runs
-        if (fnames.savebest)
-        {
-            if (reserveThread.objective.total < bestR.objective.total)
+            if (runoptions.verbose > 5)
             {
-                bestR = reserveThread; // deep copy. TODO LOCK
+                logger.ShowTimePassed(startTime);
+            }
+
+            // * * * * * * * * * * * * * * * * * * * ***
+            // * * *  main annealing algorithm * * * * *
+            // * * * * * * * * * * * * * * * * * * * ***
+
+            if (runoptions.AnnealingOn)
+            {
+                debugbuffer << "before Annealing run " << irun << "\n";
+                progbuffer << "  Main Annealing Section.\n";
+
+                sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
 
                 if (runoptions.verbose > 1)
                 {
-                    progbuffer << "  Best:";
-                    PrintResVal(bestR, spec, zones, runoptions.misslevel, progbuffer);
+                    progbuffer << "  ThermalAnnealing:";
+                    PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
+                }
+
+                debugbuffer << "after Annealing run " << irun << "\n";
+            } // End of Annealing On
+
+            if (runoptions.HeuristicOn)
+            {
+                debugbuffer << "before Heuristics run " << irun << "\n";
+                Heuristic heur = Heuristic(rngEngine, runoptions.heurotype);
+                heur.RunHeuristic(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
+
+                if (runoptions.verbose > 1 && (runoptions.runopts == 2 || runoptions.runopts == 5))
+                {
+                    progbuffer << "\n  Heuristic:";
+                    PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
+                }
+
+                debugbuffer << "after Heuristics run " << irun << "\n";
+            } // Activate Greedy
+
+            if (runoptions.ItImpOn)
+            {
+                debugbuffer << "before IterativeImprovementOptimise run " << irun << "\n";
+                IterativeImprovement itImp = IterativeImprovement(rngEngine, fnames, runoptions.itimptype);
+                itImp.Run(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
+                debugbuffer << "after IterativeImprovementOptimise run " << irun << "\n";
+
+                if (runoptions.verbose > 1)
+                {
+                    progbuffer << "  Iterative Improvement:";
+                    PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
+                }
+            } // Activate Iterative Improvement
+
+            debugbuffer << "before file output run " << irun << "\n";
+
+            // Start writing output
+            string tempname2;
+            if (fnames.saverun)
+            {
+                tempname2 = fnames.savename + "_r" + to_string(irun) + getFileSuffix(fnames.saverun);
+                reserveThread.WriteSolution(tempname2, pu, fnames.saverun);
+            }
+
+            debugbuffer << "WriteSolution ran " << irun << "\n";
+
+            if (fnames.savespecies && fnames.saverun)
+            {
+                // output species distribution for a run (specific reserve)
+                tempname2 = fnames.savename + "_mv" + to_string(irun) + getFileSuffix(fnames.savespecies);
+                OutputFeatures(tempname2, zones, reserveThread, spec, fnames.savespecies, runoptions.misslevel);
+            }
+
+            if (fnames.savesum)
+            {
+                summaries[irun - 1] = OutputSummaryString(pu, spec, zones, reserveThread, runoptions.misslevel, fnames.savesum);
+            }
+
+#ifdef DEBUGFPERROR
+            debugbuffer << "OutputSummary ran\n";
+#endif
+
+            // Saving the best from all the runs
+            if (fnames.savebest)
+            {
+                if (reserveThread.objective.total < bestR.objective.total)
+                {
+                    bestR = reserveThread; // deep copy. TODO LOCK
+
+                    if (runoptions.verbose > 1)
+                    {
+                        progbuffer << "  Best:";
+                        PrintResVal(bestR, spec, zones, runoptions.misslevel, progbuffer);
+                    }
                 }
             }
+
+            if (fnames.savesumsoln) // Add current run to my summed solution
+                analysis.ApplyReserveToSumSoln(reserveThread);
+
+            if (fnames.savesolutionsmatrix)
+            {
+                string solutionsMatrixName = fnames.savename + "_solutionsmatrix" + getFileSuffix(fnames.savesolutionsmatrix);
+                reserveThread.AppendSolutionsMatrix(solutionsMatrixName, zones.zoneCount, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
+
+                for (int i = 1; i <= zones.zoneCount; i++)
+                {
+                    string solutionsMatrixZoneName = fnames.savename + "_solutionsmatrix_zone" + to_string(i) + getFileSuffix(fnames.savesolutionsmatrix);
+                    // append solutions matrix for each zone separately
+                    reserveThread.AppendSolutionsMatrixZone(solutionsMatrixZoneName, i - 1, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
+                }
+            }
+
+            if (fnames.savezoneconnectivitysum)
+            {
+                string zoneConnectivityName = fnames.savename + "_zoneconnectivitysum" + to_string(irun) + getFileSuffix(fnames.savezoneconnectivitysum);
+                reserveThread.WriteZoneConnectivitySum(zoneConnectivityName, pu, zones, fnames.savezoneconnectivitysum);
+            }
+
+            debugbuffer << "after file output run " << irun << "\n";
+            debugbuffer << "annealing end run " << irun << "\n";
+
+            if (marxanIsSecondary == 1)
+                WriteSecondarySyncFileRun(irun);
+
+            if (runoptions.verbose > 1)
+                logger.ShowTimePassed(startTime);
         }
-
-        if (fnames.savesumsoln) // Add current run to my summed solution
-            analysis.ApplyReserveToSumSoln(reserveThread);
-
-        if (fnames.savesolutionsmatrix)
+        catch (exception &e)
         {
-            string solutionsMatrixName = fnames.savename + "_solutionsmatrix" + getFileSuffix(fnames.savesolutionsmatrix);
-            reserveThread.AppendSolutionsMatrix(solutionsMatrixName, zones.zoneCount, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
-
-           for (int i=1;i<=zones.zoneCount;i++)
-           {
-               string solutionsMatrixZoneName = fnames.savename + "_solutionsmatrix_zone" + to_string(i) + getFileSuffix(fnames.savesolutionsmatrix);
-               // append solutions matrix for each zone separately
-               reserveThread.AppendSolutionsMatrixZone(solutionsMatrixZoneName, i-1, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
-           }
+            // No matter how thread runs, record the message and exception if any.
+            string msg = "Exception on run " + to_string(irun) + " Message: " + e.what() + "\n";
+            progbuffer << msg;
+            debugbuffer << msg;
         }
-
-        if (fnames.savezoneconnectivitysum)
-        {
-            string zoneConnectivityName = fnames.savename + "_zoneconnectivitysum" + to_string(irun) + getFileSuffix(fnames.savezoneconnectivitysum);
-            reserveThread.WriteZoneConnectivitySum(zoneConnectivityName, pu, zones, fnames.savezoneconnectivitysum);
-        }
-
-        debugbuffer << "after file output run " << irun << "\n";
-        debugbuffer << "annealing end run " << irun << "\n";
-
-        if (marxanIsSecondary == 1)
-           WriteSecondarySyncFileRun(irun);
-
-        if (runoptions.verbose > 1)
-           logger.ShowTimePassed(startTime);
 
         // print the logs/debugs
         logger.ShowProg(progbuffer.str());
@@ -615,6 +631,11 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
         logger.AppendDebugTraceFile("Best solution is run " + to_string(bestR.id) + "\n");
         logger.ShowGenProg("\nBest solution is run " + to_string(bestR.id) + "\n");
+
+        // Print the best solution
+        stringstream bestbuf; 
+        PrintResVal(bestR, spec, zones, runoptions.misslevel, bestbuf);
+        logger.ShowWarningMessage(bestbuf.str());
 
         if (fnames.savezoneconnectivitysum)
         {
@@ -845,7 +866,7 @@ void PrintResVal(Reserve& reserve, Species& spec, Zones& zones, double misslevel
     // Attach message to buffer
     buffer << "Value " << reserve.objective.total << " "
         << "Cost " <<  reserve.objective.cost << " " << sPuZones << " "
-        << "Conection " << reserve.objective.connection << " "
+        << "Connection " << reserve.objective.connection << " "
         << "Missing " << iMissing << " "
         << "Shortfall " << shortfall << " "
         << "Penalty " << reserve.objective.penalty << " "
@@ -1327,7 +1348,7 @@ void AppendDebugFile(string sFileName,string& sLine, sfname& fnames)
 {
     string writename = fnames.outputdir + sFileName;
     ofstream myfile;
-    myfile.open(writename);
+    myfile.open(writename, ofstream::app);
     myfile << sLine;
     myfile.close();
 }

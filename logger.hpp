@@ -77,6 +77,7 @@ namespace marzone {
             if (verbosity > 2)
             {
                 fdebugtrace << sMess;
+                fdebugtrace.flush(); // persist message.
             }
         }
     }

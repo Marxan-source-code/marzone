@@ -61,7 +61,7 @@ namespace marzone
       solution.assign(puno, 0);
     }
 
-    void RandomiseSolution(Pu &pu, mt19937 &rngEngine)
+    void RandomiseSolution(Pu &pu, mt19937 &rngEngine, int zoneCount)
     {
       uniform_int_distribution<int> random_dist(0, numeric_limits<int>::max());
 
@@ -83,6 +83,11 @@ namespace marzone
         { // enforce puzone
           int zoneInd = random_dist(rngEngine) % puTerm.numZones;
           solution[i] = pu.puZone[i][zoneInd] - 1; // solution array stores the zero-indexed zone.
+        }
+        else if (puTerm.numZones == 0)
+        {
+          // set to any random zone
+          solution[i] = random_dist(rngEngine) % zoneCount;
         }
       }
     }
@@ -534,8 +539,9 @@ namespace marzone
       change.cost = zones.AggregateTotalCostByPuAndZone(iPostZone, puCostArray) - zones.AggregateTotalCostByPuAndZone(iPreZone, puCostArray);
 
       // Connection cost
-      change.connection = zones.ConnectionCost2(pu, puindex, imode, solution, iPostZone) 
-          - zones.ConnectionCost2(pu, puindex, imode, solution, iPreZone);
+      if (pu.connectionsEntered)
+        change.connection = zones.ConnectionCost2(pu, puindex, imode, solution, iPostZone) 
+            - zones.ConnectionCost2(pu, puindex, imode, solution, iPreZone);
 
       change.penalty = ComputeChangePenalty(pu, zones, spec, change, puindex, iPreZone, iPostZone);
 
@@ -679,21 +685,24 @@ namespace marzone
     // Given zones and pu, and using current solution.
     void ComputeZoneConnectivitySum(Pu &pu, vector<vector<double>> &ZCS)
     {
-      for (int i = 0; i < pu.puno; i++)
+      if (pu.connectionsEntered) // only applies if pu has connections
       {
-        // fixed cost for ipu is between this zone and itself
-        ZCS[solution[i]][solution[i]] += pu.connections[i].fixedcost;
-
-        // traverse connections for this ipu
-        for (sneighbour &p : pu.connections[i].first)
+        for (int i = 0; i < pu.puno; i++)
         {
-          if (p.nbr > i) // avoid double counting connnections
+          // fixed cost for ipu is between this zone and itself
+          ZCS[solution[i]][solution[i]] += pu.connections[i].fixedcost;
+
+          // traverse connections for this ipu
+          for (sneighbour &p : pu.connections[i].first)
           {
-            if (solution[i] != solution[p.nbr]) // ignore internal connections within a zone
+            if (p.nbr > i) // avoid double counting connnections
             {
-              // connections are symmetric
-              ZCS[solution[i]][solution[p.nbr]] += p.cost;
-              ZCS[solution[p.nbr]][solution[i]] += p.cost;
+              if (solution[i] != solution[p.nbr]) // ignore internal connections within a zone
+              {
+                // connections are symmetric
+                ZCS[solution[i]][solution[p.nbr]] += p.cost;
+                ZCS[solution[p.nbr]][solution[i]] += p.cost;
+              }
             }
           }
         }
@@ -841,17 +850,19 @@ namespace marzone
       for (int j = 0; j < pu.puno; j++)
       {
         objective.cost += zones.AggregateTotalCostByPuAndZone(solution[j], pu.puList[j].costBreakdown);
-        objective.connection += zones.ConnectionCost2Linear(pu, j, 1, solution); // confirm imode 1
+        if (pu.connectionsEntered)
+          objective.connection += zones.ConnectionCost2Linear(pu, j, 1, solution); // confirm imode 1
       }
 
       objective.total = objective.cost + objective.connection + objective.penalty;
     }
 
     // Writes amounts related to species amounts in this particular reserve to a file.
+    // not threadsafe?
     void WriteSpeciesAmounts(string filename, Species &spec, Zones &zones, int imode, double misslevel)
     {
       ofstream myfile;
-      myfile.open(filename);
+      myfile.open(filename, ofstream::app); // append mode
       double rMPM, rTestMPM, rTarget, rAmountHeld;
       int rOccurrenceTarget, rOccurrencesHeld;
       string temp, d = imode > 1 ? "," : "\t";
@@ -907,59 +918,64 @@ namespace marzone
 
     // Not threadsafe.
     void AppendSolutionsMatrix(string filename, int zoneCount, int delimType, int iIncludeHeaders) {
-      ofstream myfile;
-      myfile.open(filename);
+      stringstream text;
       string sDelimiter = delimType == 3 ? "," : "    ";
 
       for (int i = 1; i <= zoneCount; i++)
       {
         if (iIncludeHeaders == 1)
         {
-          myfile << "Z" << i << "S" << id << sDelimiter; 
+          text << "Z" << i << "S" << id << sDelimiter; 
         }
 
         for (int j = 0; j < solution.size(); j++)
         {
           if (j > 0)
-          myfile << sDelimiter;
+          text << sDelimiter;
 
           if (solution[j] == i-1)
-            myfile << "1";
+            text << "1";
           else
-            myfile << "0";
+            text << "0";
         }
 
-        myfile << "\n";
+        text << "\n";
       }
 
+      // open file for as little time as possible.
+      ofstream myfile;
+      myfile.open(filename, ofstream::app);
+      myfile << text.str();
       myfile.close();
     }
 
     // Not threadsafe.
     void AppendSolutionsMatrixZone(string filename, int iZone, int delimType, int iIncludeHeaders)
     {
-      ofstream myfile;
-      myfile.open(filename);
+      stringstream text;
       string sDelimiter = delimType == 3 ? "," : "    ";
 
       if (iIncludeHeaders == 1)
       {
-        myfile << "S" << id << sDelimiter;
+        text << "S" << id << sDelimiter;
       }
 
       for (int j = 0; j < solution.size(); j++)
       {
         if (j > 0)
-          myfile << sDelimiter;
+          text << sDelimiter;
 
         if (solution[j] == iZone)
-          myfile << "1";
+          text << "1";
         else
-          myfile << "0";
+          text << "0";
       }
 
-      myfile << "\n";
+      text << "\n";
 
+      ofstream myfile;
+      myfile.open(filename, ofstream::app);
+      myfile << text.str();
       myfile.close();
     }
 
