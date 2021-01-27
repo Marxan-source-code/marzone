@@ -35,10 +35,12 @@ class Species {
         return -1; // species not found.
     }
 
+    // Prereq - spindex must be in range of 0 and < spno, otherwise behaviour undefined.
     void SetRichness(int spindex, int richness) {
         specList[spindex].richness = richness;
     }
 
+    // Prereq - spindex must be in range of 0 and < spno, otherwise behaviour undefined.
     void SetOffset(int spindex, int offset) {
         specList[spindex].offset = offset;
     }

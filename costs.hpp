@@ -1,4 +1,7 @@
 #pragma once
+
+#include <map>
+
 #include "common.hpp"
 #include "util.hpp"
 
@@ -73,7 +76,9 @@ class Costs {
             sscanf(sVarVal, "%d", &id);
 
             sVarVal = strtok(NULL," ,;:^*\"/|\t\'\\\n");
-            costNames[string(sVarVal)] = {id, costCount};
+            string s(sVarVal);
+            trim(s);
+            costNames[s] = {id, costCount};
             costCount++;
         }
         fclose(fp);

@@ -108,6 +108,7 @@ TEST(UtilTestsGroup, getFileHeaders_test1) {
     char tempHeader[] = "h1,h2,h3";
     char invalidHeader[] = "h1,h1";
     char tempHeader2[] = "h1\t\th2";
+    char tempHeader3[] = "h1, h2"; // test extra chars get trimmed.
 
     vector<string> t1 = getFileHeaders(tempHeader, "");
     CHECK_EQUAL(3, t1.size());
@@ -116,6 +117,11 @@ TEST(UtilTestsGroup, getFileHeaders_test1) {
 
     vector<string> t2 = getFileHeaders(tempHeader2, "");
     CHECK_EQUAL(2, t2.size());
+
+    vector<string> t3 = getFileHeaders(tempHeader3, "");
+    CHECK_EQUAL(2, t3.size());
+    CHECK(t3[0] == "h1" || t3[0] == "h2");
+    CHECK(t3[1] == "h1" || t3[1] == "h2");
 }
 
 TEST(UtilTestsGroup, Range_test1) {

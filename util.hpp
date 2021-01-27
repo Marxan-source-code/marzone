@@ -227,15 +227,19 @@ vector<string> getFileHeaders(char* header, string filename) {
     vector<string> headers;
 
     char* sVarName = strtok(header, " ,;:^*\"/|\t\'\\\n");
-    headers.push_back(sVarName);
+    string cleaned(sVarName);
+    trim(cleaned);
+    headers.push_back(cleaned);
 
     while ((sVarName = strtok(NULL, " ,;:^*\"/|\t\'\\\n")) != NULL) {
-        if (find(headers.begin(), headers.end(), sVarName) == headers.end()) {
+        cleaned = string(sVarName);
+        trim(cleaned);
+        if (find(headers.begin(), headers.end(), cleaned) == headers.end()) {
             // Add to list if not already present.
-            headers.push_back(sVarName);
+            headers.push_back(cleaned);
         }
         else {
-            throw invalid_argument("Header name " + string(sVarName) + " has been defined twice in data file " + filename + ".");
+            throw invalid_argument("Header name " + string(cleaned) + " has been defined twice in data file " + filename + ".");
         }
     }
 
