@@ -222,7 +222,6 @@ FILE* openFile(string filename) {
 inline
 // Toks the given header line and returns an ordered list of header names. 
 // We could use set instead of vector, but the size of these sets is very small (i.e under 10) so vector should be equal perf.
-// TODO - unit test this
 vector<string> getFileHeaders(char* header, string filename) {
     vector<string> headers;
 

@@ -20,12 +20,12 @@ using namespace std;
 class Pu {
     public:
     Pu(sfname& fnames, Costs& costs, int asymmetric) : puno(0), puLockCount(0), puZoneCount(0) {
+        ReadPUData(fnames.inputdir + fnames.puname, costs);
+
         if (!fnames.pulockname.empty())
         {
             LoadPuLock(fnames.inputdir + fnames.pulockname);
         }
-
-        ReadPUData(fnames.inputdir + fnames.puname, costs);
 
         // TODO 
         /*
@@ -422,7 +422,7 @@ class Pu {
 
     // TODO - make private.
     map<int, int> puLock; // puid -> zoneid
-    vector<vector<int>> puZone; // puindex -> list of available zones. If pu has empty puzone, it is allowed in ALL zones.
+    vector<vector<int>> puZone; // puindex -> list of available zones. If pu has empty puzone, it is allowed in ALL zones (unless pulock).
     vector<spustuff> puList;
     map<int, int> lookup; // original puid -> pu index
     vector<sconnections> connections; 
@@ -450,8 +450,10 @@ class Pu {
 
     void PersistPuLock() {
         for (auto& [puid, zoneid]: puLock) {
-            puList[lookup[puid]].fPULock = 1;
-            puList[lookup[puid]].iPULock = zoneid;
+            int ind = lookup[puid];
+            puList[ind].fPULock = 1;
+            puList[ind].iPULock = zoneid;
+            puList[ind].numZones = 1;
         }
     }
 
@@ -466,11 +468,16 @@ class Pu {
         // Check puZone to make sure there are no single zoned pu. TODO - If so, convert to lock.
         int i = 0;
         for (vector<int>& zoneMap: puZone) {
-            puList[i].numZones = zoneMap.size();
-            if (zoneMap.size() == 1) {
-                throw new invalid_argument("Planning units found in puzone locked to a single zone. Do not use this file to lock planning units!");
-                // TODO - add this when logging library is complete. 
-                // ShowErrorMessage("Error: planning unit %i is locked to a single zone in %s.\nDo not use this file to lock planning units to a single zone; use pulock.dat for this purpose.\nAborting Program.\n",pu[i].id,fnames.puzonename);
+            // exlcude already pulocked indices
+            if (puList[i].numZones != 1)
+            {
+                puList[i].numZones = zoneMap.size();
+                if (zoneMap.size() == 1)
+                {
+                    throw new invalid_argument("Planning units found in puzone locked to a single zone. Do not use this file to lock planning units!");
+                    // TODO - add this when logging library is complete.
+                    // ShowErrorMessage("Error: planning unit %i is locked to a single zone in %s.\nDo not use this file to lock planning units to a single zone; use pulock.dat for this purpose.\nAborting Program.\n",pu[i].id,fnames.puzonename);
+                }
             }
             i++;
         }
@@ -589,10 +596,10 @@ class Pu {
         {
             spustuff putemp = {}; // init all to 0
             putemp.id = -1;
-            putemp.cost = 1;
+            putemp.cost = 0;
             putemp.xloc = -1;
             putemp.yloc = -1;
-            putemp.costBreakdown.resize(costs.costCount);
+            putemp.costBreakdown.resize(costs.costCount, 1.0); // default cost to 1 if not supplied.
 
             for (string temp: headerNames)
             {
@@ -652,7 +659,9 @@ class Pu {
 
             // persist only if pu is already defined
             if (lookup.find(puid) != lookup.end())
+            {
                 puLock[puid] = zoneid;
+            }
         }
         puLockCount = puLock.size();
         fclose(fp);

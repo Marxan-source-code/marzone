@@ -218,7 +218,6 @@ class Species {
     vector<sgenspec> genSpecList; // contains species with only the general features.
 
     private:
-
     // precondition - T must be of type sgenspec or one of its inheritors
     template<typename T>
     void ReadSpeciesData(string filename, vector<T>& typeList, unsigned& count, bool populateLookup) {

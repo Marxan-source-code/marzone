@@ -418,7 +418,6 @@ class Zones {
         myfile.close();
     }
 
-    bool availableZoneInput;
     unsigned zoneCount; // number of available zones in the system.
     unsigned zoneContribCount;
     unsigned zoneContrib2Count;
@@ -434,16 +433,18 @@ class Zones {
     vector<double> zoneContribValues; // size depends on whether zonecontrib3 is used. Usually it is spno*zoneCount. Species, then zone. 
 
     // Zone target maps
-    vector<zonecoststruct> zoneCostFileLoad; // temp zonecost from file
     vector<zonetargetstructtemp> zoneTargetsTemp; // needed for dump debug.
     vector<vector<zonetarget>> zoneTarget; //species -> zone target matrix, ordering is [species][zoneid].
 
     // Zone cost
-    vector<relconnectioncoststruct> zoneRelConnectionCost; // temp raw figures.
     vector<double> zoneCost; // flattened cost -> zone -> fraction map.
     vector<double> zoneConnectionCost; // zone to zone cost matrix
 
     private:
+    bool availableZoneInput;
+    vector<zonecoststruct> zoneCostFileLoad; // temp zonecost from file
+    vector<relconnectioncoststruct> zoneRelConnectionCost; // temp raw figures.
+
     // connection cost between two zone indices
     double GetZoneConnectionCost(int zoneindex1, int zoneindex2) {
         return zoneConnectionCost[zoneindex1*zoneCount + zoneindex2];
