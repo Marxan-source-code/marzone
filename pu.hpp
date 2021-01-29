@@ -369,7 +369,7 @@ class Pu {
     }
 
     // Gets the species -> pu map sorted in amount/cost order. 
-    // if ignoreLocked is set, then 
+    // if ignoreLocked is set, then we ignore pu that are locked (for slightly faster time).
     vector<vector<penaltyTerm>> getPuAmountsSorted(int spno, bool ignoreLocked) {
         vector<vector<penaltyTerm>> penaltyTerms(spno);
         int ipu;

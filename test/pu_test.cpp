@@ -256,9 +256,6 @@ TEST(PuTestsGroup, RtnAmountAllSpecAtPu_test)
     int ind3 = pu.LookupIndex(10);
     int ind4 = pu.LookupIndex(11);
     int ind5 = pu.LookupIndex(8);
-    int spind1 = spec.LookupIndex(1);
-    int spind2 = spec.LookupIndex(2);
-    int spind3 = spec.LookupIndex(3);
 
     // check totals for each spindex 
     vector<double> expected1 {20, 0, 0};
@@ -272,4 +269,42 @@ TEST(PuTestsGroup, RtnAmountAllSpecAtPu_test)
     CHECK(expected3 == pu.RtnAmountAllSpecAtPu(ind3, spec.spno));
     CHECK(expected4 == pu.RtnAmountAllSpecAtPu(ind4, spec.spno));
     CHECK(expected5 == pu.RtnAmountAllSpecAtPu(ind5, spec.spno));
+}
+
+// tests getPuAmountsSorted which is an important function for penalty calculations.
+TEST(PuTestsGroup, getPuAmountsSorted_test)
+{
+    sfname fnames = {};
+    fnames.costsname = "data/costs_test1.dat";
+    fnames.specname = "data/species_test1.dat";
+    fnames.puname = "data/pu_test1.dat";
+    fnames.inputdir = "";
+    Costs c(fnames);
+    Species spec(fnames);
+    Pu pu(fnames, c, 0);
+
+    //load puvspr file
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
+
+    // each vect in penaltySorted should be in amount/cost ratio.
+    vector<vector<penaltyTerm>> penaltySorted = pu.getPuAmountsSorted(spec.spno, false);
+
+    CHECK_EQUAL(3, penaltySorted.size());
+
+    int spind1 = spec.LookupIndex(1);
+    int spind2 = spec.LookupIndex(2);
+    int spind3 = spec.LookupIndex(3);
+
+    // ensure number of terms is correct
+    CHECK_EQUAL(2, penaltySorted[spind1].size());
+    CHECK_EQUAL(2, penaltySorted[spind2].size());
+    CHECK_EQUAL(2, penaltySorted[spind3].size());
+
+    // ensure ordering of each vector<penaltyTerm> is correct.
+    CHECK_EQUAL(20.0/7, penaltySorted[spind1][0].amount/penaltySorted[spind1][0].cost);
+    CHECK_EQUAL(50.5/667, penaltySorted[spind1][1].amount/penaltySorted[spind1][1].cost);
+    CHECK_EQUAL(118.0/3, penaltySorted[spind2][0].amount/penaltySorted[spind2][0].cost);
+    CHECK_EQUAL(15.8/3, penaltySorted[spind2][1].amount/penaltySorted[spind2][1].cost);
+    CHECK_EQUAL(200.0/67, penaltySorted[spind3][0].amount/penaltySorted[spind3][0].cost);
+    CHECK_EQUAL(12.0/667, penaltySorted[spind3][1].amount/penaltySorted[spind3][1].cost);
 }
