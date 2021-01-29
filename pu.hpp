@@ -115,6 +115,7 @@ class Pu {
         density = puvspr.size()*100.0/(puno*spec.spno);
     }
 
+    // TODO - delete as no longer needed.
     void LoadSparseMatrix_sporder(Species& spec, string filename) {
         FILE *fp = openFile(filename);
         vector<map<int,spusporder>> SMTemp(spec.spno); // temporarily storing in this structure prevents the need for ordering.
@@ -233,25 +234,26 @@ class Pu {
     {
         if (connectionsEntered)
         {
-        double fcost = connections[ipu].fixedcost;
+            double fcost = connections[ipu].fixedcost;
 
-        for (sneighbour& p : connections[ipu].first)
-        {
-            if (asymmetric)
+            for (sneighbour &p : connections[ipu].first)
             {
-                if (p.connectionorigon)
+                if (asymmetric)
+                {
+                    if (p.connectionorigon)
+                        fcost += p.cost;
+                }
+                else
                     fcost += p.cost;
             }
-            else
-                fcost += p.cost;
-        }
-        return(fcost);
+            return (fcost);
         }
 
         return 0; // no connections entered. 
     } // * * * * Connection Cost Type 1 * * * *
     
     // returns the amount of a species at a planning unit, if the species doesn't occur here, returns 0
+    // precondition - puindex and iSpexIndex must be within spno and puno.
     double RtnAmountSpecAtPu(int puindex, int iSpecIndex)
     {
         int smIndex = RtnIndexSpecAtPu(puindex, iSpecIndex);
