@@ -39,6 +39,11 @@ TEST(SpeciesTestsGroup, ReadSpeciesData_fileparsing_test)
     CHECK_EQUAL(2, sp.specList[ind2].targetocc);
     CHECK_EQUAL(3, sp.specList[ind3].targetocc);
 
+    // Check target2 set to 0.
+    CHECK_EQUAL(0, sp.specList[ind1].target2);
+    CHECK_EQUAL(0, sp.specList[ind2].target2);
+    CHECK_EQUAL(0, sp.specList[ind3].target2);
+
     vector<double> sums = {90, 100, 10};
     // Compute prop targets
     sp.SetSpeciesProportionTarget(sums);

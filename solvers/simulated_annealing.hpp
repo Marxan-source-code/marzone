@@ -245,7 +245,7 @@ class SimulatedAnnealing {
         uniform_int_distribution<int> random_pu_dist(0, pu.puno-1);
 
         // Set reserve to a random and evaluate 
-        Reserve r(spec, zones, clumptype);
+        Reserve r(spec, zones.zoneCount, clumptype);
         r.InitializeSolution(pu.puno);
         r.RandomiseSolution(pu, rngEngine, zones.zoneCount);
         r.EvaluateObjectiveValue(pu, spec, zones);
@@ -322,7 +322,7 @@ class SimulatedAnnealing {
         int i, isamples = 1000; /* Hardwired number of samples to take */
         double sum = 0, sum2 = 0;
         double sigma;
-        Reserve r(spec, zones, clumptype);
+        Reserve r(spec, zones.zoneCount, clumptype);
         double c = 10; /* An initial temperature acceptance number */
 
         r.InitializeSolution(pu.puno);

@@ -239,7 +239,7 @@ class Species {
             spectemp.target = -1;
             spectemp.type = -1;
             spectemp.spf = -1;
-            spectemp.target2 = -1;
+            spectemp.target2 = 0;
             spectemp.targetocc = -1;
             spectemp.sepdistance = -1;
             spectemp.sepnum = -1;

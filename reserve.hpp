@@ -33,27 +33,12 @@ namespace marzone
     {
     }
 
-    Reserve(Species &spec, Zones &zones, int clumptype, int id = 0) : clumptype(clumptype), id(id)
+    Reserve(Species &spec, int zoneCount, int clumptype, int id = 0) : clumptype(clumptype), id(id)
     {
-      InitializeZoneSpec(spec.spno, zones.zoneCount);
+      InitializeZoneSpec(spec.spno, zoneCount);
       speciesAmounts.resize(spec.spno, {}); // init amounts struct
       if (spec.aggexist)
         speciesClump.resize(spec.spno);
-    }
-
-    // Sets all amounts and occurences to 0
-    void InitializeZoneSpec(uint64_t spno, uint64_t zoneCount)
-    {
-      zoneSpec.resize(spno * zoneCount);
-
-      for (int j = 0; j < spno; j++)
-      {
-        for (int i = 0; i < zoneCount; i++)
-        {
-          zoneSpec[(j * zoneCount) + i].amount = 0;
-          zoneSpec[(j * zoneCount) + i].occurrence = 0;
-        }
-      }
     }
 
     void InitializeSolution(uint64_t puno)
@@ -104,7 +89,6 @@ namespace marzone
         speciesAmounts[isp].amount = 0;
         speciesAmounts[isp].occurrence = 0;
         // Clear map clumps for this species
-
         if (spec.specList[isp].target2)
           ClearClumps(isp); // for target2 species, clear existing pu.
       }
@@ -127,7 +111,7 @@ namespace marzone
                   speciesAmounts[isp].amount += rContribAmount;
                   speciesAmounts[isp].occurrence += (rContribAmount > 0);
 
-                  iZoneSpecIndex = (isp * zones.zoneCount) + (solution[ipu] - 1);
+                  iZoneSpecIndex = (isp * zones.zoneCount) + solution[ipu];
                   zoneSpec[iZoneSpecIndex].amount += pu.puvspr[ism].amount;
                   zoneSpec[iZoneSpecIndex].occurrence++;
                 }
@@ -1113,6 +1097,21 @@ namespace marzone
 
     void ClearClumps(int isp) {
       speciesClump[isp].clear();
+    }
+
+    // Sets all amounts and occurences to 0
+    void InitializeZoneSpec(uint64_t spno, uint64_t zoneCount)
+    {
+      zoneSpec.resize(spno * zoneCount);
+
+      for (int j = 0; j < spno; j++)
+      {
+        for (int i = 0; i < zoneCount; i++)
+        {
+          zoneSpec[(j * zoneCount) + i].amount = 0;
+          zoneSpec[(j * zoneCount) + i].occurrence = 0;
+        }
+      }
     }
 
     string ReturnStringIfTargetMet(double targetArea, double area, int targetOcc, int occ, double &rMPM, double &misslevel)

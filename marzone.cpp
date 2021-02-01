@@ -213,7 +213,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     }
 
     logger.AppendDebugTraceFile("before initializing reserve\n");
-    Reserve reserve(spec, zones, runoptions.clumptype);
+    Reserve reserve(spec, zones.zoneCount, runoptions.clumptype);
     logger.AppendDebugTraceFile("after initializing reserve\n");
 
     // parse PuLock and PuZone
@@ -231,7 +231,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     */
 
    // Init reserve object
-    Reserve bestyet(spec, zones, runoptions.clumptype);
     reserve.InitializeSolution(pu.puno);
 
     // Init analysis object
@@ -444,7 +443,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         try
         {
             // Create new reserve object and init
-            Reserve reserveThread(spec, zones, runoptions.clumptype, irun);
+            Reserve reserveThread(spec, zones.zoneCount, runoptions.clumptype, irun);
             reserveThread.InitializeSolution(pu.puno);
             reserveThread.RandomiseSolution(pu, rngEngine, zones.zoneCount);
 

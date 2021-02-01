@@ -52,7 +52,7 @@ typedef struct zonetarget
 class Zones {
     public:
     Zones(sfname& fnames, Costs& costs) :
-        zoneCount(0), zoneContribCount(0), zoneContrib2Count(0), zoneContrib3Count(0), availableZoneInput(false)
+        zoneCount(0), zoneContribCount(0), zoneContrib2Count(0), zoneContrib3Count(0), availableZoneInput(false), zoneContribSupplied(false)
     {
         // Parse all zone files 
         if (!fnames.zonesname.empty())
@@ -68,14 +68,17 @@ class Zones {
         // Zone conntrib files. Only one should be supplied.
         if (!fnames.zonecontribname.empty())
         {
+            zoneContribSupplied = true;
             LoadZoneContrib(fnames.inputdir + fnames.zonecontribname);
         }
         if (!fnames.zonecontrib2name.empty())
         {
+            zoneContribSupplied = true;
             LoadZoneContrib2(fnames.inputdir + fnames.zonecontrib2name);
         }
         if (!fnames.zonecontrib3name.empty())
         {
+            zoneContribSupplied = true;
             LoadZoneContrib3(fnames.inputdir + fnames.zonecontrib3name);
         }
 
@@ -153,12 +156,14 @@ class Zones {
     }
 
     // given a species index and zoneid, return the contrib fraction
+    // If zone contrib file was not supplied, all contribs are 1. 
     double GetZoneContrib(int spindex, int zoneid) {
         // only spno*zoneCount used
         return zoneContribValues[(spindex*zoneCount)+(zoneid-1)];
     }
 
     // Get zone contrib but for a specific pu.
+    // If zone contrib file was not supplied, all contribs are 1. 
     double GetZoneContrib(int puindex, int puno, int spindex, int zoneid) {
         if (!zoneContrib3Count) {
             // only spno*zoneCount used
@@ -419,10 +424,6 @@ class Zones {
     }
 
     unsigned zoneCount; // number of available zones in the system.
-    unsigned zoneContribCount;
-    unsigned zoneContrib2Count;
-    unsigned zoneContrib3Count;
-    unsigned zoneTarget2Count;
     vector<ZoneIndex> zoneNameIndexed; // backward map of index to zoneid/zonename
     map<int, ZoneName> zoneNames; // zoneid to zonename/index mapping
 
@@ -442,6 +443,10 @@ class Zones {
 
     private:
     bool availableZoneInput;
+    bool zoneContribSupplied; // whether zone contribution modifiers are supplied or not.
+        unsigned zoneContribCount;
+    unsigned zoneContrib2Count;
+    unsigned zoneContrib3Count;
     vector<zonecoststruct> zoneCostFileLoad; // temp zonecost from file
     vector<relconnectioncoststruct> zoneRelConnectionCost; // temp raw figures.
 
@@ -469,10 +474,6 @@ class Zones {
         if (!fnames.zonecostname.empty())
         {
             zoneCostFileLoad = LoadZoneCost(fnames.inputdir + fnames.zonecostname);
-        }
-        else
-        {
-            zoneCostFileLoad = DefaultZoneCost();
         }
 
         zoneCost.assign(costCount*zoneCount, 0.0);
@@ -530,7 +531,7 @@ class Zones {
         {
             for (int i=0; i<zoneCount; i++)
             {
-                if (availableZoneInput == (i+1))
+                if (availableZoneInput && availableZoneInput == (i+1))
                 {
                     zoneContribValues[(j*zoneCount)+i] = 0;
                 } else {
@@ -754,12 +755,14 @@ class Zones {
 
             // read the string name from this line
             sVarVal = strtok(NULL," ,;:^*\"/|\t\'\\\n");
-            zoneNames[tempId] = {string(sVarVal), zoneCount};
+            string sval = string(sVarVal);
+            trim(sval);
+            zoneNames[tempId] = {sval, zoneCount};
 
             // Construct index object
             ZoneIndex z;
             z.id = tempId;
-            z.name = string(sVarVal);
+            z.name = sval;
             zoneNameIndexed.push_back(z);
             
             zoneCount++;
@@ -779,16 +782,6 @@ class Zones {
 
         zoneNameIndexed[1].id = 2;
         zoneNameIndexed[1].name = "reserved";
-    }
-
-    // Non supplied zone costs - create defaults
-    vector<zonecoststruct> DefaultZoneCost()
-    {
-        vector<zonecoststruct> tempZoneCost;
-        // create the ZoneCost array
-        zonecoststruct z = {2, 1, 1.0}; // zoneid, costid, fraction.
-        tempZoneCost.push_back(z);
-        return tempZoneCost;
     }
 };
 
