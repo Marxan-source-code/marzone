@@ -464,6 +464,7 @@ class Zones {
         }
         else {
             zoneConnectionCost.assign(zoneCount*zoneCount, 1); // default zone boundary cost is 1 (to not affect pu costs)
+            return;
         }
 
         zoneConnectionCost.assign(zoneCount*zoneCount, 0);

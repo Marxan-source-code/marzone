@@ -87,12 +87,6 @@ TEST(PuTestsGroup, PuLockPuZone_fileparsing_test)
     CHECK_EQUAL(2, pu.GetPuLock(ind2));
     CHECK_EQUAL(-1, pu.GetPuLock(ind3));
 
-    // ensure locked indices are returned
-    vector<int> lockedInd = pu.GetPuLockedIndices();
-    CHECK_EQUAL(2, lockedInd.size());
-    CHECK(lockedInd[0] == ind1 || lockedInd[0] == ind2);
-    CHECK(lockedInd[1] == ind1 || lockedInd[1] == ind2);
-
     // check puzone correct entered for each pu.
     CHECK_EQUAL(1, pu.puList[ind1].numZones);
     CHECK_EQUAL(1, pu.puList[ind2].numZones);
@@ -287,7 +281,8 @@ TEST(PuTestsGroup, getPuAmountsSorted_test)
     pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
 
     // each vect in penaltySorted should be in amount/cost ratio.
-    vector<vector<penaltyTerm>> penaltySorted = pu.getPuAmountsSorted(spec.spno, false);
+    vector<vector<lockedPenaltyTerm>> lockedPenalties;
+    vector<vector<penaltyTerm>> penaltySorted = pu.getPuAmountsSorted(spec.spno, lockedPenalties);
 
     CHECK_EQUAL(3, penaltySorted.size());
 
@@ -307,4 +302,10 @@ TEST(PuTestsGroup, getPuAmountsSorted_test)
     CHECK_EQUAL(15.8/3, penaltySorted[spind2][1].amount/penaltySorted[spind2][1].cost);
     CHECK_EQUAL(200.0/67, penaltySorted[spind3][0].amount/penaltySorted[spind3][0].cost);
     CHECK_EQUAL(12.0/667, penaltySorted[spind3][1].amount/penaltySorted[spind3][1].cost);
+
+    // No locked penalties since file is not supplied
+    CHECK_EQUAL(3, lockedPenalties.size());
+    CHECK_EQUAL(0, lockedPenalties[0].size());
+    CHECK_EQUAL(0, lockedPenalties[1].size());
+    CHECK_EQUAL(0, lockedPenalties[2].size());
 }

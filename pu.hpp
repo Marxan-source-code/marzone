@@ -85,10 +85,12 @@ class Pu {
             sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
             sscanf(sVarVal, "%lf", &amount);
 
-            puindex = LookupIndex(_puid);
             spindex = spec.LookupIndex(_spid);
+            if (spindex == -1)
+                continue;
 
-            if (puindex == -1 || spindex == -1)
+            puindex = LookupIndex(_puid);
+            if (puindex == -1)
                 continue;
 
             /* increment richness for planning unit containing this feature */
@@ -346,16 +348,6 @@ class Pu {
         myfile.close();
     }
 
-    vector<int> GetPuLockedIndices() {
-        vector<int> puLocked;
-
-        for (auto& [puid, zoneid]: puLock) {
-            puLocked.push_back(lookup[puid]);
-        }
-
-        return puLocked;
-    }
-
     // Given a pu index, returns -1 if pu is not locked, or zoneid if pu is locked.
     int GetPuLock(int puindex) {
         if (puList[puindex].fPULock) {
@@ -369,17 +361,27 @@ class Pu {
     }
 
     // Gets the species -> pu map sorted in amount/cost order. 
-    // if ignoreLocked is set, then we ignore pu that are locked (for slightly faster time).
-    vector<vector<penaltyTerm>> getPuAmountsSorted(int spno, bool ignoreLocked) {
+    // It also populates lockedPu with the species terms for a locked pu.
+    vector<vector<penaltyTerm>> getPuAmountsSorted(int spno, vector<vector<lockedPenaltyTerm>>& lockedPu) {
         vector<vector<penaltyTerm>> penaltyTerms(spno);
+        lockedPu.resize(spno);
         int ipu;
 
         for (int i = 0; i < puno; i++) {
-            if (puList[i].fPULock && ignoreLocked)
-                continue;
             ipu = puList[i].offset;
-            for (int j = 0; j < puList[i].richness; j++) {
-                penaltyTerms[puvspr[ipu+j].spindex].push_back({puvspr[ipu+j].amount, puList[i].cost});
+
+            if (puList[i].fPULock)
+            {
+                // append amount to lockedPu
+                for (int j = 0; j < puList[i].richness; j++) {
+                    // append {zoneid, puindex, amount}
+                    lockedPu[puvspr[ipu+j].spindex].push_back({puList[i].iPULock, i, puvspr[ipu+j].amount});
+                }
+            }
+            else {
+                for (int j = 0; j < puList[i].richness; j++) {
+                    penaltyTerms[puvspr[ipu+j].spindex].push_back({puvspr[ipu+j].amount, puList[i].cost});
+                }
             }
         }
 

@@ -65,6 +65,12 @@ namespace marzone {
         double cost; // cost of pu
     } penaltyTerm; // used for penalty calculation sorting. 
 
+    typedef struct lockedPenaltyTerm {
+        int lockedZoneId;
+        int puindex;
+        double amount;
+    } lockedPenaltyTerm;
+
     // type definitions for original Ian Ball Marxan data structures
 
     typedef struct spustuff

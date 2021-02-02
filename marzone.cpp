@@ -729,7 +729,8 @@ int CalcPenalties(Pu& pu, Species& spec, Zones& zones, Reserve& r, int clumptype
     vector<double> specTargetZones = zones.AggregateTargetAreaBySpecies(spec.spno);
     vector<int> specOccurrenceZones = zones.AggregateTargetOccurrenceBySpecies(spec.spno);
 
-    vector<vector<penaltyTerm>> specPuAmounts = pu.getPuAmountsSorted(spec.spno, true); // list of pus that contribute to a species.
+    vector<vector<lockedPenaltyTerm>> lockedSpecAmounts;
+    vector<vector<penaltyTerm>> specPuAmounts = pu.getPuAmountsSorted(spec.spno, lockedSpecAmounts); // list of pus that contribute to a species.
 
     for (int i = 0; i < spec.spno; i++)
     {
@@ -755,24 +756,21 @@ int CalcPenalties(Pu& pu, Species& spec, Zones& zones, Reserve& r, int clumptype
         itargetocc = 0, ftarget = 0.0, penalty = 0.0;
         int lockedZone = -1;
         double lockedContrib = 0.0;
-        // For this species, sum up all locked occurrences and areas. TODO - move this logic somewhere general.
-        for (int j : pu.GetPuLockedIndices())
-        {
-            // Get zoneid of locked pu and zone contrib of this zone for this species
-            lockedZone = pu.GetPuLock(j);
+        // For this species, sum up all locked occurrences and areas.
+        for (lockedPenaltyTerm& term: lockedSpecAmounts[i]) {
+            lockedZone = term.lockedZoneId;
             lockedContrib = zones.GetZoneContrib(i, lockedZone);
 
             if (lockedContrib) {
                 // Do this calculation by taking into account zonecontrib of the locked zone. If positive contrib, we count it.
-                rAmount = pu.RtnAmountSpecAtPu(j,i)*lockedContrib;
+                rAmount = term.amount*lockedContrib;
                 if (rAmount > 0) {
                     ftarget += rAmount;
                     itargetocc++;
-                    penalty += rtnMaxNonAvailableCost(j, pu, zones);
+                    penalty += rtnMaxNonAvailableCost(term.puindex, pu, zones);
                 }
             }
-
-        } // reset PUtemp and also target
+        }
         spec.specList[i].penalty = penalty;
 
         // Already adequately represented on type 2 planning unit
