@@ -52,7 +52,8 @@ typedef struct zonetarget
 class Zones {
     public:
     Zones(sfname& fnames, Costs& costs) :
-        zoneCount(0), zoneContribCount(0), zoneContrib2Count(0), zoneContrib3Count(0), availableZoneInput(false), zoneContribSupplied(false)
+        zoneCount(0), zoneContribCount(0), zoneContrib2Count(0), zoneContrib3Count(0), availableZoneInput(false), 
+        zoneContribSupplied(false), availableZoneCost(false)
     {
         // Parse all zone files 
         if (!fnames.zonesname.empty())
@@ -439,12 +440,13 @@ class Zones {
 
     // Zone cost
     vector<double> zoneCost; // flattened cost -> zone -> fraction map.
+    bool availableZoneCost;
     vector<double> zoneConnectionCost; // zone to zone cost matrix
 
     private:
     bool availableZoneInput;
     bool zoneContribSupplied; // whether zone contribution modifiers are supplied or not.
-        unsigned zoneContribCount;
+    unsigned zoneContribCount;
     unsigned zoneContrib2Count;
     unsigned zoneContrib3Count;
     vector<zonecoststruct> zoneCostFileLoad; // temp zonecost from file
@@ -460,8 +462,11 @@ class Zones {
         {
             zoneRelConnectionCost = LoadRelConnectionCost(fnames.inputdir + fnames.relconnectioncostname);
         }
+        else {
+            zoneConnectionCost.assign(zoneCount*zoneCount, 1); // default zone boundary cost is 1 (to not affect pu costs)
+        }
 
-        zoneConnectionCost.assign(zoneCount*zoneCount, 0); // default zone boundary cost is 0
+        zoneConnectionCost.assign(zoneCount*zoneCount, 0);
 
         for (relconnectioncoststruct& term: zoneRelConnectionCost) {
             zoneConnectionCost[((term.zoneid1-1)*zoneCount)+(term.zoneid2-1)] = term.fraction;
@@ -474,6 +479,11 @@ class Zones {
         if (!fnames.zonecostname.empty())
         {
             zoneCostFileLoad = LoadZoneCost(fnames.inputdir + fnames.zonecostname);
+            availableZoneCost = true;
+        }
+        else {
+            zoneCost.assign(costCount*zoneCount, 1.0);
+            return;
         }
 
         zoneCost.assign(costCount*zoneCount, 0.0);

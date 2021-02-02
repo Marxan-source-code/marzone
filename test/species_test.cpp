@@ -111,7 +111,7 @@ TEST(SpeciesTestsGroup, SetPenalties_test)
     // Compute prop targets
     sp.SetPenalties(pens);
 
-    CHECK_EQUAL(9.1, sp.specList[ind1].penalty);
-    CHECK_EQUAL(1.01, sp.specList[ind2].penalty);
-    CHECK_EQUAL(10000, sp.specList[ind3].penalty);
+    CHECK_EQUAL(9.1, sp.specList[0].penalty);
+    CHECK_EQUAL(1.01, sp.specList[1].penalty);
+    CHECK_EQUAL(10000, sp.specList[2].penalty);
 }

@@ -385,6 +385,8 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         logger.AppendDebugTraceFile("after LoadPenalties\n");
     }
 
+    logger.ShowTimePassed(startTime);
+
     if (runoptions.AnnealingOn)
     {
        logger.ShowGenProgInfo("    Calculating temperatures.\n");
@@ -436,7 +438,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     logger.ShowGenProg("Running " + to_string(runoptions.repeats) + " runs multithreaded over number of threads: " + to_string(maxThreads) + "\n");
     for (int irun = 1;irun <= runoptions.repeats;irun++)
     {
-
         stringstream debugbuffer; // buffer to print at the end
         stringstream progbuffer; // buffer to print at the end
 
@@ -597,9 +598,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
             if (marxanIsSecondary == 1)
                 WriteSecondarySyncFileRun(irun);
-
-            if (runoptions.verbose > 1)
-                logger.ShowTimePassed(startTime);
         }
         catch (exception &e)
         {
@@ -612,6 +610,9 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         // print the logs/debugs
         logger.ShowProg(progbuffer.str());
         logger.AppendDebugTraceFile(debugbuffer.str());
+
+        if (runoptions.verbose > 1)
+            logger.ShowTimePassed(startTime);
     } // ** the repeats  **
 
     // Output summary
@@ -767,9 +768,8 @@ int CalcPenalties(Pu& pu, Species& spec, Zones& zones, Reserve& r, int clumptype
                 if (rAmount > 0) {
                     ftarget += rAmount;
                     itargetocc++;
+                    penalty += rtnMaxNonAvailableCost(j, pu, zones);
                 }
-
-                penalty += rtnMaxNonAvailableCost(j, pu, zones); // TODO - figure out what this is intended to do. Probably should be the cost of the zone if it's counted.
             }
 
         } // reset PUtemp and also target
@@ -831,12 +831,15 @@ double rtnMaxNonAvailableCost(int ipu, Pu& pu, Zones& zones)
 {
     double fcost = 0, rMaxCost = 0;
 
-    for (int iZone = 0; iZone < zones.zoneCount; iZone++)
-    {
-        fcost = ReturnPuZoneCost(ipu, iZone, pu, zones);
-        if (fcost > rMaxCost)
-            rMaxCost = fcost;
-    }
+    if (zones.availableZoneCost) // only needed if there is zone cost specified.
+        for (int iZone = 0; iZone < zones.zoneCount; iZone++)
+        {
+            fcost = ReturnPuZoneCost(ipu, iZone, pu, zones);
+            if (fcost > rMaxCost)
+                rMaxCost = fcost;
+        }
+    else
+        rMaxCost = pu.puList[ipu].cost;
 
     rMaxCost += pu.ConnectionCost1(ipu);
     return(rMaxCost);
@@ -856,8 +859,8 @@ double ReturnPuZoneCost(int ipu,int iZone, Pu& pu, Zones& zones)
 // * * * * Reporting Value of a Reserve * * * *
 void PrintResVal(Reserve& reserve, Species& spec, Zones& zones, double misslevel, stringstream& buffer)
 {
-    int i, iMissing;
-    double shortfall, rMPM;
+    int iMissing;
+    double rMPM;
 
     iMissing = reserve.CountMissing(spec, zones, misslevel, rMPM);
     string sPuZones = reserve.CountPuZones(zones);
@@ -867,7 +870,7 @@ void PrintResVal(Reserve& reserve, Species& spec, Zones& zones, double misslevel
         << "Cost " <<  reserve.objective.cost << " " << sPuZones << " "
         << "Connection " << reserve.objective.connection << " "
         << "Missing " << iMissing << " "
-        << "Shortfall " << shortfall << " "
+        << "Shortfall " << reserve.objective.shortfall << " "
         << "Penalty " << reserve.objective.penalty << " "
         << "MPM " << rMPM << "\n";
 } /* * * * Print Reserve Value * * * * */

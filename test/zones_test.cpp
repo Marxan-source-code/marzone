@@ -50,18 +50,18 @@ TEST(ZonesTestsGroup, DefaultCosts_test)
 
     Zones z(fnames, c);
 
-    // Ensure connectionCosts and zoneCosts are non-empty and set to 0.
+    // Ensure connectionCosts and zoneCosts are non-empty and set to 1 if file NOT supplied.
     CHECK_EQUAL(c.costCount*z.zoneCount, z.zoneCost.size());
     CHECK_EQUAL(z.zoneCount*z.zoneCount, z.zoneConnectionCost.size());
 
     for (int i= 0; i < z.zoneCost.size(); i++)
     {
-        CHECK_EQUAL(0, z.zoneCost[i]);
+        CHECK_EQUAL(1, z.zoneCost[i]);
     }
 
     for (int i= 0; i < z.zoneConnectionCost.size(); i++)
     {
-        CHECK_EQUAL(0, z.zoneConnectionCost[i]);
+        CHECK_EQUAL(1, z.zoneConnectionCost[i]);
     }
 }
 

@@ -375,6 +375,8 @@ class Pu {
         int ipu;
 
         for (int i = 0; i < puno; i++) {
+            if (puList[i].fPULock && ignoreLocked)
+                continue;
             ipu = puList[i].offset;
             for (int j = 0; j < puList[i].richness; j++) {
                 penaltyTerms[puvspr[ipu+j].spindex].push_back({puvspr[ipu+j].amount, puList[i].cost});

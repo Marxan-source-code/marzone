@@ -136,20 +136,18 @@ namespace marzone
 
     // Counts missing species and proportion of lowest species
     int CountMissing(Species& spec, Zones& zones, double misslevel, double& rMinimumProportionMet) {
-      double rFeatureShortfall, rProportionMet;
+      double rProportionMet;
       int specCount = 0, iArrayIndex;
 
       rMinimumProportionMet = 1;
       for (int i = 0; i < spec.spno; i++)
       {
-        rFeatureShortfall = 0;
         rProportionMet = 1;
 
         if (spec.specList[i].target > 0)
         {
           if (speciesAmounts[i].amount < spec.specList[i].target)
           {
-            rFeatureShortfall += spec.specList[i].target - speciesAmounts[i].amount;
             rProportionMet = speciesAmounts[i].amount / spec.specList[i].target;
 
             if (rProportionMet < rMinimumProportionMet)
@@ -167,7 +165,6 @@ namespace marzone
         {
           if (speciesAmounts[i].occurrence < spec.specList[i].targetocc)
           {
-            rFeatureShortfall += spec.specList[i].targetocc - speciesAmounts[i].occurrence;
             rProportionMet = (double)speciesAmounts[i].occurrence / (double)spec.specList[i].targetocc;
 
             if (rProportionMet < rMinimumProportionMet)
@@ -190,7 +187,6 @@ namespace marzone
             {
               if (zoneSpec[iArrayIndex].amount < zones.zoneTarget[i][j].target)
               {
-                rFeatureShortfall += zones.zoneTarget[i][j].target - zoneSpec[iArrayIndex].amount;
                 rProportionMet = zoneSpec[iArrayIndex].amount / zones.zoneTarget[i][j].target;
 
                 if (rProportionMet < rMinimumProportionMet)
@@ -206,7 +202,6 @@ namespace marzone
             {
               if (zoneSpec[iArrayIndex].occurrence < zones.zoneTarget[i][j].occurrence)
               {
-                rFeatureShortfall += zones.zoneTarget[i][j].occurrence - zoneSpec[iArrayIndex].occurrence;
                 rProportionMet = zoneSpec[iArrayIndex].occurrence / zones.zoneTarget[i][j].occurrence;
 
                 if (rProportionMet < rMinimumProportionMet)
@@ -356,15 +351,15 @@ namespace marzone
             {
               if (spec.specList[isp].target > speciesAmounts[isp].amount)
               {
-                rOldShortfall += spec.specList[isp].target - speciesAmounts[isp].amount;
-                rShortFraction += (spec.specList[isp].target - speciesAmounts[isp].amount) / spec.specList[isp].target;
+                rOldShortfall = spec.specList[isp].target - speciesAmounts[isp].amount;
+                rShortFraction += rOldShortfall / spec.specList[isp].target;
                 iCurrentShortfall++;
               }
 
               if (spec.specList[isp].target > rNewAmount)
               {
-                rNewShortfall += spec.specList[isp].target - rNewAmount;
-                rNewShortFraction += (spec.specList[isp].target - rNewAmount) / spec.specList[isp].target;
+                rNewShortfall = spec.specList[isp].target - rNewAmount;
+                rNewShortFraction += rNewShortfall / spec.specList[isp].target;
                 iNewShortfall++;
               }
 
@@ -518,9 +513,12 @@ namespace marzone
       int imode = 1;
       double threshpen = 0;
 
-      // Change cost
-      auto& puCostArray = pu.puList[puindex].costBreakdown;
-      change.cost = zones.AggregateTotalCostByPuAndZone(iPostZone, puCostArray) - zones.AggregateTotalCostByPuAndZone(iPreZone, puCostArray);
+      // Change cost only if there's zone cost adjustment
+      if (zones.availableZoneCost)
+      {
+        auto& puCostArray = pu.puList[puindex].costBreakdown;
+        change.cost = zones.AggregateTotalCostByPuAndZone(iPostZone, puCostArray) - zones.AggregateTotalCostByPuAndZone(iPreZone, puCostArray);
+      }
 
       // Connection cost
       if (pu.connectionsEntered)
@@ -529,22 +527,23 @@ namespace marzone
 
       change.penalty = ComputeChangePenalty(pu, zones, spec, change, puindex, iPreZone, iPostZone);
 
-      if (costthresh) { // Threshold Penalty for costs
+      if (costthresh)
+      { // Threshold Penalty for costs
         if (objective.cost + objective.connection <= costthresh)
         {
-           if (change.cost + change.connection + objective.cost + objective.connection <= costthresh)
-              threshpen = 0;
-           else
-               threshpen = (change.cost + change.connection +
-                           objective.cost + objective.connection - costthresh) *
-                           ThresholdPenalty(tpf1,tpf2,timeprop);
+          if (change.cost + change.connection + objective.cost + objective.connection <= costthresh)
+            threshpen = 0;
+          else
+            threshpen = (change.cost + change.connection +
+                         objective.cost + objective.connection - costthresh) *
+                        ThresholdPenalty(tpf1, tpf2, timeprop);
         }
         else
         {
-            if (change.cost + change.connection + objective.cost + objective.connection <= costthresh)
-               threshpen = (objective.cost + objective.connection - costthresh) * ThresholdPenalty(tpf1,tpf2,timeprop);
-            else
-                threshpen = (change.cost + change.connection) * ThresholdPenalty(tpf1,tpf2,timeprop);
+          if (change.cost + change.connection + objective.cost + objective.connection <= costthresh)
+            threshpen = (objective.cost + objective.connection - costthresh) * ThresholdPenalty(tpf1, tpf2, timeprop);
+          else
+            threshpen = (change.cost + change.connection) * ThresholdPenalty(tpf1, tpf2, timeprop);
         }
       }
 
