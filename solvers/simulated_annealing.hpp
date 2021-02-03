@@ -48,7 +48,7 @@ class SimulatedAnnealing {
 
     void RunAnneal(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh) {
         uniform_int_distribution<int> randomDist(0, numeric_limits<int>::max());
-        uniform_int_distribution<int> randomPuDist(0, pu.puno-1);
+        uniform_int_distribution<int> randomPuDist(0, pu.validPuIndices.size()-1);
         uniform_real_distribution<double> float_range(0.0, 1.0);
         int ipu, iZone, itemp, iPreviousZone, iGoodChange;
         uint64_t ichanges;
@@ -57,8 +57,6 @@ class SimulatedAnnealing {
 
         for (int itime = 1; itime <= settings.iterations; itime++)
         {
-            //chrono::steady_clock::time_point t1 = chrono::steady_clock::now();
-
             // toggle a random planning unit between reserved and available
             pair<int, int> next = GetPuAndZone(r, pu, randomPuDist, randomDist, zones.zoneCount);
             ipu = next.first;
@@ -67,24 +65,15 @@ class SimulatedAnnealing {
             itemp = 1;
             iPreviousZone = r.solution[ipu];
 
-            //chrono::steady_clock::time_point t2 = chrono::steady_clock::now();
-            //int mseconds_passed = chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
-            //cout << "Getting pu and zone takes nanos: " << mseconds_passed << "\n";
-
 #ifdef TRACE_ZONE_TARGETS
             debugbuffer << "annealing time " << itime << " of " << settings.iterations << "\n";
 #endif
-            //chrono::steady_clock::time_point t3 = chrono::steady_clock::now();
             r.CheckChangeValue(change, ipu, iPreviousZone, iZone, pu, zones, spec, costthresh, 
             tpf1, tpf2, (double)itime / (double)settings.iterations);
 
 #ifdef TRACE_ZONE_TARGETS
             debugbuffer << "annealing after CheckChange\n";
 #endif
-
-            //chrono::steady_clock::time_point t4 = chrono::steady_clock::now();
-            //mseconds_passed = chrono::duration_cast<std::chrono::nanoseconds>(t4 - t3).count();
-            //cout << "Getting check change value takes nanos: " << mseconds_passed << "\n";
 
             /* Need to calculate Appropriate temperature in GoodChange or another function */
             /* Upgrade temperature */
@@ -210,10 +199,8 @@ class SimulatedAnnealing {
         // pick pu at random
         int ipu,iZone, iPreviousR; 
 
-        do
-        {
-            ipu = randomPuDist(rngEngine);
-        } while ((pu.puList[ipu].status > 1) || (pu.puList[ipu].fPULock == 1)); // ignore locked/ non avail pu
+        // pick an index from the list of valid pu.
+        ipu = pu.validPuIndices[randomPuDist(rngEngine)];
 
         iPreviousR = r.solution[ipu];
         iZone = pu.RtnValidZoneForPu(ipu, iPreviousR, randomDist, rngEngine, zoneCount);

@@ -53,6 +53,9 @@ class Pu {
             connectionsEntered = false;
         }
 
+        // construct valid pu list
+        ConstructValidPuList();
+
         asymmetric = asymmetric;
     }
 
@@ -324,7 +327,7 @@ class Pu {
             if (iZone == iPreviousZone)
             {
                 iZone = (iZone + 1) % zoneCount;
-            }
+            }                          
         }
         return iZone;
     }
@@ -426,6 +429,9 @@ class Pu {
     int asymmetric; // whether asymmetric connectivity is on.
     bool connectionsEntered;
 
+    // List of pu indices that can be changed (i.e. not locked to one zone or status > 1)
+    vector<int> validPuIndices;
+
     // TODO - make private.
     map<int, int> puLock; // puid -> zoneid
     vector<vector<int>> puZone; // puindex -> list of available zones. If pu has empty puzone, it is allowed in ALL zones (unless pulock).
@@ -451,6 +457,18 @@ class Pu {
         }
         else {
             return t1.amount/t1.cost > t2.amount/t2.cost; //prioritise higher ratio 
+        }
+    }
+
+    // constructs a vector containing only the valid pus that can be assigned zones.
+    void ConstructValidPuList() {
+        validPuIndices.reserve(puno-puLock.size()); // pre-allocate
+        int i = 0;
+        for (spustuff& pu: puList) {
+            if (!((pu.status > 1) || (pu.fPULock == 1))) {
+                validPuIndices.push_back(i);
+            }
+            i++;
         }
     }
 
