@@ -101,7 +101,8 @@ TEST(ReserveTestsGroup, Reserve_CheckChangeValue_test)
     int spind2 = spec.LookupIndex(2);
     int spind3 = spec.LookupIndex(3);
 
-    schange change1 = r.CheckChangeValue(0, 0, 1, pu, zones, spec, 0); //puindex 0, preZone 0, postZone 1.
+    schange change1 = r.InitializeChange(spec, zones);
+    r.CheckChangeValue(change1, 0, 0, 1, pu, zones, spec, 0); //puindex 0, preZone 0, postZone 1.
 
     // Check species amounts not changed
     CHECK_EQUAL(70.5, r.speciesAmounts[spind1].amount); //20.0*1 + 50.5*1
@@ -115,8 +116,7 @@ TEST(ReserveTestsGroup, Reserve_CheckChangeValue_test)
 
     // check change occurrence
     CHECK_EQUAL(1, change1.specListChangeOcc.size());
-    CHECK_EQUAL(spind1, change1.specListChangeOcc[0].first);
-    CHECK_EQUAL(-1, change1.specListChangeOcc[0].second);
+    CHECK_EQUAL(-1, change1.specListChangeOcc[0]);
 
     // Check others are 0 because zoneTargets don't exist
     CHECK_EQUAL(0, change1.zoneTargetChange.size());

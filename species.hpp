@@ -307,7 +307,7 @@ class Species {
                     if (spectemp.prop > 0)
                         fSpecPROPLoaded = true;
                 }
-                else if (temp.compare("fpf") == 0 || temp.compare("spf")) // fpf, spf same header meaning.
+                else if (temp.compare("fpf") == 0 || temp.compare("spf") == 0) // fpf, spf same header meaning.
                 {
                     sscanf(sVarVal, "%lf", &spectemp.spf);
                 }

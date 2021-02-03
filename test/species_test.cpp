@@ -120,3 +120,22 @@ TEST(SpeciesTestsGroup, SetPenalties_test)
     CHECK_EQUAL(1.01, sp.specList[1].penalty);
     CHECK_EQUAL(10000, sp.specList[2].penalty);
 }
+
+// ensure that both the spf and fpf headers are parsed correctly. 
+TEST(SpeciesTestsGroup, TestSpfFpfHeader_test)
+{
+    sfname fnames = {}; // default, no cost file
+    fnames.inputdir = "";
+    fnames.specname = "data/species_test3_spf.dat";
+
+    Species sp(fnames);
+    CHECK_EQUAL(2, sp.spno);
+
+        // ensure ids were transformed into indices
+    int ind1 = sp.LookupIndex(1);
+    int ind2 = sp.LookupIndex(2);
+
+    // Check spf assigned even with "spf" header
+    CHECK_EQUAL(101.1, sp.specList[ind1].spf);
+    CHECK_EQUAL(99, sp.specList[ind2].spf);
+}
