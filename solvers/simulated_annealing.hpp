@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <limits>
 #include <random>
 
@@ -52,8 +53,12 @@ class SimulatedAnnealing {
         int ipu, iZone, itemp, iPreviousZone, iGoodChange;
         uint64_t ichanges;
 
+        schange change = r.InitializeChange(spec, zones);
+
         for (int itime = 1; itime <= settings.iterations; itime++)
         {
+            //chrono::steady_clock::time_point t1 = chrono::steady_clock::now();
+
             // toggle a random planning unit between reserved and available
             pair<int, int> next = GetPuAndZone(r, pu, randomPuDist, randomDist, zones.zoneCount);
             ipu = next.first;
@@ -62,16 +67,24 @@ class SimulatedAnnealing {
             itemp = 1;
             iPreviousZone = r.solution[ipu];
 
+            //chrono::steady_clock::time_point t2 = chrono::steady_clock::now();
+            //int mseconds_passed = chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
+            //cout << "Getting pu and zone takes nanos: " << mseconds_passed << "\n";
+
 #ifdef TRACE_ZONE_TARGETS
             debugbuffer << "annealing time " << itime << " of " << settings.iterations << "\n";
 #endif
-
-            schange change = r.CheckChangeValue(ipu, iPreviousZone, iZone, pu, zones, spec, costthresh, 
+            //chrono::steady_clock::time_point t3 = chrono::steady_clock::now();
+            r.CheckChangeValue(change, ipu, iPreviousZone, iZone, pu, zones, spec, costthresh, 
             tpf1, tpf2, (double)itime / (double)settings.iterations);
 
 #ifdef TRACE_ZONE_TARGETS
             debugbuffer << "annealing after CheckChange\n";
 #endif
+
+            //chrono::steady_clock::time_point t4 = chrono::steady_clock::now();
+            //mseconds_passed = chrono::duration_cast<std::chrono::nanoseconds>(t4 - t3).count();
+            //cout << "Getting check change value takes nanos: " << mseconds_passed << "\n";
 
             /* Need to calculate Appropriate temperature in GoodChange or another function */
             /* Upgrade temperature */
@@ -250,6 +263,8 @@ class SimulatedAnnealing {
         r.RandomiseSolution(pu, rngEngine, zones.zoneCount);
         r.EvaluateObjectiveValue(pu, spec, zones);
 
+        schange change = r.InitializeChange(spec, zones);
+
         int ipu, iPreviousR, chosenZoneInd, chosenZone, imode = 1;
         double deltamin = 0,deltamax = 0;
         for (int i=1;i<= settings.iterations/100; i++)
@@ -282,7 +297,8 @@ class SimulatedAnnealing {
             }
 
             // Check change in zone on penalty
-            schange change = r.CheckChangeValue(ipu, r.solution[ipu], chosenZone, pu, zones, spec, 0);
+            //schange change = r.CheckChangeValue(ipu, r.solution[ipu], chosenZone, pu, zones, spec, 0);
+            r.CheckChangeValue(change, ipu, r.solution[ipu], chosenZone, pu, zones, spec, 0);
 
             // apply change
             r.ApplyChange(ipu, chosenZone, change, pu, zones, spec);

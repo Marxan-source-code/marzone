@@ -54,6 +54,8 @@ class IterativeImprovement {
             }
         }
 
+        schange change = r.InitializeChange(spec, zones);
+
         if (puvalid > 0)
         {
             // Shuffle the validPuIndices array
@@ -67,7 +69,8 @@ class IterativeImprovement {
                 iZone = pu.RtnValidZoneForPu(ichoice, iPreviousR, randomDist, rngEngine, zones.zoneCount);
 
                 // Check change value
-                schange change = r.CheckChangeValue(ichoice, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
+                //schange change = r.CheckChangeValue(ichoice, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
+                r.CheckChangeValue(change, ichoice, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
                 if (change.total < 0) {
                     ichanges++;
                     r.ApplyChange(ichoice, iZone, change, pu, zones, spec);

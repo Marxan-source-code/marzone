@@ -21,6 +21,13 @@ namespace marzone {
     public:
     Logger() {}
 
+    // For perf debugging purposes.
+    void ShowTimePassedMs(const chrono::high_resolution_clock::time_point& startTime) {
+        chrono::high_resolution_clock::time_point currentTime = chrono::high_resolution_clock::now();
+        int mseconds_passed = chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count();
+        cout << mseconds_passed << "\n";
+    }
+
     /* * * *  ShowTimePassed displays the time passed so far * * * * */
     void ShowTimePassed(const chrono::high_resolution_clock::time_point& startTime) {
         chrono::high_resolution_clock::time_point currentTime = chrono::high_resolution_clock::now();

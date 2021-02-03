@@ -759,17 +759,18 @@ int CalcPenalties(Pu& pu, Species& spec, Zones& zones, Reserve& r, int clumptype
         // For this species, sum up all locked occurrences and areas.
         for (lockedPenaltyTerm& term: lockedSpecAmounts[i]) {
             lockedZone = term.lockedZoneId;
-            lockedContrib = zones.GetZoneContrib(i, lockedZone);
+            //lockedContrib = zones.GetZoneContrib(i, lockedZone);
 
-            if (lockedContrib) {
+            //if (lockedContrib) {
                 // Do this calculation by taking into account zonecontrib of the locked zone. If positive contrib, we count it.
-                rAmount = term.amount*lockedContrib;
+            //    rAmount = term.amount*lockedContrib;
+            rAmount = term.amount;
                 if (rAmount > 0) {
                     ftarget += rAmount;
                     itargetocc++;
                     penalty += rtnMaxNonAvailableCost(term.puindex, pu, zones);
                 }
-            }
+            //}
         }
         spec.specList[i].penalty = penalty;
 

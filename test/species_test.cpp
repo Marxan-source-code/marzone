@@ -51,6 +51,11 @@ TEST(SpeciesTestsGroup, ReadSpeciesData_fileparsing_test)
     CHECK_EQUAL(27, sp.specList[ind1].target);
     CHECK_EQUAL(90, sp.specList[ind2].target);
     CHECK_EQUAL(5, sp.specList[ind3].target);
+
+    // Check that fpf correctly read
+    CHECK_EQUAL(1, sp.specList[ind1].spf);
+    CHECK_EQUAL(100, sp.specList[ind2].spf);
+    CHECK_EQUAL(1, sp.specList[ind3].spf);
 }
 
 // Tests how negative values are treated.

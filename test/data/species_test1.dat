@@ -1,4 +1,4 @@
 id, prop, fpf, name, target, targetocc
 1, 0.3, 1, RockyReef, 100, 1
-2, 0.9, 1, KelpForest, 110, 2
+2, 0.9, 100, KelpForest, 110, 2
 3, 0.5, 1, FishingGrounds, 120, 3

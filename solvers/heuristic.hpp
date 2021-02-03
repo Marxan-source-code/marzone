@@ -33,6 +33,8 @@ class Heuristic {
             SetRareness(r, pu, spec);
         }
 
+        schange change = r.InitializeChange(spec, zones);
+
         int bestpu = 0, iZone = 0, bestZone = 0, iPreviousR, iArrayIndex;
         double bestscore = 0, currscore;
         uniform_int_distribution<int> randomDist(0, numeric_limits<int>::max());
@@ -57,7 +59,8 @@ class Heuristic {
 
                 if (heuristicMode == 1)
                 {
-                    schange change = r.CheckChangeValue(i, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
+                    //schange change = r.CheckChangeValue(i, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
+                    r.CheckChangeValue(change, i, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
                     currscore = change.total;
                 }
 
@@ -83,7 +86,8 @@ class Heuristic {
 
             if (bestscore)
             {
-                schange change = r.CheckChangeValue(bestpu, r.solution[bestpu], bestZone, pu, zones, spec, costthresh, tpf1, tpf2);
+                //schange change = r.CheckChangeValue(bestpu, r.solution[bestpu], bestZone, pu, zones, spec, costthresh, tpf1, tpf2);
+                r.CheckChangeValue(change, bestpu, r.solution[bestpu], bestZone, pu, zones, spec, costthresh, tpf1, tpf2);
                 r.ApplyChange(bestpu, bestZone, change, pu, zones, spec);
 
                 /* Different Heuristics might have different penalty effects */

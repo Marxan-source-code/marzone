@@ -18,10 +18,10 @@ namespace marzone
   // Changes stored in pairs, usually first term = index of spec or zonespec, and second term is the value of change.
   typedef struct schange : scost
   {
-    vector<pair<int,double>> specListChangeTarget;
-    vector<pair<int,int>> specListChangeOcc;
+    vector<pair<int,double>> specListChangeTarget; // list of spindex,target pairs.
+    vector<int> specListChangeOcc; // index corresponds with above target vector.
     vector<pair<int, double>> zoneTargetChange;
-    vector<pair<int, int>> zoneOccChange;
+    vector<int> zoneOccChange; // ind corresponds to zoneTargetChange.first
     vector<pair<int, double>> speciesClumpChange;
   }
   schange;
@@ -39,6 +39,24 @@ namespace marzone
       speciesAmounts.resize(spec.spno, {}); // init amounts struct
       if (spec.aggexist)
         speciesClump.resize(spec.spno);
+    }
+
+    // Initializes a change structure to re-use for change calculations
+    schange InitializeChange(Species& spec, Zones& zones) {
+      schange change = {}; // init and pre-allocate
+      change.specListChangeTarget.reserve(spec.spno);
+      change.specListChangeOcc.reserve(spec.spno);
+
+      if (zones.zoneTarget.size())
+      {
+        change.zoneTargetChange.reserve(spec.spno * zones.zoneCount);
+        change.zoneOccChange.reserve(spec.spno * zones.zoneCount);
+      }
+
+      if (spec.aggexist)
+        change.speciesClumpChange.reserve(spec.spno);
+
+      return change;
     }
 
     void InitializeSolution(uint64_t puno)
@@ -307,14 +325,17 @@ namespace marzone
     double ComputeChangePenalty(Pu& pu, Zones& zones, Species& spec, schange& change, int ipu, int iPreZone, int iPostZone) {
       int ism, isp, iArrayIndex, iNewOccurrence, iCurrentShortfall, iNewShortfall;
       double rShortFraction, rNewShortFraction, rOldShortfall, rNewShortfall, rNewAmount, rSumDeltaPenalty = 0, rDeltaPenalty,
-            rCurrentContribAmount, rNewContribAmount;
+            rCurrentContribAmount, rNewContribAmount, t_diff, o_diff;
 
       change.shortfall = 0;
       vector<int> zonesToTarget{iPreZone, iPostZone};
 
-      // Set change vectors to size equal to num species influenced by pu
-      change.specListChangeTarget.resize(pu.puList[ipu].richness);
-      change.specListChangeOcc.resize(pu.puList[ipu].richness);
+      // clean up the vectors in the change object.
+      change.specListChangeTarget.clear();
+      change.specListChangeOcc.clear();
+      change.speciesClumpChange.clear();
+      change.zoneOccChange.clear();
+      change.zoneTargetChange.clear();
 
       if (pu.puList[ipu].richness)
       {
@@ -341,29 +362,34 @@ namespace marzone
             } 
 
             // Set change vectors
-            change.specListChangeTarget[i] = pair<int, double>(isp, rNewContribAmount - rCurrentContribAmount); // spec index and expected change
-            change.specListChangeOcc[i] = pair<int, int>(isp, (rNewContribAmount > 0) - (rCurrentContribAmount > 0));
+            t_diff = rNewContribAmount - rCurrentContribAmount;
+            o_diff = (rNewContribAmount > 0) - (rCurrentContribAmount > 0);
 
-            rNewAmount = speciesAmounts[isp].amount + change.specListChangeTarget[i].second;
-            iNewOccurrence = speciesAmounts[isp].occurrence + change.specListChangeOcc[i].second;
-
-            if (spec.specList[isp].target > 0)
+            if (t_diff != 0) // only need to execute below if there is change.
             {
-              if (spec.specList[isp].target > speciesAmounts[isp].amount)
-              {
-                rOldShortfall = spec.specList[isp].target - speciesAmounts[isp].amount;
-                rShortFraction += rOldShortfall / spec.specList[isp].target;
-                iCurrentShortfall++;
-              }
+              change.specListChangeTarget.push_back(pair<int,double>(isp, t_diff));
+              change.specListChangeOcc.push_back(o_diff);
 
-              if (spec.specList[isp].target > rNewAmount)
-              {
-                rNewShortfall = spec.specList[isp].target - rNewAmount;
-                rNewShortFraction += rNewShortfall / spec.specList[isp].target;
-                iNewShortfall++;
-              }
+              rNewAmount = speciesAmounts[isp].amount + t_diff;
+              iNewOccurrence = speciesAmounts[isp].occurrence + o_diff;
 
-              /* TODO - enable
+              if (spec.specList[isp].target > 0)
+              {
+                if (spec.specList[isp].target > speciesAmounts[isp].amount)
+                {
+                  rOldShortfall = spec.specList[isp].target - speciesAmounts[isp].amount;
+                  rShortFraction += rOldShortfall / spec.specList[isp].target;
+                  iCurrentShortfall++;
+                }
+
+                if (spec.specList[isp].target > rNewAmount)
+                {
+                  rNewShortfall = spec.specList[isp].target - rNewAmount;
+                  rNewShortFraction += rNewShortfall / spec.specList[isp].target;
+                  iNewShortfall++;
+                }
+
+                /* TODO - enable
               #ifdef DEBUG_PEW_CHANGE_PEN
                             sprintf(debugline, "%i,%i,%i,%i,%i,%i,%i,%g,%g,%g,%g,%g,%g,%g,%g,%i,%i,0\n", iIteration, ipu, isp, pu[ipu].id, spec[isp].name, R[ipu], iZone, spec[isp].target, SM[ism].amount, spec[isp].amount, rNewAmount, change.shortfall, rNewShortfall, rShortFraction, rNewShortFraction, iCurrentShortfall, iNewShortfall);
                             AppendDebugFile("debug_MarZone_PewChangePen.csv", debugline, fnames);
@@ -371,22 +397,23 @@ namespace marzone
                             AppendDebugTraceFile(debugline);
               #endif
               */
-            }
-
-            if (spec.specList[isp].targetocc > 0)
-            {
-              if (spec.specList[isp].targetocc > speciesAmounts[isp].occurrence)
-              {
-                rOldShortfall += spec.specList[isp].targetocc - speciesAmounts[isp].occurrence;
-                rShortFraction += (spec.specList[isp].targetocc - speciesAmounts[isp].occurrence) / spec.specList[isp].targetocc;
-                iCurrentShortfall++;
               }
 
-              if (spec.specList[isp].targetocc > iNewOccurrence)
+              if (spec.specList[isp].targetocc > 0)
               {
-                rNewShortfall += spec.specList[isp].targetocc - iNewOccurrence;
-                rNewShortFraction += (spec.specList[isp].targetocc - iNewOccurrence) / spec.specList[isp].targetocc;
-                iNewShortfall++;
+                if (spec.specList[isp].targetocc > speciesAmounts[isp].occurrence)
+                {
+                  rOldShortfall += spec.specList[isp].targetocc - speciesAmounts[isp].occurrence;
+                  rShortFraction += (spec.specList[isp].targetocc - speciesAmounts[isp].occurrence) / spec.specList[isp].targetocc;
+                  iCurrentShortfall++;
+                }
+
+                if (spec.specList[isp].targetocc > iNewOccurrence)
+                {
+                  rNewShortfall += spec.specList[isp].targetocc - iNewOccurrence;
+                  rNewShortFraction += (spec.specList[isp].targetocc - iNewOccurrence) / spec.specList[isp].targetocc;
+                  iNewShortfall++;
+                }
               }
             }
 
@@ -408,7 +435,7 @@ namespace marzone
                 }
                 else // zone is proposed zone, increase zone amount by amount at site
                 {
-                  change.zoneOccChange.push_back(pair<int, int>(iArrayIndex, pu.puvspr[ism].amount));
+                  change.zoneOccChange.push_back(pu.puvspr[ism].amount);
                   rNewAmount = currZoneAmount + pu.puvspr[ism].amount;
                   iNewOccurrence = currZoneOcc + 1;
                 }
@@ -477,7 +504,6 @@ namespace marzone
 
             rSumDeltaPenalty += rDeltaPenalty;
             change.shortfall += rNewShortfall - rOldShortfall;
-
           } // Only worry about PUs where species occurs
 
 /* renable if needed
@@ -507,9 +533,9 @@ namespace marzone
     }
 
     // Computes the change in value of a pu from preZone to postZone
-    schange CheckChangeValue(int puindex, int iPreZone, int iPostZone, Pu& pu, Zones& zones, Species& spec, 
+    void CheckChangeValue(schange& change, int puindex, int iPreZone, int iPostZone, Pu& pu, Zones& zones, Species& spec, 
     double costthresh, double tpf1 = 0, double tpf2 = 0, double timeprop = 1) {
-      schange change = {};
+      //schange change = {};
       int imode = 1;
       double threshpen = 0;
 
@@ -549,7 +575,7 @@ namespace marzone
 
       change.threshpen = threshpen;
       change.total = change.cost + change.connection + change.penalty + change.threshpen;
-      
+
       /*
       #ifdef DEBUGCHECKCHANGE
       if (iDebugMode)
@@ -564,7 +590,7 @@ namespace marzone
           AppendDebugTraceFile("CheckChange end\n");
       #endif
       */
-      return change;
+      //return change;
     }
 
     // Applies changes described. Switches puindex to zone, and applies scost change.
@@ -584,8 +610,7 @@ namespace marzone
         if (change.specListChangeTarget[i].second != 0) { //only need to worry if there's an actual change
             // Apply amounts as usual
             speciesAmounts[isp].amount += change.specListChangeTarget[i].second;
-            speciesAmounts[isp].occurrence += change.specListChangeOcc[i].second;
-
+            speciesAmounts[isp].occurrence += change.specListChangeOcc[i];
         }
         /* feature does not work - disable for now.
         if (spec[isp].sepnum > 0) // Count separation but only if it is possible that it has changed
@@ -612,7 +637,7 @@ namespace marzone
       for (int i = 0; i < change.zoneTargetChange.size(); i++) {
         ind = change.zoneTargetChange[i].first;
         zoneSpec[ind].amount += change.zoneTargetChange[i].second;
-        zoneSpec[ind].occurrence += change.zoneOccChange[i].second;
+        zoneSpec[ind].occurrence += change.zoneOccChange[i];
       }
 
       solution[ipu] = iZone; // change the zone set in solution
