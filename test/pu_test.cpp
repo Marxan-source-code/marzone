@@ -72,7 +72,6 @@ TEST(PuTestsGroup, PuLockPuZone_fileparsing_test)
     fnames.puzonename = "data/puzone_test1.dat";
     fnames.inputdir = "";
     Costs c(fnames);
-    
     Pu pu(fnames, c, 0);
     
     // Ensure locked pus get returned as such.
@@ -318,4 +317,42 @@ TEST(PuTestsGroup, getPuAmountsSorted_test)
     CHECK_EQUAL(0, lockedPenalties[0].size());
     CHECK_EQUAL(0, lockedPenalties[1].size());
     CHECK_EQUAL(0, lockedPenalties[2].size());
+}
+
+// testing valud zone return
+TEST(PuTestsGroup, RtnValidZoneForPu_test)
+{
+    sfname fnames = {};
+    fnames.costsname = "data/costs_test1.dat";
+    fnames.puname = "data/pu_test1.dat";
+    fnames.pulockname = "data/pulock_test1.dat";
+    fnames.puzonename = "data/puzone_test1.dat";
+    fnames.inputdir = "";
+    Costs c(fnames);
+    Pu pu(fnames, c, 0);
+
+    int ind1 = pu.LookupIndex(2);
+    int ind2 = pu.LookupIndex(5);
+    int ind3 = pu.LookupIndex(10);
+    int ind4 = pu.LookupIndex(11);
+    int ind5 = pu.LookupIndex(8);
+
+    uniform_int_distribution<int> randomDist(0, 99);
+    mt19937 rng(1); // arbitrary seed
+
+    // Ensure this function returns correct zones.
+    // pu2 and 5 are locked, and 10 is zoned to 0 or 2. 11 and 8 can be any zone.
+    CHECK_EQUAL(0, pu.RtnValidZoneForPu(ind1, 0, randomDist, rng, 3));
+    CHECK_EQUAL(1, pu.RtnValidZoneForPu(ind2, 0, randomDist, rng, 3));
+    CHECK_EQUAL(2, pu.RtnValidZoneForPu(ind3, 0, randomDist, rng, 3)); // zoneind2 only because starts from 0.
+
+    // test 100 times. 
+    int randZone = 0;
+    for (int i = 0; i < 100; i++) {
+        randZone = pu.RtnValidZoneForPu(ind4, 0, randomDist, rng, 3);
+        CHECK(randZone == 1 || randZone == 2);
+
+        randZone = pu.RtnValidZoneForPu(ind5, 0, randomDist, rng, 3);
+        CHECK(randZone == 1 || randZone == 2);
+    }
 }

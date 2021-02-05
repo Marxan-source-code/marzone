@@ -52,7 +52,7 @@ typedef struct zonetarget
 class Zones {
     public:
     Zones(sfname& fnames, Costs& costs) :
-        zoneCount(0), zoneContribCount(0), zoneContrib2Count(0), zoneContrib3Count(0), availableZoneInput(false), 
+        zoneCount(0), zoneContribCount(0), zoneContrib2Count(0), zoneContrib3Count(0),
         zoneContribSupplied(false), availableZoneCost(false)
     {
         // Parse all zone files 
@@ -63,7 +63,6 @@ class Zones {
         else
         {
             DefaultZones();
-            availableZoneInput = true; // double check true/false and use cases?
         }
 
         // Zone conntrib files. Only one should be supplied.
@@ -444,7 +443,6 @@ class Zones {
     vector<double> zoneConnectionCost; // zone to zone cost matrix
 
     private:
-    bool availableZoneInput;
     bool zoneContribSupplied; // whether zone contribution modifiers are supplied or not.
     unsigned zoneContribCount;
     unsigned zoneContrib2Count;
@@ -542,7 +540,7 @@ class Zones {
         {
             for (int i=0; i<zoneCount; i++)
             {
-                if (availableZoneInput && availableZoneInput == (i+1))
+                if (i == 0) // the "available" zone.
                 {
                     zoneContribValues[(j*zoneCount)+i] = 0;
                 } else {

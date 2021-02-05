@@ -83,18 +83,19 @@ TEST(ZonesTestsGroup, DefaultZoneContrib_test)
     z.BuildZoneContributions(spec, pu);
 
     // Check zone contribs are 1
-    CHECK_EQUAL(1, z.GetZoneContrib(0,1));
+    // Available zone 0 should be set to 0 (zoneid1)
+    CHECK_EQUAL(0, z.GetZoneContrib(0,1));
     CHECK_EQUAL(1, z.GetZoneContrib(0,2));
     CHECK_EQUAL(1, z.GetZoneContrib(0,3));
-    CHECK_EQUAL(1, z.GetZoneContrib(1,1));
+    CHECK_EQUAL(0, z.GetZoneContrib(1,1));
     CHECK_EQUAL(1, z.GetZoneContrib(1,2));
     CHECK_EQUAL(1, z.GetZoneContrib(1,3));
-    CHECK_EQUAL(1, z.GetZoneContrib(2,1));
+    CHECK_EQUAL(0, z.GetZoneContrib(2,1));
     CHECK_EQUAL(1, z.GetZoneContrib(2,2));
     CHECK_EQUAL(1, z.GetZoneContrib(2,3));
 
     // Check pu version too for a sample of pu
-    CHECK_EQUAL(1, z.GetZoneContrib(0, pu.puno, 0, 1));
+    CHECK_EQUAL(0, z.GetZoneContrib(0, pu.puno, 0, 1));
     CHECK_EQUAL(1, z.GetZoneContrib(1, pu.puno, 2, 3));
     CHECK_EQUAL(1, z.GetZoneContrib(2, pu.puno, 1, 2));
 }

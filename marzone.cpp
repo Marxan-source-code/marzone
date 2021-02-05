@@ -1021,7 +1021,7 @@ void SetOptions(string &sInputFileName, srunoptions &runoptions, sanneal &anneal
     readInputOption(lines,"VERSION",version, false, present, warningMessage, errorMessage);
     readInputOption(lines,"PROP",runoptions.prop, false, present, warningMessage, errorMessage);
     readInputOption(lines,"RANDSEED",runoptions.iseed, false, present, warningMessage, errorMessage); /* The random seed. -1 to set by clock */
-    if (!present) { //if seed not present, set as time based.
+    if (!present || runoptions.iseed == -1) { //if seed not present or -1, set as time based.
         runoptions.iseed = (long int)time(NULL);
     }
 
