@@ -225,7 +225,7 @@ class Zones {
     double ConnectionCost2Linear(Pu& pu, int puindex, int imode, vector<int> &solution)
     {
         if (pu.connectionsEntered) {
-            double fcost, rResult, rZoneConnectionCost;
+            double fcost, rZoneConnectionCost;
             int iCurrentZone = solution[puindex];
 
             fcost = pu.connections[puindex].fixedcost * imode;

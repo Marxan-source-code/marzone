@@ -24,6 +24,9 @@ class SimulatedAnnealing {
         {
             settings = anneal; // copy construct
         }
+        else {
+            settings = {}; // empty/0
+        }
     }
 
     void Initialize(Species& spec, Pu& pu, Zones& zones, int clumptype) {
@@ -242,7 +245,7 @@ class SimulatedAnnealing {
     void ConnollyInit(Species& spec, Pu& pu, Zones& zones, int clumptype) {
         double localdelta = numeric_limits<double>::epsilon();
         uniform_int_distribution<int> random_dist(0, numeric_limits<int>::max());
-        uniform_int_distribution<int> random_pu_dist(0, pu.puno-1);
+        uniform_int_distribution<int> random_pu_dist(0, pu.validPuIndices.size()-1);
 
         // Set reserve to a random and evaluate 
         Reserve r(spec, zones.zoneCount, clumptype);
@@ -257,31 +260,9 @@ class SimulatedAnnealing {
         for (int i=1;i<= settings.iterations/100; i++)
         {
             // pick pu at random
-            do {
-                ipu = random_pu_dist(rngEngine);
-            } while ((pu.puList[ipu].status > 1) || (pu.puList[ipu].fPULock == 1)); // ignore locked/ non avail pu
-
-            if (pu.puList[ipu].numZones > 1)
-            {
-                // pick a random available zone for this pu that is different to the current zone
-                chosenZoneInd = random_dist(rngEngine) % pu.puList[ipu].numZones;
-                chosenZone = pu.puZone[ipu][chosenZoneInd]-1;
-
-                // if zone is already chosen, just increment it
-                if (chosenZone == iPreviousR)
-                {
-                    chosenZoneInd = (chosenZoneInd + 1)%pu.puList[ipu].numZones;
-                    chosenZone = pu.puZone[ipu][chosenZoneInd]-1;
-                }
-            }
-            else if (pu.puList[ipu].numZones == 0) {
-                // pu can be in  any zone.
-                chosenZone = random_dist(rngEngine) % zones.zoneCount;
-                if (chosenZone == iPreviousR)
-                {
-                    chosenZone = (chosenZone + 1)%zones.zoneCount;
-                }
-            }
+            pair<int, int> next = GetPuAndZone(r, pu, random_pu_dist, random_dist, zones.zoneCount);
+            ipu = next.first;
+            chosenZone = next.second;
 
             // Check change in zone on penalty
             //schange change = r.CheckChangeValue(ipu, r.solution[ipu], chosenZone, pu, zones, spec, 0);

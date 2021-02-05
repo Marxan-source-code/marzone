@@ -329,6 +329,10 @@ class Pu {
                 iZone = (iZone + 1) % zoneCount;
             }                          
         }
+        else {
+            iZone = puList[puindex].iPULock; // assume pulocked
+        }
+
         return iZone;
     }
 
@@ -349,14 +353,6 @@ class Pu {
         }
 
         myfile.close();
-    }
-
-    // Given a pu index, returns -1 if pu is not locked, or zoneid if pu is locked.
-    int GetPuLock(int puindex) {
-        if (puList[puindex].fPULock) {
-            return puList[puindex].iPULock;
-        }
-        return -1;
     }
 
     vector<double>& GetCostBreakdown(int puindex) {
@@ -476,7 +472,7 @@ class Pu {
         for (auto& [puid, zoneid]: puLock) {
             int ind = lookup[puid];
             puList[ind].fPULock = 1;
-            puList[ind].iPULock = zoneid;
+            puList[ind].iPULock = zoneid-1; // store the index of the zone, not the zone itself.
             puList[ind].numZones = 1;
         }
     }
@@ -623,6 +619,7 @@ class Pu {
             putemp.cost = 0;
             putemp.xloc = -1;
             putemp.yloc = -1;
+            putemp.iPULock = -1;
             putemp.costBreakdown.resize(costs.costCount, 1.0); // default cost to 1 if not supplied.
 
             for (string temp: headerNames)

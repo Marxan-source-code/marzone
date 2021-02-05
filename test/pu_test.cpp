@@ -82,10 +82,14 @@ TEST(PuTestsGroup, PuLockPuZone_fileparsing_test)
     int ind4 = pu.LookupIndex(11);
     int ind5 = pu.LookupIndex(8);
 
+    // check fPuLock is set to the zone INDEX (not id)
     CHECK_EQUAL(2, pu.puLockCount);
-    CHECK_EQUAL(1, pu.GetPuLock(ind1));
-    CHECK_EQUAL(2, pu.GetPuLock(ind2));
-    CHECK_EQUAL(-1, pu.GetPuLock(ind3));
+    CHECK_EQUAL(0, pu.puList[ind1].iPULock);
+    CHECK_EQUAL(1, pu.puList[ind2].iPULock);
+    CHECK_EQUAL(-1, pu.puList[ind3].iPULock);
+    CHECK_EQUAL(1, pu.puList[ind1].fPULock);
+    CHECK_EQUAL(1, pu.puList[ind2].fPULock);
+    CHECK_EQUAL(0, pu.puList[ind3].fPULock);
 
     // check puzone correct entered for each pu.
     CHECK_EQUAL(1, pu.puList[ind1].numZones);
@@ -93,6 +97,12 @@ TEST(PuTestsGroup, PuLockPuZone_fileparsing_test)
     CHECK_EQUAL(2, pu.puList[ind3].numZones);
     CHECK_EQUAL(0, pu.puList[ind4].numZones); // 0 means no zone limitation on pu.
     CHECK_EQUAL(0, pu.puList[ind5].numZones);
+
+    // test valid indices
+    CHECK_EQUAL(3, pu.validPuIndices.size());
+    CHECK_EQUAL(ind3, pu.validPuIndices[0]);
+    CHECK_EQUAL(ind4, pu.validPuIndices[1]);
+    CHECK_EQUAL(ind5, pu.validPuIndices[2]);
 }
 
 // Test connections and connectionCost1

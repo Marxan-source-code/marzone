@@ -31,6 +31,7 @@ namespace marzone
   public:
     Reserve() // Empty constructor.
     {
+      InitializeObjective();
     }
 
     Reserve(Species &spec, int zoneCount, int clumptype, int id = 0) : clumptype(clumptype), id(id)
@@ -39,6 +40,8 @@ namespace marzone
       speciesAmounts.resize(spec.spno, {}); // init amounts struct
       if (spec.aggexist)
         speciesClump.resize(spec.spno);
+      
+      InitializeObjective();
     }
 
     // Initializes a change structure to re-use for change calculations
@@ -124,14 +127,17 @@ namespace marzone
               rContribAmount = pu.puvspr[ism].amount*zones.GetZoneContrib(ipu, pu.puno, isp, solution[ipu]+1); // convert zoneindex to zoneid.
               if (spec.specList[isp].target2 == 0)
               {
+                if (pu.puvspr[ism].amount) 
+                {
+                  iZoneSpecIndex = (isp * zones.zoneCount) + solution[ipu];
+                  zoneSpec[iZoneSpecIndex].amount += pu.puvspr[ism].amount;
+                  zoneSpec[iZoneSpecIndex].occurrence += (pu.puvspr[ism].amount > 0);
+                }
+
                 if (rContribAmount)
                 {
                   speciesAmounts[isp].amount += rContribAmount;
                   speciesAmounts[isp].occurrence += (rContribAmount > 0);
-
-                  iZoneSpecIndex = (isp * zones.zoneCount) + solution[ipu];
-                  zoneSpec[iZoneSpecIndex].amount += pu.puvspr[ism].amount;
-                  zoneSpec[iZoneSpecIndex].occurrence++;
                 }
               }
               else {
@@ -430,12 +436,14 @@ namespace marzone
                 if (k == iPreZone) // zone is existing zone, reduce zone amount by amount at site
                 {
                   change.zoneTargetChange.push_back(pair<int, double>(iArrayIndex, -pu.puvspr[ism].amount));
+                  change.zoneOccChange.push_back(-1); // reduce occ by 1
                   rNewAmount = currZoneAmount - pu.puvspr[ism].amount;
                   iNewOccurrence = currZoneOcc - 1;
                 }
                 else // zone is proposed zone, increase zone amount by amount at site
                 {
-                  change.zoneOccChange.push_back(pu.puvspr[ism].amount);
+                  change.zoneTargetChange.push_back(pair<int, double>(iArrayIndex, pu.puvspr[ism].amount));
+                  change.zoneOccChange.push_back(1); // add occ by one.
                   rNewAmount = currZoneAmount + pu.puvspr[ism].amount;
                   iNewOccurrence = currZoneOcc + 1;
                 }
@@ -535,7 +543,6 @@ namespace marzone
     // Computes the change in value of a pu from preZone to postZone
     void CheckChangeValue(schange& change, int puindex, int iPreZone, int iPostZone, Pu& pu, Zones& zones, Species& spec, 
     double costthresh, double tpf1 = 0, double tpf2 = 0, double timeprop = 1) {
-      //schange change = {};
       int imode = 1;
       double threshpen = 0;
 
@@ -859,7 +866,9 @@ namespace marzone
       {
         objective.cost += zones.AggregateTotalCostByPuAndZone(solution[j], pu.puList[j].costBreakdown);
         if (pu.connectionsEntered)
+        {
           objective.connection += zones.ConnectionCost2Linear(pu, j, 1, solution); // confirm imode 1
+        }
       }
 
       objective.total = objective.cost + objective.connection + objective.penalty;
@@ -1126,16 +1135,7 @@ namespace marzone
     // Sets all amounts and occurences to 0
     void InitializeZoneSpec(uint64_t spno, uint64_t zoneCount)
     {
-      zoneSpec.resize(spno * zoneCount);
-
-      for (int j = 0; j < spno; j++)
-      {
-        for (int i = 0; i < zoneCount; i++)
-        {
-          zoneSpec[(j * zoneCount) + i].amount = 0;
-          zoneSpec[(j * zoneCount) + i].occurrence = 0;
-        }
-      }
+      zoneSpec.assign(spno * zoneCount, {0,0});
     }
 
     string ReturnStringIfTargetMet(double targetArea, double area, int targetOcc, int occ, double &rMPM, double &misslevel)
@@ -1171,6 +1171,11 @@ namespace marzone
           return 0;
 
        return(tpf1*exp(tpf2*timeprop));
+    }
+
+    // initializes the objective struct and anything else related to it
+    void InitializeObjective() {
+      objective = {};
     }
   };
 

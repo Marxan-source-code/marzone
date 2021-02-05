@@ -424,7 +424,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     }
 
     //   The larger repetition loop
-    // TODO - parallelize
     // for each repeat run
     Reserve bestR;
     vector<string> summaries(runoptions.repeats);
@@ -441,7 +440,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     {
         stringstream debugbuffer; // buffer to print at the end
         stringstream progbuffer; // buffer to print at the end
-
         try
         {
             // Create new reserve object and init
@@ -460,7 +458,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 // init sa parameters if setting is appropriate
                 sa.Initialize(spec, pu, zones, runoptions.clumptype);
                 debugbuffer << "after Annealling Init run " << irun << "\n";
-
                 progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
             } // Annealing Setup
 
@@ -934,8 +931,8 @@ string OutputSummaryString(Pu& pu, Species& spec, Zones& zones, Reserve& r, doub
         connectiontemp += zones.ConnectionCost2Linear(pu, i, 1, r.solution);
     } /* Find True (non modified) connection */
 
-    s << r.id << d << r.objective.total << d << r.objective.cost << d << ino << d << sZonePuCount << d
-      << d << sZoneCost << d << connectiontemp << d << r.objective.penalty << d << r.objective.shortfall << d << isp << d << rMPM << "\n";
+    s << r.id << d << r.objective.total << d << r.objective.cost << d << ino << sZonePuCount 
+      << sZoneCost << d << connectiontemp << d << r.objective.penalty << d << r.objective.shortfall << d << isp << d << rMPM << "\n";
 
     return s.str();
 } // OutputSummary
