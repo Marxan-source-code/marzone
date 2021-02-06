@@ -173,7 +173,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
     // read in the MarZone files
     logger.AppendDebugTraceFile("before Loading Pu Files (Pu lock, pu zone etc.)\n");
-    Pu pu(fnames, costs, asymmetricconnectivity);
+    Pu pu(fnames, costs, asymmetricconnectivity, zones.zoneNames);
     logger.ShowDetProg("    Reading in the Planning Unit names \n");
     logger.ShowGenProg("   There are " + to_string(pu.puno) + " Planning units.\n  " + to_string(pu.puno) + " Planning Unit names read in \n");
     logger.ShowDetProg("    Reading in the species file \n");
@@ -533,7 +533,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (fnames.saverun)
             {
                 tempname2 = fnames.savename + "_r" + to_string(irun) + getFileSuffix(fnames.saverun);
-                reserveThread.WriteSolution(tempname2, pu, fnames.saverun);
+                reserveThread.WriteSolution(tempname2, pu, zones, fnames.saverun);
             }
 
             debugbuffer << "WriteSolution ran " << irun << "\n";
@@ -625,7 +625,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     if (fnames.savebest)
     {
         string saveBestName = fnames.savename + "_best" + getFileSuffix(fnames.savebest);
-        bestR.WriteSolution(saveBestName, pu, fnames.savebest);
+        bestR.WriteSolution(saveBestName, pu, zones, fnames.savebest);
 
         logger.AppendDebugTraceFile("Best solution is run " + to_string(bestR.id) + "\n");
         logger.ShowGenProg("\nBest solution is run " + to_string(bestR.id) + "\n");

@@ -88,7 +88,7 @@ namespace marzone
         if (puTerm.numZones > 0)
         { // enforce puzone
           int zoneInd = random_dist(rngEngine) % puTerm.numZones;
-          solution[i] = pu.puZone[i][zoneInd] - 1; // solution array stores the zero-indexed zone.
+          solution[i] = pu.puZone[i][zoneInd]; // solution array stores the zero-indexed zone.
         }
         else if (puTerm.numZones == 0)
         {
@@ -124,7 +124,7 @@ namespace marzone
             {
               ism = pu.puList[ipu].offset + i;
               isp = pu.puvspr[ism].spindex;
-              rContribAmount = pu.puvspr[ism].amount*zones.GetZoneContrib(ipu, pu.puno, isp, solution[ipu]+1); // convert zoneindex to zoneid.
+              rContribAmount = pu.puvspr[ism].amount*zones.GetZoneContrib(ipu, pu.puno, isp, solution[ipu]);
               if (spec.specList[isp].target2 == 0)
               {
                 if (pu.puvspr[ism].amount) 
@@ -357,8 +357,8 @@ namespace marzone
             rNewShortfall = 0, rNewShortFraction = 0, iNewShortfall = 0;
 
             // shortfall with respect to overall targets
-            rCurrentContribAmount = pu.puvspr[ism].amount*zones.GetZoneContrib(ipu, pu.puno, isp, iPreZone+1);
-            rNewContribAmount = pu.puvspr[ism].amount*zones.GetZoneContrib(ipu, pu.puno, isp, iPostZone+1);
+            rCurrentContribAmount = pu.puvspr[ism].amount*zones.GetZoneContrib(ipu, pu.puno, isp, iPreZone);
+            rNewContribAmount = pu.puvspr[ism].amount*zones.GetZoneContrib(ipu, pu.puno, isp, iPostZone);
 
             // Apply any target2 requirements on these contrib amounts.
             if (spec.specList[isp].target2) {
@@ -652,7 +652,7 @@ namespace marzone
     }
 
     // Writes the current solution to a file.
-    void WriteSolution(string filename, Pu &pu, int imode)
+    void WriteSolution(string filename, Pu &pu, Zones& zones, int imode)
     {
       ofstream myfile;
       myfile.open(filename);
@@ -663,7 +663,7 @@ namespace marzone
       for (int i = 0; i < pu.puno; i++)
       {
         if (imode > 1)
-          myfile << pu.puList[i].id << "," << solution[i] + 1 << "\n";
+          myfile << pu.puList[i].id << "," << zones.IndexToId(solution[i]) << "\n";
       }
 
       myfile.close();

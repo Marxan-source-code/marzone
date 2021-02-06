@@ -239,4 +239,10 @@ namespace marzone {
 
     } srunoptions;
 
+    typedef struct ZoneName
+    {
+        string name;
+        uint64_t index;
+    } ZoneName;
+
 } // namespace marzone

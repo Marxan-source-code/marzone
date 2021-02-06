@@ -19,7 +19,7 @@ using namespace std;
 
 class Pu {
     public:
-    Pu(sfname& fnames, Costs& costs, int asymmetric) : puno(0), puLockCount(0), puZoneCount(0) {
+    Pu(sfname& fnames, Costs& costs, int asymmetric, map<int, ZoneName>& zoneLookup) : puno(0), puLockCount(0), puZoneCount(0) {
         ReadPUData(fnames.inputdir + fnames.puname, costs);
 
         if (!fnames.pulockname.empty())
@@ -34,13 +34,13 @@ class Pu {
         */
 
        // Persist pulock and puzone counts
-       PersistPuLock();
+       PersistPuLock(zoneLookup);
 
         // Read and persist puzone.
         if (!fnames.puzonename.empty())
         {
-            vector<puzonestruct> puZoneTemp = LoadPuZone(fnames.inputdir + fnames.puzonename);
-            PersistPuZone(puZoneTemp);
+            puZoneTemp = LoadPuZone(fnames.inputdir + fnames.puzonename);
+            PersistPuZone(puZoneTemp, zoneLookup);
         }
 
        // Read and set connections
@@ -311,13 +311,13 @@ class Pu {
         {
             // pick a random available zone for this pu that is different to the current zone
             chosenZoneInd = randomDist(rngEngine) % puList[puindex].numZones;
-            iZone = puZone[puindex][chosenZoneInd] - 1;
+            iZone = puZone[puindex][chosenZoneInd];
 
             // if zone is already chosen, just increment it
             if (iZone == iPreviousZone)
             {
                 chosenZoneInd = (chosenZoneInd + 1) % puList[puindex].numZones;
-                iZone = puZone[puindex][chosenZoneInd] - 1;
+                iZone = puZone[puindex][chosenZoneInd];
             }
         }
         else if (puList[puindex].numZones == 0)
@@ -409,11 +409,9 @@ class Pu {
         ofstream myfile;
         myfile.open(filename);
         myfile << "puid,zoneid\n";
-        for (int i = 0; i < puno; i++)
+        for (puzonestruct& term: puZoneTemp)
         {
-            auto& zoneList = puZone[i];
-            for (auto& zoneid: zoneList)
-                myfile << puList[i].id << "," << zoneid << "\n";
+            myfile << term.puid << "," << term.zoneid << "\n";
         }
         myfile.close();
     }
@@ -430,7 +428,10 @@ class Pu {
 
     // TODO - make private.
     map<int, int> puLock; // puid -> zoneid
-    vector<vector<int>> puZone; // puindex -> list of available zones. If pu has empty puzone, it is allowed in ALL zones (unless pulock).
+    vector<vector<int>> puZone; 
+    // puindex -> list of available zones. If pu has empty puzone, it is allowed in ALL zones (unless pulock).
+    // contains the zone index (not zone id.)
+
     vector<spustuff> puList;
     map<int, int> lookup; // original puid -> pu index
     vector<sconnections> connections; 
@@ -440,6 +441,7 @@ class Pu {
     vector<spusporder> puvspr_sporder;
 
     private:
+    vector<puzonestruct> puZoneTemp;
 
     static bool penaltyTermSortOperator(penaltyTerm& t1, penaltyTerm& t2) {
         if (t1.cost == 0 && t2.cost == 0) {
@@ -468,21 +470,32 @@ class Pu {
         }
     }
 
-    void PersistPuLock() {
+    void PersistPuLock(map<int, ZoneName>& zoneLookup) {
+        int ind, zoneind;
         for (auto& [puid, zoneid]: puLock) {
-            int ind = lookup[puid];
+            ind = lookup[puid];
+            
+            auto zoneit = zoneLookup.find(zoneid);
+            if (zoneit == zoneLookup.end())
+                continue;
+
             puList[ind].fPULock = 1;
-            puList[ind].iPULock = zoneid-1; // store the index of the zone, not the zone itself.
+            puList[ind].iPULock = zoneit->second.index; // store the index of the zone, not the zone itself.
             puList[ind].numZones = 1;
         }
     }
 
-    void PersistPuZone(vector<puzonestruct>& puZoneTemp) {
+    void PersistPuZone(vector<puzonestruct>& puZoneTemp, map<int, ZoneName>& zoneLookup) {
         // resize puzone to puno size
+        int zoneind;
         puZone.resize(puno);
         for (puzonestruct& term: puZoneTemp) {
             int puindex = lookup[term.puid];
-            puZone[puindex].push_back(term.zoneid); // for the public map, we use actual zone number
+            auto zoneit = zoneLookup.find(term.zoneid);
+            if (zoneit == zoneLookup.end())
+                continue; // ignore invalid zoneid
+
+            puZone[puindex].push_back(zoneit->second.index);
         }
 
         // Check puZone to make sure there are no single zoned pu. TODO - If so, convert to lock.

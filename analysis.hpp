@@ -39,7 +39,7 @@ class Analysis {
     {
       myfile << "\"planning unit\",\"number\"";
       for (int j = 0; j < zones.zoneCount; j++)
-        myfile << ",\"" << zones.zoneNameIndexed[j].name << "\"";
+        myfile << ",\"" << zones.IndexToName(j) << "\"";
       myfile << "\n";
     }
 

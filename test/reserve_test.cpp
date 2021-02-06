@@ -40,9 +40,9 @@ TEST(ReserveTestsGroup, Reserve_ComputeSpeciesAmounts_test)
     fnames.inputdir = "";
     Costs c(fnames);
     Species spec(fnames);
-    Pu pu(fnames, c, 0);
-    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     Zones zones(fnames, c);
+    Pu pu(fnames, c, 0, zones.zoneNames);
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     zones.BuildZoneContributions(spec, pu);
 
     Reserve r(spec, 3, 1); // 3 zones
@@ -87,9 +87,9 @@ TEST(ReserveTestsGroup, Reserve_CheckChangeValue_test)
     fnames.inputdir = "";
     Costs c(fnames);
     Species spec(fnames);
-    Pu pu(fnames, c, 0);
-    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     Zones zones(fnames, c);
+    Pu pu(fnames, c, 0, zones.zoneNames);
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     zones.BuildZoneContributions(spec, pu);
 
     Reserve r(spec, 3, 1); // 3 zones
@@ -151,9 +151,9 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_test)
     fnames.inputdir = "";
     Costs c(fnames);
     Species spec(fnames);
-    Pu pu(fnames, c, 0);
-    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     Zones zones(fnames, c);
+    Pu pu(fnames, c, 0, zones.zoneNames);
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     zones.BuildZoneContributions(spec, pu);
 
     Reserve r(spec, 3, 1); // 3 zones

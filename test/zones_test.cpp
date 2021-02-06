@@ -15,7 +15,6 @@ TEST(ZonesTestsGroup, LoadZones_fileparsing_test)
     fnames.zonesname = "data/zones_test1.dat";
     fnames.inputdir = "";
     Costs c(fnames);
-
     Zones z(fnames, c);
 
     CHECK_EQUAL(3, z.zoneCount);
@@ -47,7 +46,6 @@ TEST(ZonesTestsGroup, DefaultCosts_test)
     fnames.zonesname = "data/zones_test1.dat";
     fnames.inputdir = "";
     Costs c(fnames);
-
     Zones z(fnames, c);
 
     // Ensure connectionCosts and zoneCosts are non-empty and set to 1 if file NOT supplied.
@@ -76,28 +74,28 @@ TEST(ZonesTestsGroup, DefaultZoneContrib_test)
     fnames.inputdir = "";
     Costs c(fnames);
     Species spec(fnames);
-    Pu pu(fnames, c, 0);
     Zones z(fnames, c);
+    Pu pu(fnames, c, 0, z.zoneNames);
 
     // Build zone contribs
     z.BuildZoneContributions(spec, pu);
 
     // Check zone contribs are 1
     // Available zone 0 should be set to 0 (zoneid1)
-    CHECK_EQUAL(0, z.GetZoneContrib(0,1));
+    CHECK_EQUAL(0, z.GetZoneContrib(0,0));
+    CHECK_EQUAL(1, z.GetZoneContrib(0,1));
     CHECK_EQUAL(1, z.GetZoneContrib(0,2));
-    CHECK_EQUAL(1, z.GetZoneContrib(0,3));
-    CHECK_EQUAL(0, z.GetZoneContrib(1,1));
+    CHECK_EQUAL(0, z.GetZoneContrib(1,0));
+    CHECK_EQUAL(1, z.GetZoneContrib(1,1));
     CHECK_EQUAL(1, z.GetZoneContrib(1,2));
-    CHECK_EQUAL(1, z.GetZoneContrib(1,3));
-    CHECK_EQUAL(0, z.GetZoneContrib(2,1));
+    CHECK_EQUAL(0, z.GetZoneContrib(2,0));
+    CHECK_EQUAL(1, z.GetZoneContrib(2,1));
     CHECK_EQUAL(1, z.GetZoneContrib(2,2));
-    CHECK_EQUAL(1, z.GetZoneContrib(2,3));
 
     // Check pu version too for a sample of pu
-    CHECK_EQUAL(0, z.GetZoneContrib(0, pu.puno, 0, 1));
-    CHECK_EQUAL(1, z.GetZoneContrib(1, pu.puno, 2, 3));
-    CHECK_EQUAL(1, z.GetZoneContrib(2, pu.puno, 1, 2));
+    CHECK_EQUAL(0, z.GetZoneContrib(0, pu.puno, 0, 0));
+    CHECK_EQUAL(1, z.GetZoneContrib(1, pu.puno, 2, 2));
+    CHECK_EQUAL(1, z.GetZoneContrib(2, pu.puno, 1, 1));
 }
 
 // ensure zone contrib1 correctly parses.
@@ -112,8 +110,8 @@ TEST(ZonesTestsGroup, LoadZoneContrib_fileparsing_test)
     fnames.inputdir = "";
     Costs c(fnames);
     Species spec(fnames);
-    Pu pu(fnames, c, 0);
     Zones z(fnames, c);
+    Pu pu(fnames, c, 0, z.zoneNames);
 
     // Build zone contribs
     z.BuildZoneContributions(spec, pu);
@@ -125,10 +123,10 @@ TEST(ZonesTestsGroup, LoadZoneContrib_fileparsing_test)
     // Here the file exists, so missing contribs are 0 instead of 1. 
     // Final row of file should be ignored
     // species 2 contribs are all set to 0.5
-    CHECK_EQUAL(1, z.GetZoneContrib(ind1,1));
-    CHECK_EQUAL(0, z.GetZoneContrib(ind1,2));
-    CHECK_EQUAL(1, z.GetZoneContrib(ind1,3));
+    CHECK_EQUAL(1, z.GetZoneContrib(ind1,0));
+    CHECK_EQUAL(0, z.GetZoneContrib(ind1,1));
+    CHECK_EQUAL(1, z.GetZoneContrib(ind1,2));
+    CHECK_EQUAL(0.5, z.GetZoneContrib(ind2,0));
     CHECK_EQUAL(0.5, z.GetZoneContrib(ind2,1));
     CHECK_EQUAL(0.5, z.GetZoneContrib(ind2,2));
-    CHECK_EQUAL(0.5, z.GetZoneContrib(ind2,3));
 }

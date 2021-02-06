@@ -11,12 +11,6 @@
 #include "util.hpp"
 
 namespace marzone {
-
-typedef struct ZoneName {
-    string name;
-    uint64_t index;
-} ZoneName;
-
 typedef struct ZoneIndex : ZoneName {
     int id;
 } ZoneIndex;
@@ -125,6 +119,7 @@ class Zones {
 
         // populate _ZoneTarget from ZoneTarget
         vector<int> speciesInd;
+        int zoneind;
         for (i = 0; i < zoneTargetsTemp.size(); i++)
         {
             // note that speciesid could be -1, which means it applies to all species.
@@ -140,26 +135,31 @@ class Zones {
                 speciesInd = Range(0, spec.spno);
             }
 
+            zoneind = LookupIndex(zoneTargetsTemp[i].zoneid);
+            if (zoneind == -1)
+                continue; // ignore invalid zone ids
+
             for (int spindex: speciesInd) 
             {
                 // .zoneid .speciesid .target
                 if (zoneTargetsTemp[i].targettype == 0) // area target as hectare
-                    zoneTarget[spindex][zoneTargetsTemp[i].zoneid - 1].target = zoneTargetsTemp[i].target;
+                    zoneTarget[spindex][zoneind].target = zoneTargetsTemp[i].target;
                 if (zoneTargetsTemp[i].targettype == 1) // area target as proportion
-                    zoneTarget[spindex][zoneTargetsTemp[i].zoneid - 1].target = zoneTargetsTemp[i].target * SpecArea[spindex];
+                    zoneTarget[spindex][zoneind].target = zoneTargetsTemp[i].target * SpecArea[spindex];
                 if (zoneTargetsTemp[i].targettype == 2) // occurrence target as occurrences
-                    zoneTarget[spindex][zoneTargetsTemp[i].zoneid - 1].occurrence = ceil(zoneTargetsTemp[i].target);
+                    zoneTarget[spindex][zoneind].occurrence = ceil(zoneTargetsTemp[i].target);
                 if (zoneTargetsTemp[i].targettype == 3) // occurrence target as proportion
-                    zoneTarget[spindex][zoneTargetsTemp[i].zoneid - 1].occurrence = ceil(zoneTargetsTemp[i].target * SpecOcc[spindex]);
+                    zoneTarget[spindex][zoneind].occurrence = ceil(zoneTargetsTemp[i].target * SpecOcc[spindex]);
             }
         }
     }
 
     // given a species index and zoneid, return the contrib fraction
+    // given a zone index.
     // If zone contrib file was not supplied, all contribs are 1. 
-    double GetZoneContrib(int spindex, int zoneid) {
+    double GetZoneContrib(int spindex, int zoneind) {
         // only spno*zoneCount used
-        return zoneContribValues[(spindex*zoneCount)+(zoneid-1)];
+        return zoneContribValues[(spindex*zoneCount)+zoneind];
     }
 
     // Get zone contrib but for a specific pu.
@@ -170,7 +170,7 @@ class Zones {
             return GetZoneContrib(spindex, zoneid);
         }
         else {
-            return zoneContribValues[(spindex*puno*zoneCount)+(puindex*zoneCount)+(zoneid-1)];
+            return zoneContribValues[(spindex*puno*zoneCount)+(puindex*zoneCount)+zoneid];
         }
     }
 
@@ -278,6 +278,20 @@ class Zones {
     */
     string IndexToName(int index) {
         return zoneNameIndexed[index].name;
+    }
+
+    int IndexToId(int index) {
+        return zoneNameIndexed[index].id;
+    }
+
+    // Given a zoneid, returns index of zone or -1 if invalid.
+    int LookupIndex(int zoneid) {
+        auto it = zoneNames.find(zoneid);
+        if (it != zoneNames.end()) {
+            return it->second.index;
+        }
+
+        return -1; // zoneid not found.
     }
 
     // Formats all zone names into a string
@@ -467,9 +481,12 @@ class Zones {
 
         zoneConnectionCost.assign(zoneCount*zoneCount, 0);
 
+        int zoneind1, zoneind2;
         for (relconnectioncoststruct& term: zoneRelConnectionCost) {
-            zoneConnectionCost[((term.zoneid1-1)*zoneCount)+(term.zoneid2-1)] = term.fraction;
-            zoneConnectionCost[((term.zoneid2-1)*zoneCount)+(term.zoneid1-1)] = term.fraction;
+            zoneind1 = zoneNames[term.zoneid1].index;
+            zoneind2 = zoneNames[term.zoneid2].index;
+            zoneConnectionCost[zoneind1*zoneCount+zoneind2] = term.fraction;
+            zoneConnectionCost[zoneind2*zoneCount+zoneind1] = term.fraction;
         }
     }
 
@@ -486,9 +503,10 @@ class Zones {
         }
 
         zoneCost.assign(costCount*zoneCount, 0.0);
-
+        int zoneind1;
         for (zonecoststruct& cost: zoneCostFileLoad) {
-            zoneCost[((cost.costid-1)*zoneCount)+(cost.zoneid-1)] = cost.fraction;
+            zoneind1 = zoneNames[cost.zoneid].index;
+            zoneCost[((cost.costid-1)*zoneCount)+zoneind1] = cost.fraction;
         }
     }
 
@@ -506,20 +524,23 @@ class Zones {
         }
 
         zoneContribValues.assign(arraySize, 0); // Default to 0 contrib if not specified.
-
+        int zoneind;
         if (zoneContribCount) {
             for (zonecontribstruct& contrib: zoneContrib) {
+                zoneind = LookupIndex(contrib.zoneid);
                 spindex = spec.LookupIndex(contrib.speciesid); 
-                if (spindex != -1) // we ignore undefined species. TODO - should we check for valid zone too?
-                    zoneContribValues[(spindex*zoneCount)+(contrib.zoneid-1)] = contrib.fraction;
+                if (spindex != -1 && zoneind != -1) 
+                    zoneContribValues[(spindex*zoneCount)+zoneind] = contrib.fraction;
             }
         }
         else if (zoneContrib2Count) {
             // Contribs in this file apply to all species
             for (zonecontrib2struct& contrib : zoneContrib2) {
-                for (int i = 0; i < spec.spno; i++) {
-                    zoneContribValues[(i*zoneCount)+(contrib.zoneid-1)] = contrib.fraction;
-                }
+                zoneind = LookupIndex(contrib.zoneid);
+                if (zoneind != -1)
+                    for (int i = 0; i < spec.spno; i++) {
+                        zoneContribValues[(i*zoneCount)+zoneind] = contrib.fraction;
+                    }
             }
         }
         else {
@@ -527,8 +548,9 @@ class Zones {
             {
                 puindex = pu.LookupIndex(contrib.puid);
                 spindex = spec.LookupIndex(contrib.speciesid); 
-                if (spindex != -1 && puindex != -1)
-                    zoneContribValues[(spindex*pu.puno*zoneCount)+(puindex*zoneCount)+(contrib.zoneid-1)] = contrib.fraction;
+                zoneind = LookupIndex(contrib.zoneid);
+                if (spindex != -1 && puindex != -1 && zoneind != -1)
+                    zoneContribValues[(spindex*pu.puno*zoneCount)+(puindex*zoneCount)+zoneind] = contrib.fraction;
             }
         }
     }
