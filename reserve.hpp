@@ -500,18 +500,21 @@ namespace marzone
                 }
               }
 
-            rDeltaPenalty = spec.specList[isp].penalty * spec.specList[isp].spf * (rNewShortFraction - rShortFraction);
-/* renable if needed
-#ifdef DEBUG_PEW_CHANGE_PEN
-            // rDeltaPenalty,spec[isp].penalty,spec[isp].spf,rNewShortFraction,rShortFraction
-            AppendDebugTraceFile("rDeltaPenalty,spec.penalty,spec.spf,rNewShortFraction,rShortFraction\n");
-            sprintf(debugline, "%g,%g,%g,%g,%g\n", rDeltaPenalty, spec[isp].penalty, spec[isp].spf, rNewShortFraction, rShortFraction);
-            AppendDebugTraceFile(debugline);
-#endif
-*/
+            if (rNewShortFraction - rShortFraction != 0)
+            {
+              rDeltaPenalty = spec.specList[isp].penalty * spec.specList[isp].spf * (rNewShortFraction - rShortFraction);
+  /* renable if needed
+  #ifdef DEBUG_PEW_CHANGE_PEN
+              // rDeltaPenalty,spec[isp].penalty,spec[isp].spf,rNewShortFraction,rShortFraction
+              AppendDebugTraceFile("rDeltaPenalty,spec.penalty,spec.spf,rNewShortFraction,rShortFraction\n");
+              sprintf(debugline, "%g,%g,%g,%g,%g\n", rDeltaPenalty, spec[isp].penalty, spec[isp].spf, rNewShortFraction, rShortFraction);
+              AppendDebugTraceFile(debugline);
+  #endif
+  */
 
-            rSumDeltaPenalty += rDeltaPenalty;
-            change.shortfall += rNewShortfall - rOldShortfall;
+              rSumDeltaPenalty += rDeltaPenalty;
+              change.shortfall += rNewShortfall - rOldShortfall;
+            }
           } // Only worry about PUs where species occurs
 
 /* renable if needed
@@ -780,7 +783,7 @@ namespace marzone
     {
       // Evaluate the existing solution and update the scost values
       objective.cost = 0, objective.penalty = 0, objective.connection = 0, objective.shortfall = 0;
-      double rShortfall, iShortfall, rShortFraction, rTotalShortfall;
+      double rShortfall, iShortfall, rShortFraction, rTotalShortfall = 0;
       int specZoneIndex, iMissingFeatures;
 
       ComputeSpeciesAmounts(pu, spec, zones);

@@ -154,7 +154,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     StartDebugFile("debug_MarZone_CalcPenalties.csv","\n",fnames);
     #endif
 
-    delta = numeric_limits<double>::epsilon(); 
+    delta = 10e-12; 
     rngEngine = mt19937(runoptions.iseed); // Initialize rng engine
 
     #ifdef DEBUG
@@ -212,10 +212,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         logger.AppendDebugTraceFile("Warning: No targets specified for zones.\n");
     }
 
-    logger.AppendDebugTraceFile("before initializing reserve\n");
-    Reserve reserve(spec, zones.zoneCount, runoptions.clumptype);
-    logger.AppendDebugTraceFile("after initializing reserve\n");
-
     // parse PuLock and PuZone
     /* TODO - update after refactoring.
     #ifdef DEBUGTRACEFILE
@@ -229,9 +225,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     }
     #endif
     */
-
-   // Init reserve object
-    reserve.InitializeSolution(pu.puno);
 
     // Init analysis object
     Analysis analysis;
@@ -333,6 +326,12 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     if (runoptions.verbose > 1)
         logger.ShowTimePassed(startTime);
 
+    logger.AppendDebugTraceFile("before initializing reserve\n");
+    Reserve reserve(spec, zones.zoneCount, runoptions.clumptype);
+
+   // Init reserve object
+    reserve.InitializeSolution(pu.puno);
+    logger.AppendDebugTraceFile("after initializing reserve\n");
 
     logger.AppendDebugTraceFile("before InitialiseReserve\n");
     reserve.RandomiseSolution(pu, rngEngine, zones.zoneCount);
@@ -557,6 +556,8 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             // Saving the best from all the runs
             if (fnames.savebest)
             {
+                // re-evaluate entire system in case of any floating point/evaluation errors.
+                 reserveThread.EvaluateObjectiveValue(pu, spec, zones);
                 if (reserveThread.objective.total < bestR.objective.total)
                 {
                     bestR = reserveThread; // deep copy. TODO LOCK
