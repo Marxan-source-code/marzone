@@ -185,6 +185,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     #ifdef DEBUGTRACEFILE
     if (iVerbosity > 3)
     {
+        pu.DumpCostValues(fnames.outputdir + "debugCostValues.csv");
         zones.DumpZoneNames(fnames.outputdir + "debugZoneNames.csv");
         costs.DumpCostNames(fnames.outputdir + "debugCostNames.csv");
         zones.DumpZoneContrib(fnames.outputdir + "debugZoneContrib.csv");
@@ -212,19 +213,16 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         logger.AppendDebugTraceFile("Warning: No targets specified for zones.\n");
     }
 
-    // parse PuLock and PuZone
-    /* TODO - update after refactoring.
     #ifdef DEBUGTRACEFILE
     if (iVerbosity > 3)
     {
-        Dump_ZoneContrib(puno,spno,spec,iZoneCount,_ZoneContrib,fnames);
-        Dump_ZoneCost(iCostCount,iZoneCount,_ZoneCost,fnames);
-        Dump_RelConnectionCost(iZoneCount,_RelConnectionCost,fnames);
-        DumpZoneSpec(iMessageCounter,spno,iZoneCount,ZoneSpec,spec,fnames);
-        DumpPuLockZone(puno,pu);
+        zones.DumpZoneContribFinalValues(fnames.outputdir + "debug_ZoneContrib.csv", spec);
+        zones.DumpZoneCostFinalValues(fnames.outputdir + "debug_ZoneCost.csv", costs);
+        zones.DumpRelConnectionCostFinalValues(fnames.outputdir + "debug_ZoneConnectionCost.csv");
+        //DumpZoneSpec(iMessageCounter,spno,iZoneCount,ZoneSpec,spec,fnames);
+        pu.DumpPuLockZoneData(fnames.outputdir + "debugPuLockZone.csv");
     }
     #endif
-    */
 
     // Init analysis object
     Analysis analysis;
@@ -236,7 +234,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         logger.AppendDebugTraceFile("after InitSumSoln\n");
     }
 
-    /* TODO - re-enable
+    /* re-enable once asym connectivity is supported.
     if (asymmetricconnectivity)
     {
         logger.AppendDebugTraceFile("Asymmetric connectivity is on.\n");
@@ -253,16 +251,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     logger.ShowGenProg(to_string(pu.puvspr.size()) + " conservation values counted, " + 
         to_string(pu.puno*spec.spno) + " big matrix size, " + to_string(pu.density) + "% density of matrix \n");
     logger.AppendDebugTraceFile("after LoadSparseMatrix\n");
-
-    /* Removing the need for this function.
-    if (!fnames.matrixspordername.empty())
-    {
-        logger.AppendDebugTraceFile("before LoadSparseMatrix_sporder\n");
-        pu.LoadSparseMatrix_sporder(spec, fnames.inputdir + fnames.matrixspordername);
-        logger.AppendDebugTraceFile("after LoadSparseMatrix_sporder\n");
-        ShowGenProg("after LoadSparseMatrix_sporder\n");
-    }
-    */
 
     #ifdef DEBUGTRACEFILE
     logger.AppendDebugTraceFile("before CalcTotalAreas\n");
@@ -292,11 +280,8 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     zones.BuildZoneTarget(spec, pu, fnames);
     logger.AppendDebugTraceFile("after Build_ZoneTarget\n");
 
-    /* TODO enable
     if (iVerbosity > 3)
-        Dump_ZoneTarget(spno,iZoneCount,_ZoneTarget,fnames);
-    #endif
-    */
+        zones.DumpZoneTargetFinalValues(fnames.outputdir + "debug_ZoneTarget.csv", spec);
 
     // Read and process species block definitions
     logger.AppendDebugTraceFile("before process block definitions\n");
@@ -354,24 +339,11 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         }
         else
         {
-            /* Removing optimise since we no longer need it.
-            // we have sporder matrix available, so use optimised CalcPenalties method
-            if (iOptimisationCalcPenalties == 1)
-            {
-                logger.AppendDebugTraceFile("before CalcPenaltiesOptimise\n");
+            logger.AppendDebugTraceFile("before CalcPenalties\n");
 
-                itemp = CalcPenaltiesOptimise(pu, spec, zones, reserve);
+            itemp = CalcPenalties(pu, spec, zones, reserve, runoptions.clumptype);
 
-                logger.AppendDebugTraceFile("after CalcPenaltiesOptimise\n");
-            }
-            else
-            {*/
-                logger.AppendDebugTraceFile("before CalcPenalties\n");
-
-                itemp = CalcPenalties(pu, spec, zones, reserve, runoptions.clumptype);
-
-                logger.AppendDebugTraceFile("after CalcPenalties\n");
-            //}
+            logger.AppendDebugTraceFile("after CalcPenalties\n");
         }
 
         if (itemp > 0)
@@ -560,14 +532,20 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                  reserveThread.EvaluateObjectiveValue(pu, spec, zones);
                 if (reserveThread.objective.total < bestR.objective.total)
                 {
-                    bestR = reserveThread; // deep copy. TODO LOCK
-
-                    if (runoptions.verbose > 1)
+                    omp_set_lock(&bestR_write_lock);
+                    if (reserveThread.objective.total < bestR.objective.total)
                     {
-                        progbuffer << "  Best:";
-                        PrintResVal(bestR, spec, zones, runoptions.misslevel, progbuffer);
+                        bestR = reserveThread; // deep copy
+
+                        if (runoptions.verbose > 1)
+                        {
+                            progbuffer << "  Best:";
+                            PrintResVal(bestR, spec, zones, runoptions.misslevel, progbuffer);
+                        }
                     }
+                    omp_unset_lock(&bestR_write_lock);
                 }
+                
             }
 
             if (fnames.savesumsoln) // Add current run to my summed solution

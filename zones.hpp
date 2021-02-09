@@ -164,13 +164,13 @@ class Zones {
 
     // Get zone contrib but for a specific pu.
     // If zone contrib file was not supplied, all contribs are 1. 
-    double GetZoneContrib(int puindex, int puno, int spindex, int zoneid) {
+    double GetZoneContrib(int puindex, int puno, int spindex, int zoneind) {
         if (!zoneContrib3Count) {
             // only spno*zoneCount used
-            return GetZoneContrib(spindex, zoneid);
+            return GetZoneContrib(spindex, zoneind);
         }
         else {
-            return zoneContribValues[(spindex*puno*zoneCount)+(puindex*zoneCount)+zoneid];
+            return zoneContribValues[(spindex*puno*zoneCount)+(puindex*zoneCount)+zoneind];
         }
     }
 
@@ -392,6 +392,72 @@ class Zones {
         myfile.close();
     }
 
+    // usually named debug_Zone<number>_Contrib.csv or debug_ZoneContrib.csv
+    void DumpZoneContribFinalValues(string filename, Species& spec) {
+        ofstream myfile;
+
+        if (zoneContrib3Count) {
+            // TODO - write debug file for each zone
+            // each file should contain the matrix pu x spec contribs.
+
+        }
+        else {
+            // write contrib values normally.
+            myfile.open(filename);
+            myfile << "spname,spindex\n";
+            for (int i=0;i<zoneCount;i++)
+                myfile << ",contrib" << IndexToId(i);
+            myfile << "\n";
+
+            for (int j=0; j < spec.spno; j++) {
+                myfile << spec.specList[j].name << "," << j;
+                for (int i =0; i<zoneCount; i++)
+                    myfile << "," << GetZoneContrib(j, i);
+                myfile << "\n";
+            }
+
+            myfile.close();
+        }
+    }
+
+    void DumpZoneCostFinalValues(string filename, Costs& costs) {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "costindex";
+        for (int i=0; i < zoneCount; i++)
+            myfile << "," << IndexToId(i);
+        myfile << "\n";
+
+        for (int j = 0; j < costs.costCount; j++)  
+        {
+            myfile << "," << j;
+            for (int i=0; i< zoneCount; i++)
+                myfile << "," << zoneCost[j*zoneCount + i];
+            myfile << "\n";
+        }
+        myfile.close();
+    }
+
+    void DumpRelConnectionCostFinalValues(string filename) {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "zoneindex";
+
+        for(int j=0; j < zoneCount; j++)
+            myfile << "," << IndexToId(j);
+        myfile << "\n";
+
+        for (int j=0; j<zoneCount; j++) {
+            myfile << "," << IndexToId(j);
+            for (int i=0; i<zoneCount;i++) {
+                myfile << "," << GetZoneConnectionCost(j, i);
+            }
+            myfile <<"\n";
+        }
+
+        myfile.close();
+    }
+
     // dumps zone target with a species id
     void DumpZoneTarget(string filename)
     {
@@ -414,6 +480,30 @@ class Zones {
             if (z.speciesid == 0)
             myfile<<z.zoneid<<","<<z.target<<","<<z.targettype<<"\n";
         }
+    }
+
+    void DumpZoneTargetFinalValues(string filename, Species& spec) 
+    {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "spname,spindex";
+        
+        int id;
+        for (int i=0; i< zoneCount; i++) {
+            id = IndexToId(i);
+            myfile << ",zone" << id << "target,zone" << id << "occurrence";
+        }
+        myfile << "\n";
+
+        for (int j=0; j<spec.spno; j++) {
+            myfile << spec.specList[j].name << "," << j;
+            for (int i = 0; i < zoneCount; i++) {
+                myfile << "," << zoneTarget[j][i].target << "," << zoneTarget[j][i].occurrence;
+            }
+            myfile << "\n";
+        }
+
+        myfile.close();
     }
 
     void DumpZoneCost(string filename) {
@@ -440,15 +530,9 @@ class Zones {
     unsigned zoneCount; // number of available zones in the system.
     vector<ZoneIndex> zoneNameIndexed; // backward map of index to zoneid/zonename
     map<int, ZoneName> zoneNames; // zoneid to zonename/index mapping
-
-    // Zone contribution maps. TODO - merge into 1
-    vector<zonecontribstruct> zoneContrib;
-    vector<zonecontrib2struct> zoneContrib2;
-    vector<zonecontrib3struct> zoneContrib3;
     vector<double> zoneContribValues; // size depends on whether zonecontrib3 is used. Usually it is spno*zoneCount. Species, then zone. 
 
     // Zone target maps
-    vector<zonetargetstructtemp> zoneTargetsTemp; // needed for dump debug.
     vector<vector<zonetarget>> zoneTarget; //species -> zone target matrix, ordering is [species][zoneid].
 
     // Zone cost
@@ -457,7 +541,11 @@ class Zones {
     vector<double> zoneConnectionCost; // zone to zone cost matrix
 
     private:
+    vector<zonetargetstructtemp> zoneTargetsTemp; // needed for dump debug.
     bool zoneContribSupplied; // whether zone contribution modifiers are supplied or not.
+    vector<zonecontribstruct> zoneContrib;
+    vector<zonecontrib2struct> zoneContrib2;
+    vector<zonecontrib3struct> zoneContrib3;
     unsigned zoneContribCount;
     unsigned zoneContrib2Count;
     unsigned zoneContrib3Count;

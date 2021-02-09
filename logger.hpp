@@ -12,9 +12,17 @@ namespace marzone {
     // Base empty class for mocking purposes.
     class LoggerBase {
         public:
-        LoggerBase() {}
-        void ShowErrorMessage(string sMess) {}
+        virtual void ShowErrorMessage(string sMess) {}
+        virtual void ShowWarningMessage(string sMess) {}
 
+    };
+
+    // mock class for unit tests.
+    class LoggerMock: LoggerBase {
+        public:
+        LoggerMock() {}
+        void ShowErrorMessage(string sMess) {}
+        void ShowWarningMessage(string sMess) {}
     };
 
     class Logger : LoggerBase {

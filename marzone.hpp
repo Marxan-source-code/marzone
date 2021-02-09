@@ -32,7 +32,6 @@ namespace marzone
 
     // Marxan with Zones debugging functions
     /*
-    void DumpPuZone_Debug(int iPuZoneCount, struct puzonestruct PuZone[], struct sfname fnames, int iMessage);
     void DumpRelConnectionCost(int iRelConnectionCostCount, struct relconnectioncoststruct RelConnectionCost[], struct sfname fnames);
     void DumpCostValues(int iCostCount, int puno, double **CostValues, struct sfname fnames);
     void DumpCostFieldNumber(int iFieldCount, int CostFieldNumber[], char *sFields, struct sfname fnames);

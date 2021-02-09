@@ -27,12 +27,6 @@ class Pu {
             LoadPuLock(fnames.inputdir + fnames.pulockname);
         }
 
-        // TODO 
-        /*
-        if (iVerbosity > 3)
-            DumpCostValues(iCostCount,puno,CostValues,fnames);
-        */
-
        // Persist pulock and puzone counts
        PersistPuLock(zoneLookup);
 
@@ -416,6 +410,41 @@ class Pu {
         myfile.close();
     }
 
+    void DumpPuLockZoneData(string filename) {
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "id,fPULock,iPULock,numZones\n";
+        for (int i = 0; i < puno; i++)
+        {
+            myfile << puList[i].id << "," << puList[i].fPULock << "," << puList[i].iPULock
+                << "," << puList[i].numZones << "\n";
+        }
+        myfile.close();
+    }
+
+    void DumpCostValues(string filename) {
+        if (puList.size() == 0)
+            return;
+
+        int costCount = puList[0].costBreakdown.size();
+        ofstream myfile;
+        myfile.open(filename);
+        myfile << "puindex\n";
+        for (int j=0; j<costCount; j++) {
+            myfile << "," << j;
+        }
+        myfile << "\n";
+
+        for (int i =0; i < puno; i++) {
+            myfile << "," << puList[i].id;
+            for (int j=0; j < costCount; j++) {
+                myfile << "," << puList[i].costBreakdown[j];
+            }
+            myfile << "\n";
+        }
+        myfile.close();
+    }
+
     int puno;
     int puLockCount;
     int puZoneCount;
@@ -426,7 +455,6 @@ class Pu {
     // List of pu indices that can be changed (i.e. not locked to one zone or status > 1)
     vector<int> validPuIndices;
 
-    // TODO - make private.
     map<int, int> puLock; // puid -> zoneid
     vector<vector<int>> puZone; 
     // puindex -> list of available zones. If pu has empty puzone, it is allowed in ALL zones (unless pulock).

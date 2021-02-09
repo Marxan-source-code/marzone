@@ -7,42 +7,7 @@
 #include "zones.hpp"
 
 namespace marzone {
-
-/* TODO move to Costs
-void DumpCostValues(int iCostCount, int puno,double **CostValues,struct sfname fnames)
-{
-    FILE *fp;
-    char *writename;
-    int i,j;
-
-    writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debugCostValues.csv") + 2, sizeof(char));
-    strcpy(writename,fnames.outputdir);
-    strcat(writename,"debugCostValues.csv");
-    fp = fopen(writename,"w");
-    if (fp==NULL)
-        ShowErrorMessage("cannot create DumpCostValues file %s\n",writename);
-    free(writename);
-
-    fprintf(fp,"puindex");
-    for (j=0;j<iCostCount;j++)
-        fprintf(fp,",%d",j);
-    fprintf(fp,"\n");
-
-    for (i=0;i<puno;i++)
-    {
-        fprintf(fp,"%d,",i);
-
-        for (j=0;j<iCostCount;j++)
-        {
-            fprintf(fp,"%lf",CostValues[i][j]);
-            if (j != (iCostCount-1))
-                fprintf(fp,",");
-        }
-        fprintf(fp,"\n");
-    }
-    fclose(fp);
-}
-*/
+// This file is deprecated. If a function is commented out here, it has yet to be rewritten.
 
 /* TODO - rewrite
 void Dump_ZoneContrib(int puno,int spno,typesp spec[],int iZoneCount,double _ZoneContrib[],struct sfname fnames)
@@ -93,175 +58,8 @@ void Dump_ZoneContrib(int puno,int spno,typesp spec[],int iZoneCount,double _Zon
             fclose(fp);
         }
     } else {
-        writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debug_ZoneContrib.csv") + 2, sizeof(char));
-        strcpy(writename,fnames.outputdir);
-        strcat(writename,"debug_ZoneContrib.csv");
-        fp = fopen(writename,"w");
-        if (fp==NULL)
-            ShowErrorMessage("cannot create Dump_ZoneContrib file %s\n",writename);
-        free(writename);
-
-        // header row
-        fprintf(fp,"spname,spindex");
-        for (i=0;i<iZoneCount;i++)
-            fprintf(fp,",contrib%i",(i+1));
-        fprintf(fp,"\n");
-
-        for (j=0;j<spno;j++)
-        {
-            fprintf(fp,"%i,%i",spec[j].name,j);
-
-            for (i=0;i<iZoneCount;i++)
-                fprintf(fp,",%lf",_ZoneContrib[(j*iZoneCount)+i]);
-
-            fprintf(fp,"\n");
-        }
-
-        fclose(fp);
+        // already migrated.
     }
-}
-
-void Dump_ZoneTarget(int spno,int iZoneCount,struct _zonetargetstruct _ZoneTarget[],struct sfname fnames)
-{
-    FILE *fp;
-    char *writename;
-    int i,j;
-    char debugbuffer[1000];
-
-    writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debug_ZoneTarget.csv") + 2, sizeof(char));
-    strcpy(writename,fnames.outputdir);
-    strcat(writename,"debug_ZoneTarget.csv");
-    fp = fopen(writename,"w");
-    if (fp==NULL)
-        ShowErrorMessage("cannot create Dump_ZoneTarget file %s\n",writename);
-    free(writename);
-
-    // write header row
-    fprintf(fp,"spname,spindex,");
-    for (i=0;i<iZoneCount;i++)
-    {
-        fprintf(fp,"zone%dtarget,zone%doccurrence",i+1,i+1);
-        if (i != (iZoneCount-1))
-            fprintf(fp,",");
-    }
-    fprintf(fp,"\n");
-
-    for (j=0;j<spno;j++)
-    {
-        fprintf(fp,"%i,%i,",spec[j].name,j);
-        for (i=0;i<iZoneCount;i++)
-        {
-            fprintf(fp,"%lf,%i",_ZoneTarget[(j*iZoneCount)+i].target,_ZoneTarget[(j*iZoneCount)+i].occurrence);
-            if (i != (iZoneCount-1))
-                fprintf(fp,",");
-        }
-        fprintf(fp,"\n");
-    }
-
-    fclose(fp);
-}
-
-void Dump_ZoneCost(int iCostCount,int iZoneCount,double _ZoneCost[],struct sfname fnames)
-{
-    FILE *fp;
-    char *writename;
-    int i,j;
-
-    writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debug_ZoneCost.csv") + 2, sizeof(char));
-    strcpy(writename,fnames.outputdir);
-    strcat(writename,"debug_ZoneCost.csv");
-    fp = fopen(writename,"w");
-    if (fp==NULL)
-        ShowErrorMessage("cannot create Dump_ZoneCost file %s\n",writename);
-    free(writename);
-
-    fprintf(fp,"costindex");
-    for (i=0;i<iZoneCount;i++)
-        fprintf(fp,",%d",i);
-    fprintf(fp,"\n");
-
-    for (j=0;j<iCostCount;j++)
-    {
-        fprintf(fp,"%d",j);
-
-        for (i=0;i<iZoneCount;i++)
-        {
-            fprintf(fp,",%lf",_ZoneCost[(j*iZoneCount)+i]);
-        }
-        fprintf(fp,"\n");
-    }
-
-    fclose(fp);
-}
-
-void DumpPuZone_Debug(int iPuZoneCount,struct puzonestruct PuZone[],struct sfname fnames,int iMessage)
-{
-    FILE *fp;
-    char *writename;
-    char messagebuffer[1000];
-    int i;
-
-    sprintf(messagebuffer,"%i",iMessage);
-
-    writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debugPuZone_.csv") + strlen(messagebuffer) + 2, sizeof(char));
-    strcpy(writename,fnames.outputdir);
-    strcat(writename,"debugPuZone_");
-    strcat(writename,messagebuffer);
-    strcat(writename,".csv");
-    fp = fopen(writename,"w");
-    if (fp==NULL)
-        ShowErrorMessage("cannot create DumpPuZone file %s\n",writename);
-    free(writename);
-
-    fprintf(fp,"puid,zoneid\n");
-
-    for (i=0;i<iPuZoneCount;i++)
-    {
-        fprintf(fp,"%d,%d\n",PuZone[i].puid,PuZone[i].zoneid);
-    }
-
-    fclose(fp);
-}
-
-void Dump_RelConnectionCost(int iZoneCount,double _RelConnectionCost[],struct sfname fnames)
-{
-    FILE *fp;
-    char *writename;
-    int i,j;
-
-    #ifdef DEBUGTRACEFILE
-    AppendDebugTraceFile("Dump_ZoneConnectionCost start\n");
-    #endif
-
-    writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debug_ZoneConnectionCost.csv") + 2, sizeof(char));
-    strcpy(writename,fnames.outputdir);
-    strcat(writename,"debug_ZoneConnectionCost.csv");
-    fp = fopen(writename,"w");
-    if (fp==NULL)
-        ShowErrorMessage("cannot create Dump_ZoneConnectionCost file %s\n",writename);
-    free(writename);
-
-    fprintf(fp,"zoneindex");
-    for (j=0;j<iZoneCount;j++)
-        fprintf(fp,",%d",j);
-    fprintf(fp,"\n");
-
-    for (j=0;j<iZoneCount;j++)
-    {
-        fprintf(fp,"%d",j);
-
-        for (i=0;i<iZoneCount;i++)
-        {
-            fprintf(fp,",%lf",_RelConnectionCost[(j*iZoneCount)+i]);
-        }
-        fprintf(fp,"\n");
-    }
-
-    fclose(fp);
-
-    #ifdef DEBUGTRACEFILE
-    AppendDebugTraceFile("Dump_ZoneConnectionCost end\n");
-    #endif
 }
 
 void DumpZoneSpec(int iMessage,int spno,int iZoneCount,struct zonespecstruct ZoneSpec[],struct sspecies spec[],struct sfname fnames)
@@ -310,32 +108,6 @@ void DumpZoneSpec(int iMessage,int spno,int iZoneCount,struct zonespecstruct Zon
     fclose(fp);
 }
 
-*/
-
-
-/*
-void DumpPuLockZone(int puno,struct spustuff pu[])
-{
-    FILE *fp;
-    char *writename;
-    int i;
-
-    writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debugPuLockZone.csv") + 2, sizeof(char));
-    strcpy(writename,fnames.outputdir);
-    strcat(writename,"debugPuLockZone.csv");
-    fp = fopen(writename,"w");
-    if (fp==NULL)
-        ShowErrorMessage("cannot create DumpPuLockZone file %s\n",writename);
-    free(writename);
-
-    fprintf(fp,"id,fPULock,iPULock,fPUZone,iPUZone,iPUZones,iPreviousStatus\n");
-    for (i=0;i<puno;i++)
-    {
-        fprintf(fp,"%d,%d,%d,%d,%d,%d,%d\n",pu[i].id,pu[i].fPULock,pu[i].iPULock,pu[i].fPUZone,pu[i].iPUZone,pu[i].iPUZones,pu[i].iPreviousStatus);
-    }
-
-    fclose(fp);
-}
 */
 
 /*
@@ -397,9 +169,6 @@ void OutputZonationCostDebugTable(int spno,struct sspecies spec[],char savename[
 
 /* * * * ***** Scenario Output File * * * * * * * */
 /*** OutputScenario ****/
-
-
-
 /*
 void DumpAsymmetricConnectionFile(int puno,struct sconnections connections[],struct spustuff pu[],struct sfname fnames)
 {
