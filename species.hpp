@@ -225,7 +225,7 @@ class Species {
         char sLine[1000];
 
         int numvars = 10,namespecial = 0;
-        char *sVarName,*sVarVal;
+        char *sVarName = nullptr,*sVarVal = nullptr;
 
         /* Scan header */
         fgets(sLine,999,fp);

@@ -5,6 +5,7 @@
 #include <cmath>
 #include <random>
 #include <utility>
+#include <array>
 
 #include "common.hpp"
 #include "pu.hpp"
@@ -334,7 +335,7 @@ namespace marzone
             rCurrentContribAmount, rNewContribAmount, t_diff, o_diff;
 
       change.shortfall = 0;
-      vector<int> zonesToTarget{iPreZone, iPostZone};
+      array<int, 2> zonesToTarget{iPreZone, iPostZone};
 
       // clean up the vectors in the change object.
       change.specListChangeTarget.clear();
@@ -784,7 +785,7 @@ namespace marzone
       // Evaluate the existing solution and update the scost values
       objective.cost = 0, objective.penalty = 0, objective.connection = 0, objective.shortfall = 0;
       double rShortfall, iShortfall, rShortFraction, rTotalShortfall = 0;
-      int specZoneIndex, iMissingFeatures;
+      int specZoneIndex, iMissingFeatures = 0;
 
       ComputeSpeciesAmounts(pu, spec, zones);
 

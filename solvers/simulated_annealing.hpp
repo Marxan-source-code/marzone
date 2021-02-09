@@ -54,7 +54,7 @@ class SimulatedAnnealing {
         uniform_int_distribution<int> randomPuDist(0, pu.validPuIndices.size()-1);
         uniform_real_distribution<double> float_range(0.0, 1.0);
         int ipu, iZone, itemp, iPreviousZone, iGoodChange;
-        uint64_t ichanges;
+        uint64_t ichanges = 0;
 
         schange change = r.InitializeChange(spec, zones);
 
