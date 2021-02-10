@@ -396,7 +396,7 @@ namespace marzone
                   iNewShortfall++;
                 }
 
-                /* TODO - enable
+                /* 
               #ifdef DEBUG_PEW_CHANGE_PEN
                             sprintf(debugline, "%i,%i,%i,%i,%i,%i,%i,%g,%g,%g,%g,%g,%g,%g,%g,%i,%i,0\n", iIteration, ipu, isp, pu[ipu].id, spec[isp].name, R[ipu], iZone, spec[isp].target, SM[ism].amount, spec[isp].amount, rNewAmount, change.shortfall, rNewShortfall, rShortFraction, rNewShortFraction, iCurrentShortfall, iNewShortfall);
                             AppendDebugFile("debug_MarZone_PewChangePen.csv", debugline, fnames);
@@ -851,7 +851,7 @@ namespace marzone
 
         objective.penalty += rShortFraction * spec.specList[i].penalty * spec.specList[i].spf;
 
-        /* TODO - enable and move out
+        /*
           if (fDebugPenaltyNegative)
           {
               fprintf(DebugFile,"%i,%i,%g,%g,%g,%g\n",i,spec[i].name,rCurrentShortfall,spec[i].penalty,spec[i].spf,reserve->penalty);

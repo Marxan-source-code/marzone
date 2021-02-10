@@ -18,7 +18,9 @@ class IterativeImprovement {
     IterativeImprovement(mt19937& rngEngine, sfname& fnames, int iterativeImprovementMode) 
     : rngEngine(rngEngine), iterativeImprovementMode(iterativeImprovementMode), optimise(optimise)
     {
-        // TODO - init trace files based on fnames.
+        savename = fnames.savename;
+        saveItimpTrace = fnames.saveitimptrace;
+        itimpTraceRows = fnames.itimptracerows;
     }
 
     void Run(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh) {
@@ -36,7 +38,7 @@ class IterativeImprovement {
         int puvalid = 0, ipu = 0, imode, ichoice, iZone, iPreviousR, ichanges = 0;
         struct iimp *iimparray;
         double debugfloat;
-        // FILE *ttfp, *zonefp; - move to other func
+        ofstream ttfp, zonefp;
         string writename;
 
         int iSamplesForEachPu = (zones.zoneCount-1)*2; // allow sampling to each zone and back to available for each non available zone
@@ -55,6 +57,7 @@ class IterativeImprovement {
         }
 
         schange change = r.InitializeChange(spec, zones);
+        InitSaveItImpTrace(ttfp, zonefp, pu, r, validPuIndicies.size());
 
         if (puvalid > 0)
         {
@@ -69,128 +72,87 @@ class IterativeImprovement {
                 iZone = pu.RtnValidZoneForPu(ichoice, iPreviousR, randomDist, rngEngine, zones.zoneCount);
 
                 // Check change value
-                //schange change = r.CheckChangeValue(ichoice, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
                 r.CheckChangeValue(change, ichoice, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
                 if (change.total < 0) {
                     ichanges++;
                     r.ApplyChange(ichoice, iZone, change, pu, zones, spec);
                 }
 
-                if (!itImpTraceFileName.empty())
-                    WriteItImpTraceRow();
+                if (saveItimpTrace)
+                    WriteItImpTraceRow(ttfp, zonefp, r, ichoice);
             }
         }
+
+        CloseTraceFiles(ttfp, zonefp);
     }
 
-    // TODO
-    void InitSaveItImpTrace() {
-        /*
-            if (fnames.saveitimptrace)
-    {
-        if (fnames.saveitimptrace==3)
+    void InitSaveItImpTrace(ofstream& ttfp, ofstream& zonefp, Pu& pu, Reserve& r, int puvalid) {
+        string tempname;
+        string d = saveItimpTrace > 1 ? "," : " ";
+        if (saveItimpTrace)
         {
-            sprintf(tempname2,"%s_itimp_objective%05i.csv",savename,irun%10000);
-        } else {
-            if (fnames.saveitimptrace==2)
-                sprintf(tempname2,"%s_itimp_objective%05i.txt",savename,irun%10000);
+            tempname = savename + "_itimp_objective" + to_string(r.id) + getFileSuffix(saveItimpTrace);
+            ttfp.open(tempname);
+            ttfp << "improvement" << d << "total" << d << "cost" << d << "connection" << d << "penalty\n";
+
+            tempname = savename + "_itimp_zones" + to_string(r.id) + getFileSuffix(saveItimpTrace);
+            zonefp.open(tempname);
+            zonefp << "configuration";
+
+            for (int i = 0; i < pu.puno; i++)
+            {
+                zonefp << d << pu.puList[i].id;
+            }
+            zonefp << "\n";
+
+            for (int i = 0; i < pu.puno; i++)
+            {
+                zonefp << d << r.solution[i];
+            }
+            zonefp << "\n";
+
+            rowCounter = 0;
+            if (itimpTraceRows == 0)
+                rowLimit = 0;
             else
-                sprintf(tempname2,"%s_itimp_objective%05i.dat",savename,irun%10000);
+                rowLimit = floor(puvalid / itimpTraceRows);
         }
-
-        writename = (char *) calloc(strlen(fnames.outputdir) + strlen(tempname2) + 2, sizeof(char));
-        strcpy(writename,tempname2);
-        if ((ttfp = fopen(writename,"w"))==NULL)
-            ShowErrorMessage("cannot create threshold trace file %s\n",writename);
-        free(writename);
-        if (fnames.saveitimptrace > 1)
-            fprintf(ttfp,"improvement,total,cost,connection,penalty\n");
-        else
-            fprintf(ttfp,"improvement total cost connection penalty\n");
-
-        if (fnames.saveitimptrace==3)
-            sprintf(tempname2,"%s_itimp_zones%05i.csv",savename,irun%10000);
-        else
-        if (fnames.saveitimptrace==2)
-            sprintf(tempname2,"%s_itimp_zones%05i.txt",savename,irun%10000);
-        else
-            sprintf(tempname2,"%s_itimp_zones%05i.dat",savename,irun%10000);
-
-        writename = (char *) calloc(strlen(fnames.outputdir) + strlen(tempname2) + 2, sizeof(char));
-        strcat(writename,tempname2);
-        if ((zonefp = fopen(writename,"w"))==NULL)
-            ShowErrorMessage("cannot create threshold trace file %s\n",writename);
-        free(writename);
-        fprintf(zonefp,"configuration");
-        if (fnames.saveitimptrace > 1)
-        {
-            for (i = 0;i<puno;i++)
-                fprintf(zonefp,",%i",pu[i].id);
-            fprintf(zonefp,"\n0");
-
-            for (i = 0;i<puno;i++)
-                fprintf(zonefp,",%i",R[i]);
-        } else {
-            for (i = 0;i<puno;i++)
-                fprintf(zonefp," %i",pu[i].id);
-            fprintf(zonefp,"\n0");
-
-            for (i = 0;i<puno;i++)
-                fprintf(zonefp," %i",R[i]);
-        }
-        fprintf(zonefp,"\n");
-
-        iRowCounter = 0;
-        if (fnames.itimptracerows == 0)
-            iRowLimit = 0;
-        else
-            iRowLimit = floor(puvalid / fnames.itimptracerows);
     }
 
-        */
-       
+    void CloseTraceFiles(ofstream& ttfp, ofstream& zonefp) {
+        if (saveItimpTrace)
+        {
+            ttfp.close();
+            zonefp.close();
+        }
     }
     
-    void WriteItImpTraceRow() {
-        /*
-                        if (fnames.saveitimptrace)
-            {
-                iRowCounter++;
-                if (iRowCounter > iRowLimit)
-                    iRowCounter = 1;
+    void WriteItImpTraceRow(ofstream& ttfp, ofstream& zonefp, Reserve& r, int ipu) {
+        rowCounter++;
+        string d = saveItimpTrace > 1 ? "," : " ";
+        if (rowCounter > rowLimit)
+            rowCounter = 1;
 
-                if (iRowCounter == 1)
-                {
-                    fprintf(zonefp,"%i",i);
-
-                    if (fnames.saveitimptrace > 1)
-                    {
-                        fprintf(ttfp,"%i,%f,%f,%f,%f\n",
-                                    i,reserve->total,
-                                    reserve->cost,reserve->connection,reserve->penalty); // i,costthresh,cost,connection,penalty
-
-                        for (j = 0;j<puno;j++)
-                            fprintf(zonefp,",%i",R[j]);
-                    } else {
-                        fprintf(ttfp,"%i %f %f %f %f\n",
-                                     i,reserve->total,reserve->cost,reserve->connection,reserve->penalty);
-
-                        for (j = 0;j<puno;j++)
-                            fprintf(zonefp," %i",R[j]);
-                    }
-
-                    fprintf(zonefp,"\n");
-                }
-            }
-        }/* no untested PUs left */
-        
+        if (rowCounter == 1)
+        {
+            zonefp << ipu;
+            // i,costthresh,cost,connection,penalty
+            ttfp << ipu << d << r.objective.total << d << r.objective.cost << d << r.objective.connection << d << r.objective.penalty << "\n";
+            for (int j = 0; j <r.solution.size(); j++)
+                zonefp << d << r.solution[j];
+            zonefp << "\n";
+        }
     }
 
-    ostringstream debugBuffer; // TODO - print buffer once logging library
     mt19937 &rngEngine;
-    string itImpTraceFileName;
     int iterativeImprovementMode;
+    int saveItimpTrace;
     int optimise;
+    unsigned rowCounter;
+    unsigned itimpTraceRows;
+    unsigned rowLimit;
 
+    string savename;
 };
 
 } // namespace marzone

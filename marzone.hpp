@@ -30,20 +30,6 @@ namespace marzone
     void PrintResVal(Reserve& reserve, Species& spec, Zones& zones, double misslevel,stringstream& buffer);
     void SetOptions(string &sInputFileName, srunoptions &runoptions, sanneal &anneal, sfname &fnames);
 
-    // Marxan with Zones debugging functions
-    /*
-    void DumpPuZone_Debug(int iPuZoneCount, struct puzonestruct PuZone[], struct sfname fnames, int iMessage);
-    void DumpRelConnectionCost(int iRelConnectionCostCount, struct relconnectioncoststruct RelConnectionCost[], struct sfname fnames);
-    void DumpCostValues(int iCostCount, int puno, double **CostValues, struct sfname fnames);
-    void DumpCostFieldNumber(int iFieldCount, int CostFieldNumber[], char *sFields, struct sfname fnames);
-    void Dump_ZoneContrib(int puno, int spno, sspecies spec[], int iZoneCount, double _ZoneContrib[], struct sfname fnames);
-    void Dump_ZoneTarget(int spno, int iZoneCount, struct _zonetargetstruct _ZoneTarget[], struct sfname fnames);
-    void Dump_ZoneCost(int iCostCount, int iZoneCount, double _ZoneCost[], struct sfname fnames);
-    void DumpPuLockZone(int puno, struct spustuff pu[]);
-    void Dump_RelConnectionCost(int iZoneCount, double _RelConnectionCost[], struct sfname fnames);
-    void DumpZoneSpec(int iMessage, int spno, int iZoneCount, struct zonespecstruct ZoneSpec[], struct sspecies spec[], struct sfname fnames);
-    */
-
     /* ************************************************************************** */
     /* FILEOUT.H START */
 

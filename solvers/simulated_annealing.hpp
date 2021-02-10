@@ -8,6 +8,7 @@
 #include "../pu.hpp"
 #include "../reserve.hpp"
 #include "../zones.hpp"
+#include "../logger.hpp"
 
 // Debug settings
 #undef TRACE_ZONE_TARGETS
@@ -17,15 +18,27 @@ using namespace std;
 
 class SimulatedAnnealing {
     public:
-    SimulatedAnnealing(int annealingOn, sanneal& anneal, mt19937& rngEngine, int annealTrace, int id) 
+    SimulatedAnnealing(sfname& fnames, LoggerBase& logger, int annealingOn, sanneal& anneal, mt19937& rngEngine, int annealTrace, int id) 
     : rngEngine(rngEngine), annealTraceType(annealTrace), id(id)
     {
+        logger = logger;
         if (annealingOn)
         {
             settings = anneal; // copy construct
         }
         else {
             settings = {}; // empty/0
+        }
+
+        saveSnapSteps = fnames.savesnapsteps;
+        saveSnapChanges = fnames.savesnapchanges;
+        saveSnapFrequency = fnames.savesnapfrequency;
+        suppressAnnealZones = fnames.suppressannealzones;
+        savename = fnames.savename;
+        annealingTraceRows = fnames.annealingtracerows;
+
+        if (annealingTraceRows) {
+            rowLimit = settings.iterations/annealingTraceRows;
         }
     }
 
@@ -44,19 +57,30 @@ class SimulatedAnnealing {
 
         settings.temp = settings.Tinit;
     }
-    
-    // TODO - complete.
-    void DumpBuffer() {
-    }
 
-    void RunAnneal(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh) {
+    void RunAnneal(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, 
+        LoggerBase& logger) {
         uniform_int_distribution<int> randomDist(0, numeric_limits<int>::max());
         uniform_int_distribution<int> randomPuDist(0, pu.validPuIndices.size()-1);
         uniform_real_distribution<double> float_range(0.0, 1.0);
-        int ipu, iZone, itemp, iPreviousZone, iGoodChange;
-        uint64_t ichanges = 0;
+        int ipu, iZone, itemp, iPreviousZone, iGoodChange, iRowCounter = 0;
+        uint64_t ichanges = 0, snapcount = 0;
+        string tempname;
+        ofstream zonefp, tracefp;
+        ostringstream debugBuffer, annealTraceBuffer; // debug buffer and progress buffer
 
+        // Initialize objects and files (if any)
         schange change = r.InitializeChange(spec, zones);
+        if (suppressAnnealZones == 0)
+        {
+            tempname = savename + "_anneal_zones" + to_string(r.id%10000) + getFileSuffix(annealTraceType);
+            zonefp.open(tempname);
+        }
+        if (annealTraceType)
+        {
+            tempname = savename + "_anneal_objective" + to_string(r.id%10000) + getFileSuffix(annealTraceType);
+            tracefp.open(tempname);
+        }
 
         for (int itime = 1; itime <= settings.iterations; itime++)
         {
@@ -86,28 +110,23 @@ class SimulatedAnnealing {
                     AdaptiveDec();
                 else
                     settings.temp = settings.temp * settings.Tcool;
-                
-                /* TODO enable after logging lib
-                ShowDetProg("time %i temp %f Complete %i%% currval %.4f\n",
-                            itime, anneal.temp, (int)itime * 100 / anneal.iterations, reserve->total);
-                */
+
+                if (logger.GetVerbosity() > 3)
+                {
+                    annealTraceBuffer << "run number: " << r.id << " time " << itime << " temp " << settings.temp << " Complete "
+                        << (int)itime * 100 / settings.iterations << " currval " << r.objective.total << "\n";
+                    logger.ShowWarningMessage(annealTraceBuffer.str());
+                    annealTraceBuffer.clear();
+                }
+
             } /* reduce temperature */
 
-            /* TODO - enable 
-            if (fnames.savesnapsteps && !(itime % fnames.savesnapfrequency))
+            if (saveSnapSteps && !(itime % saveSnapFrequency))
             {
-                if (repeats > 1)
-                    sprintf(tempname1, "_r%05i", irun);
-                else
-                    tempname1[0] = 0;
-                if (fnames.savesnapchanges == 3)
-                    sprintf(tempname2, "%s_snap%st%05i.csv", savename, tempname1, ++snapcount % 10000);
-                else if (fnames.savesnapchanges == 2)
-                    sprintf(tempname2, "%s_snap%st%05i.txt", savename, tempname1, ++snapcount % 10000);
-                else
-                    sprintf(tempname2, "%s_snap%st%05i.dat", savename, tempname1, ++snapcount % 10000);
+                tempname = savename + "_snap_r" + to_string(r.id) 
+                    + "t" + to_string(++snapcount%10000) + getFileSuffix(saveSnapChanges); 
 
-                OutputSolution(puno, R, pu, tempname2, fnames.savesnapsteps);
+                r.WriteSolution(tempname, pu, zones, saveSnapSteps);
             } /* Save snapshot every savesnapfreq timesteps */
             
             if (GoodChange(change, float_range) == 1)
@@ -117,21 +136,12 @@ class SimulatedAnnealing {
 
                 r.ApplyChange(ipu, iZone, change, pu, zones, spec);
 
-                /* TODO - re-enable
-                if (fnames.savesnapchanges && !(ichanges % fnames.savesnapfrequency))
+                if (saveSnapChanges && !(ichanges % saveSnapFrequency))
                 {
-                    if (repeats > 1)
-                        sprintf(tempname1, "_r%05i", irun);
-                    else
-                        tempname1[0] = 0;
-                    if (fnames.savesnapchanges == 3)
-                        sprintf(tempname2, "%s_snap%sc%05i.csv", savename, tempname1, ++snapcount % 10000);
-                    else if (fnames.savesnapchanges == 2)
-                        sprintf(tempname2, "%s_snap%sc%05i.txt", savename, tempname1, ++snapcount % 10000);
-                    else
-                        sprintf(tempname2, "%s_snap%sc%05i.dat", savename, tempname1, ++snapcount % 10000);
+                    tempname = savename + "_snap_r" + to_string(r.id) + "c" 
+                        + to_string(++snapcount % 10000) + getFileSuffix(saveSnapChanges);
 
-                    OutputSolution(puno, R, pu, tempname2, fnames.savesnapchanges);
+                    r.WriteSolution(tempname, pu, zones, saveSnapChanges);
                 } /* Save snapshot every savesnapfreq changes */
 
             } /* Good change has been made */
@@ -140,6 +150,8 @@ class SimulatedAnnealing {
 
 #ifdef TRACE_ZONE_TARGETS
             debugBuffer << "annealing after DoChange\n";
+            logger.AppendDebugTraceFile(debugBuffer.str());
+            debugBuffer.clear();
 #endif
 
             if (settings.type == 3)
@@ -147,53 +159,58 @@ class SimulatedAnnealing {
                 settings.sum += r.objective.total;
                 settings.sum2 += r.objective.total * r.objective.total;
             } /* Keep track of scores for averaging stuff */
-/*
-#ifdef DEBUGTRACEFILE
-            if (verbose > 4)
-                fprintf(fp, "%i,%i,%i,%i,%i,%i,%i,%f,%f,%f,%f,%f\n", itime, ipu, pu[ipu].id, iPreviousR, itemp, iZone, iGoodChange, change->total, change->cost, change->connection, change->penalty, anneal.temp);
-#endif
 
-            if (fnames.saveannealingtrace)
+            if (logger.GetVerbosity() > 4)
+            {
+                debugBuffer << "run: " << r.id << "," << itime << "," << ipu << ","
+                    << pu.puList[ipu].id << "," << iPreviousZone << "," << itemp << ","
+                    << iZone << "," << iGoodChange << "," << change.total << "," << change.cost << ","
+                    << change.connection << "," << change.penalty << "," << settings.temp << "\n";
+                logger.AppendDebugTraceFile(debugBuffer.str());
+                debugBuffer.clear();
+            }
+
+            if (annealTraceType)
             {
                 iRowCounter++;
-                if (iRowCounter > iRowLimit)
+                if (iRowCounter > rowLimit)
                     iRowCounter = 1;
 
                 if (iRowCounter == 1)
                 {
-                    if (fnames.suppressannealzones == 0)
-                        fprintf(zonefp, "%i", itime);
+                    string d = annealTraceType > 1 ? "," : " ";
 
-                    if (fnames.saveannealingtrace > 1)
-                    {
-                        fprintf(ttfp, "%i,%f,%i,%f,%f,%f,%f,%f,%i,%f\n", itime, costthresh, iGoodChange, reserve->total, reserve->cost, reserve->connection, reserve->penalty, reserve->shortfall, ipu, anneal.temp); // itime,costthresh,cost,connection,penalty
-
+                    tracefp << itime << d << costthresh << d << iGoodChange << d
+                            << r.objective.total << d << r.objective.cost << d << r.objective.connection << d
+                            << r.objective.penalty << d << r.objective.shortfall << d << ipu << d << settings.temp << "\n"; // itime,costthresh,cost,connection,penalty
+                                                                                                                                  /*
 #ifdef DEBUG_PEW_CHANGE_PEN
                         AppendDebugTraceFile("iteration,threshold,dochange,total,cost,connection,penalty,puindex\n");
                         sprintf(debugbuffer, "%i,%f,%i,%f,%f,%f,%f,%i\n", itime, costthresh, iGoodChange, reserve->total, reserve->cost, reserve->connection, reserve->penalty, ipu);
                         AppendDebugTraceFile(debugbuffer);
 #endif
+*/
 
-                        if (fnames.suppressannealzones == 0)
-                            for (i = 0; i < puno; i++)
-                                fprintf(zonefp, ",%i", R[i]);
-                    }
-                    else
+                    if (suppressAnnealZones == 0)
                     {
-                        fprintf(ttfp, "%i %f %i %f %f %f %f %f %i %f\n", itime, costthresh, iGoodChange, reserve->total, reserve->cost, reserve->connection, reserve->penalty, reserve->shortfall, ipu, anneal.temp);
+                        zonefp << itime;
+                        for (int i = 0; i < pu.puno; i++)
+                            zonefp << d << zones.IndexToId(r.solution[i]);
 
-                        if (fnames.suppressannealzones == 0)
-                            for (i = 0; i < puno; i++)
-                                fprintf(zonefp, " %i", R[i]);
+                        zonefp <<  "\n";
                     }
-
-                    if (fnames.suppressannealzones == 0)
-                        fprintf(zonefp, "\n");
                 }
             }
-            */
-
         } /* Run Through Annealing */
+
+        if (suppressAnnealZones == 0)
+        {
+            zonefp.close();
+        }
+        if (annealTraceType)
+        {
+            tracefp.close();
+        }
     }
 
     // Randomly chooses the next pu and zone to flip
@@ -331,14 +348,23 @@ class SimulatedAnnealing {
         settings.sum2 = 0;
     }
 
-    ostringstream debugBuffer; // TODO - print buffer once logging library
     mt19937 &rngEngine;
     int id;
 
     // anneal trace settings
     int annealTraceType;
-    string annealTraceFileName;
-    ostringstream annealTraceBuffer;
+    string savename;
+    LoggerBase logger;
+
+    private:
+    int saveSnapSteps;
+    int saveSnapChanges;
+    int saveSnapFrequency; // frequency in terms of iterations of how often to save snaps.
+    int suppressAnnealZones;
+    int annealingTraceRows;
+
+    // constants for trace storing
+    int rowLimit = 0;
 };
 
 } // namespace marzone
