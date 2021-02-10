@@ -49,7 +49,6 @@
 
 #include "analysis.hpp"
 #include "logger.hpp"
-//#include "output.hpp"
 #include "marzone.hpp"
 
 // Solver filers
@@ -173,7 +172,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
     // read in the MarZone files
     logger.AppendDebugTraceFile("before Loading Pu Files (Pu lock, pu zone etc.)\n");
-    Pu pu(fnames, costs, asymmetricconnectivity, zones.zoneNames);
+    Pu pu(fnames, costs, asymmetricconnectivity, zones.zoneNames, logger);
     logger.ShowDetProg("    Reading in the Planning Unit names \n");
     logger.ShowGenProg("   There are " + to_string(pu.puno) + " Planning units.\n  " + to_string(pu.puno) + " Planning Unit names read in \n");
     logger.ShowDetProg("    Reading in the species file \n");
@@ -421,7 +420,8 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             debugbuffer << "annealing start run " << irun << "\n";
             progbuffer << "\nRun: " << irun << ",";
 
-            SimulatedAnnealing sa(runoptions.AnnealingOn, anneal, rngEngine, fnames.saveannealingtrace, irun);
+            SimulatedAnnealing sa(fnames, logger, runoptions.AnnealingOn, anneal, 
+                rngEngine, fnames.saveannealingtrace, irun);
             if (runoptions.AnnealingOn)
             {
                 debugbuffer << "before Annealling Init run " << irun << "\n";
@@ -457,7 +457,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 debugbuffer << "before Annealing run " << irun << "\n";
                 progbuffer << "  Main Annealing Section.\n";
 
-                sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
+                sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, logger);
 
                 if (runoptions.verbose > 1)
                 {

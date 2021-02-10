@@ -16,10 +16,11 @@ TEST(PuTestsGroup, ReadPuData_fileparsing_test)
     fnames.puname = "data/pu_test1.dat";
     fnames.inputdir = "";
     Costs c(fnames);
+    LoggerMock logger;
     
     // arbitrary zones map
     map<int, ZoneName> zoneNames;
-    Pu pu(fnames, c, 0, zoneNames);
+    Pu pu(fnames, c, 0, zoneNames, logger);
 
     // Check costs are set correctly. Note that salmonfishing is missing so should be set to 1 by default.
     CHECK_EQUAL(5, pu.puno);
@@ -81,7 +82,8 @@ TEST(PuTestsGroup, PuLockPuZone_fileparsing_test)
     zoneNames[2] = {"available", 1};
     zoneNames[3] = {"available", 2};
 
-    Pu pu(fnames, c, 0, zoneNames);
+    LoggerMock logger;
+    Pu pu(fnames, c, 0, zoneNames, logger);
     
     // Ensure locked pus get returned as such.
     int ind1 = pu.LookupIndex(2);
@@ -124,8 +126,9 @@ TEST(PuTestsGroup, Connections_fileparsing_test)
     Costs c(fnames);
     
     // arbitrary zones map
+    LoggerMock logger;
     map<int, ZoneName> zoneNames;
-    Pu pu(fnames, c, 0, zoneNames);
+    Pu pu(fnames, c, 0, zoneNames, logger);
 
     // check connectionsEntered flag
     CHECK(pu.connectionsEntered);
@@ -166,7 +169,8 @@ TEST(PuTestsGroup, Puvspr_fileparsing_test)
 
     // arbitrary zones map
     map<int, ZoneName> zoneNames;
-    Pu pu(fnames, c, 0, zoneNames);
+    LoggerMock logger;
+    Pu pu(fnames, c, 0, zoneNames, logger);
 
     //load puvspr file
     pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
@@ -209,7 +213,8 @@ TEST(PuTestsGroup, Puvspr_RtnAmountSpecAtPu_test)
 
     // arbitrary zones map
     map<int, ZoneName> zoneNames;
-    Pu pu(fnames, c, 0, zoneNames);
+    LoggerMock logger;
+    Pu pu(fnames, c, 0, zoneNames, logger);
 
     //load puvspr file
     pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
@@ -268,7 +273,8 @@ TEST(PuTestsGroup, RtnAmountAllSpecAtPu_test)
 
     // arbitrary zones map
     map<int, ZoneName> zoneNames;
-    Pu pu(fnames, c, 0, zoneNames);
+    LoggerMock logger;
+    Pu pu(fnames, c, 0, zoneNames, logger);
 
     //load puvspr file
     pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
@@ -307,7 +313,8 @@ TEST(PuTestsGroup, getPuAmountsSorted_test)
 
     // arbitrary zones map
     map<int, ZoneName> zoneNames;
-    Pu pu(fnames, c, 0, zoneNames);
+    LoggerMock logger;
+    Pu pu(fnames, c, 0, zoneNames, logger);
 
     //load puvspr file
     pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
@@ -359,7 +366,8 @@ TEST(PuTestsGroup, RtnValidZoneForPu_test)
     zoneNames[2] = {"available", 1};
     zoneNames[3] = {"available", 2};
 
-    Pu pu(fnames, c, 0, zoneNames);
+    LoggerMock logger;
+    Pu pu(fnames, c, 0, zoneNames, logger);
 
     int ind1 = pu.LookupIndex(2);
     int ind2 = pu.LookupIndex(5);

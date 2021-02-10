@@ -75,7 +75,8 @@ TEST(ZonesTestsGroup, DefaultZoneContrib_test)
     Costs c(fnames);
     Species spec(fnames);
     Zones z(fnames, c);
-    Pu pu(fnames, c, 0, z.zoneNames);
+    LoggerMock logger;
+    Pu pu(fnames, c, 0, z.zoneNames, logger);
 
     // Build zone contribs
     z.BuildZoneContributions(spec, pu);
@@ -111,7 +112,8 @@ TEST(ZonesTestsGroup, LoadZoneContrib_fileparsing_test)
     Costs c(fnames);
     Species spec(fnames);
     Zones z(fnames, c);
-    Pu pu(fnames, c, 0, z.zoneNames);
+    LoggerMock logger;
+    Pu pu(fnames, c, 0, z.zoneNames, logger);
 
     // Build zone contribs
     z.BuildZoneContributions(spec, pu);

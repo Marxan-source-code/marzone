@@ -13,13 +13,15 @@
 #include "common.hpp"
 #include "species.hpp"
 #include "util.hpp"
+#include "logger.hpp"
 
 namespace marzone {
 using namespace std;
 
 class Pu {
     public:
-    Pu(sfname& fnames, Costs& costs, int asymmetric, map<int, ZoneName>& zoneLookup) : puno(0), puLockCount(0), puZoneCount(0) {
+    Pu(sfname& fnames, Costs& costs, int asymmetric, map<int, ZoneName>& zoneLookup, LoggerBase& logger) : puno(0), puLockCount(0), puZoneCount(0) {
+        logger = logger;
         ReadPUData(fnames.inputdir + fnames.puname, costs);
 
         if (!fnames.pulockname.empty())
@@ -84,11 +86,17 @@ class Pu {
 
             spindex = spec.LookupIndex(_spid);
             if (spindex == -1)
+            {
+                logger.ShowWarningMessage(filename + " found undefined spid " + to_string(_spid) + ". Ignoring this species.\n");
                 continue;
+            }
 
             puindex = LookupIndex(_puid);
             if (puindex == -1)
+            {
+                logger.ShowWarningMessage(filename + " found undefined puid " + to_string(_puid) + ". Ignoring this pu.\n");
                 continue;
+            }
 
             /* increment richness for planning unit containing this feature */
             puList[puindex].richness += 1;
@@ -112,48 +120,6 @@ class Pu {
         }
 
         density = puvspr.size()*100.0/(puno*spec.spno);
-    }
-
-    // TODO - delete as no longer needed.
-    void LoadSparseMatrix_sporder(Species& spec, string filename) {
-        FILE *fp = openFile(filename);
-        vector<map<int,spusporder>> SMTemp(spec.spno); // temporarily storing in this structure prevents the need for ordering.
-        char sLine[1000];
-        char *sVarVal;
-        int _puid, _spid, puindex, spindex;
-        double amount;
-
-        fgets(sLine,999,fp); // skip header
-        while (fgets(sLine, 999, fp))
-        {
-            sVarVal = strtok(sLine, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &_spid);
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &_puid);
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%lf", &amount);
-
-            puindex = LookupIndex(_puid);
-            spindex = spec.LookupIndex(_spid);
-
-            if (puindex == -1 || spindex == -1)
-                continue;
-
-            SMTemp[spindex][puindex].amount = amount;
-        }
-
-        // load all into real spu vector and set species richness. 
-        int j = 0;
-        for (int i = 0; i < spec.spno; i++) {
-            spec.SetOffset(i, j); // set offset j to species i
-            spec.SetRichness(i, SMTemp[i].size());
-            for (auto &[puindex, val] : SMTemp[i]) {
-                spusporder temp = val;
-                temp.puindex = puindex;
-                puvspr_sporder.push_back(temp);
-                j++;
-            }
-        }
     }
 
     // Returns a vector containing the summation of all species amounts in all the pu
@@ -526,7 +492,8 @@ class Pu {
             puZone[puindex].push_back(zoneit->second.index);
         }
 
-        // Check puZone to make sure there are no single zoned pu. TODO - If so, convert to lock.
+        // Check puZone to make sure there are no single zoned pu. 
+        // we could in the future convert these to lock.
         int i = 0;
         for (vector<int>& zoneMap: puZone) {
             // exlcude already pulocked indices
@@ -535,9 +502,7 @@ class Pu {
                 puList[i].numZones = zoneMap.size();
                 if (zoneMap.size() == 1)
                 {
-                    throw new invalid_argument("Planning units found in puzone locked to a single zone. Do not use this file to lock planning units!");
-                    // TODO - add this when logging library is complete.
-                    // ShowErrorMessage("Error: planning unit %i is locked to a single zone in %s.\nDo not use this file to lock planning units to a single zone; use pulock.dat for this purpose.\nAborting Program.\n",pu[i].id,fnames.puzonename);
+                    logger.ShowErrorMessage("Planning units found in puzone locked to a single zone. Do not use this file to lock planning units! Planning unit " + to_string(puList[i].id) + " is locked to a single zone " + to_string(zoneMap[0]) + "\n");
                 }
             }
             i++;
@@ -568,7 +533,8 @@ class Pu {
 
             if (id1 == -1 || id2 == -1) // one of the puid is not found - ignore.
             {
-                //    ShowErrorMessage("A connection is out of range %f %i %i \n", fcost, id1, id2);
+                logger.ShowErrorMessage("A connection is out of range " + to_string(fcost) + " " + 
+                    to_string(id1) + " " + to_string(id2) + "\n");
                 continue;
             }
 
@@ -594,9 +560,7 @@ class Pu {
 
                 if (bad)
                 {
-                    cout << "Double connection definition " << puList[id1].id << " " << puList[id2].id << "\n";
-                    // TODO - re-enable.
-                    //ShowDetProg("Double connection definition %i %i \n", pu[id1].id, pu[id2].id);
+                    logger.ShowWarningMessage("Double connection definition " + to_string(puList[id1].id) + " " + to_string(puList[id2].id) + "\n");
                 }
                 else
                 {
@@ -683,7 +647,7 @@ class Pu {
             } /* looking for ivar different input variables */
 
             if (putemp.id == -1)
-                throw invalid_argument("ERROR: Unable to parse planning unit id for line "+ to_string(puList.size()+1) + "\n");
+                logger.ShowErrorMessage("ERROR: Unable to parse planning unit id for line "+ to_string(puList.size()+1) + "\n");
 
             // Aggregate pu costs 
             for (double c: putemp.costBreakdown) {
@@ -724,6 +688,9 @@ class Pu {
             {
                 puLock[puid] = zoneid;
             }
+            else {
+                logger.ShowWarningMessage(filename + ": puid found that was not defined in pu.dat. Puid will be ignored: " + to_string(puid) + "\n");
+            }
         }
         puLockCount = puLock.size();
         fclose(fp);
@@ -753,6 +720,8 @@ class Pu {
             // persist only if pu is already defined
             if (lookup.find(puid) != lookup.end())
                 puZoneTemp.push_back({puid, zoneid});
+            else
+                logger.ShowWarningMessage(filename + ": puid found that was not defined in pu.dat. Puid will be ignored: " + to_string(puid) + "\n");
         }
         puZoneCount = puZoneTemp.size();
         fclose(fp);
@@ -760,6 +729,7 @@ class Pu {
         return puZoneTemp;
     }
 
+    LoggerBase logger;
 };
     
 }

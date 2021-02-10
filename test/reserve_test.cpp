@@ -41,7 +41,8 @@ TEST(ReserveTestsGroup, Reserve_ComputeSpeciesAmounts_test)
     Costs c(fnames);
     Species spec(fnames);
     Zones zones(fnames, c);
-    Pu pu(fnames, c, 0, zones.zoneNames);
+    LoggerMock logger;
+    Pu pu(fnames, c, 0, zones.zoneNames, logger);
     pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     zones.BuildZoneContributions(spec, pu);
 
@@ -88,7 +89,8 @@ TEST(ReserveTestsGroup, Reserve_CheckChangeValue_test)
     Costs c(fnames);
     Species spec(fnames);
     Zones zones(fnames, c);
-    Pu pu(fnames, c, 0, zones.zoneNames);
+    LoggerMock logger;
+    Pu pu(fnames, c, 0, zones.zoneNames, logger);
     pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     zones.BuildZoneContributions(spec, pu);
 
@@ -152,7 +154,8 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_test)
     Costs c(fnames);
     Species spec(fnames);
     Zones zones(fnames, c);
-    Pu pu(fnames, c, 0, zones.zoneNames);
+    LoggerMock logger;
+    Pu pu(fnames, c, 0, zones.zoneNames, logger);
     pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     zones.BuildZoneContributions(spec, pu);
 
@@ -168,8 +171,8 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_test)
     double expected = (100-70.5)+(110-66.9) + (3-2); // 3-2 = shortfall occurrence for species 3
     CHECK_EQUAL(expected, r.objective.shortfall);
 
-    // Since all pu are being used, and there's no zoneCost supplied
-    // TODO - double check how this should work.
+    // Since all pu are being used, and there's no zoneCost supplied, it should be total pu cost in this case.
+    CHECK_EQUAL(6+66+666+2+2, r.objective.cost);
 
     // Connection cost - 0 in this case since no connections entered
     CHECK_EQUAL(0, r.objective.connection);

@@ -9,25 +9,31 @@
 namespace marzone {
     using namespace std;
 
-    // Base empty class for mocking purposes.
+    // Base abstract class for mocking purposes.
     class LoggerBase {
         public:
         virtual void ShowErrorMessage(string sMess) {}
         virtual void ShowWarningMessage(string sMess) {}
-
+        virtual void AppendDebugTraceFile(string sMess) {}
+        virtual int GetVerbosity() { return 1; }
     };
 
     // mock class for unit tests.
-    class LoggerMock: LoggerBase {
+    class LoggerMock: public LoggerBase {
         public:
         LoggerMock() {}
         void ShowErrorMessage(string sMess) {}
         void ShowWarningMessage(string sMess) {}
+        void AppendDebugTraceFile(string sMess) {}
+        int GetVerbosity() { return 1; }
     };
 
-    class Logger : LoggerBase {
+    class Logger : public LoggerBase {
     public:
     Logger() {}
+
+    // Returns verbosity
+    int GetVerbosity() { return verbosity; }
 
     // For perf debugging purposes.
     void ShowTimePassedMs(const chrono::high_resolution_clock::time_point& startTime) {
