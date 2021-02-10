@@ -9,6 +9,7 @@
 #include <map>
 #include <random>
 #include <string>
+#include <fstream>
 #include "costs.hpp"
 #include "common.hpp"
 #include "species.hpp"
@@ -67,22 +68,37 @@ class Pu {
     }
 
     void LoadSparseMatrix(Species& spec, string filename) {
-        FILE *fp = openFile(filename);
         vector<map<int,spu>> SMTemp(puno); // temporarily storing in this structure prevents the need for ordering.
-        char sLine[1000];
-        char *sVarVal;
+        string sLine;
         int _puid, _spid, puindex, spindex;
         double amount;
 
-        fgets(sLine,999,fp); // skip header
-        while (fgets(sLine, 999, fp))
+        ifstream fp;
+        fp.open(filename);
+        if (!fp.is_open())
+            logger.ShowErrorMessage("Cannot open file "+ filename + ".\n");
+
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
-            sVarVal = strtok(sLine, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &_spid);
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &_puid);
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%lf", &amount);
+
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (is_like_numerical_data(sLine))
+                    logger.ShowWarningMessage("File " + filename + " has no header in the first line.\n");
+                else
+                    continue;
+            }
+
+            if (sLine.empty())
+                continue;
+
+            stringstream ss = stream_line(sLine);
+            ss >> _spid >> _puid >> amount;
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) +".\n");
+
 
             spindex = spec.LookupIndex(_spid);
             if (spindex == -1)
@@ -106,6 +122,8 @@ class Pu {
             temp.clump = 0;
             SMTemp[puindex][spindex] = temp;
         }
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
 
         // load all into real spu vector
         int j = 0;

@@ -266,4 +266,57 @@ vector<int> Range(int start, int end) {
     return r;
 }
 
+inline
+std::vector<std::string> get_tokens(const std::string& str)
+{
+    static const std::string delimeters(" ,;:^*\"/\t\'\\\n");
+    std::vector<std::string> tokens;
+    std::string word;
+    for (char ch : str)
+    {
+        if (delimeters.find_first_of(ch) == std::string::npos)
+            word.push_back(ch);
+        else
+        {
+            if (!word.empty())
+            {
+                tokens.push_back(word);
+                word.clear();
+            }
+        }
+    }
+    if (!word.empty())
+        tokens.push_back(word);
+    return tokens;
+}
+
+inline
+std::stringstream stream_line(const std::string& str)
+{
+    static const std::string delimeters(" ,;:^*\"/\t\'\\\n");
+    std::stringstream ss;
+    for (char ch : str)
+    {
+        if (delimeters.find_first_of(ch) == std::string::npos)
+            ss << ch;
+        else
+        {
+            ss << ' ';
+        }
+    }
+    return ss;
+}
+
+inline
+bool is_like_numerical_data(const std::string& str)
+{
+    //check if there are chars other then delimeters and ones used to represent numbers
+    size_t letter_pos = str.find_first_not_of(" ,;:^*\"/\t\'\\\n\r.+-Ee0123456789");
+    if (letter_pos != std::string::npos)
+        return false;
+    return true;
+}
+
+
+
 } // namespace marzone
