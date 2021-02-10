@@ -34,6 +34,10 @@ class Costs {
         return costNames[costName].index;
     }
 
+    unsigned GetCostIndex(int costId) {
+        return costIds[costId];
+    }
+
     // Checks if costName is defined
     bool Contains(string costName) {
         if (costNames.find(costName) == costNames.end()) {
@@ -79,6 +83,7 @@ class Costs {
             string s(sVarVal);
             trim(s);
             costNames[s] = {id, costCount};
+            costIds[id] = costCount;
             costCount++;
         }
         fclose(fp);
@@ -87,10 +92,12 @@ class Costs {
     void DefaultCostNames()
     {
         costCount= 1;
+        costIds[1] = 0u;
         costNames["cost"] = {1, 0u};
     }
 
     map<string, costField> costNames;
+    map<int, unsigned> costIds; // cost id to index.
 };
 
 } // namespace marzone

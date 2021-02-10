@@ -77,7 +77,7 @@ class Zones {
         }
 
         // Build zone cost with inputted information
-        PopulateZoneCosts(fnames, costs.costCount);
+        PopulateZoneCosts(fnames, costs);
         PopulateConnectionCosts(fnames);
     }
 
@@ -578,7 +578,7 @@ class Zones {
         }
     }
 
-    void PopulateZoneCosts(sfname& fnames, int costCount) {
+    void PopulateZoneCosts(sfname& fnames, Costs& costs) {
         // read zone cost files (if any)
         if (!fnames.zonecostname.empty())
         {
@@ -586,15 +586,15 @@ class Zones {
             availableZoneCost = true;
         }
         else {
-            zoneCost.assign(costCount*zoneCount, 1.0);
+            zoneCost.assign(costs.costCount*zoneCount, 1.0);
             return;
         }
 
-        zoneCost.assign(costCount*zoneCount, 0.0);
+        zoneCost.assign(costs.costCount*zoneCount, 0.0);
         int zoneind1;
         for (zonecoststruct& cost: zoneCostFileLoad) {
             zoneind1 = zoneNames[cost.zoneid].index;
-            zoneCost[((cost.costid-1)*zoneCount)+zoneind1] = cost.fraction;
+            zoneCost[costs.GetCostIndex(cost.costid)*zoneCount+zoneind1] = cost.fraction;
         }
     }
 
