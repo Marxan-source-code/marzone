@@ -81,7 +81,6 @@ class Pu {
         bool file_is_empty = true;
         for (int line_num = 1; getline(fp, sLine); line_num++)
         {
-
             file_is_empty = false;
             if (line_num == 1)
             {
@@ -90,7 +89,6 @@ class Pu {
                 else
                     continue;
             }
-
             if (sLine.empty())
                 continue;
 
@@ -122,6 +120,7 @@ class Pu {
             temp.clump = 0;
             SMTemp[puindex][spindex] = temp;
         }
+        fp.close();
         if (file_is_empty)
             logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
 
@@ -528,23 +527,33 @@ class Pu {
     }
 
     void ReadConnections(string filename, int asymmetric) {
-        FILE *fp = openFile(filename);
+        ifstream fp;
+        fp.open(filename);
+        if (!fp.is_open())
+            logger.ShowErrorMessage("Cannot open file " + filename + ".\n");
         connections.resize(puno);
-        char sLine[1000];
-        char *sVarVal;
+        string sLine;
         int id1, id2, tempid1, tempid2, bad; 
         double fcost;
 
-        fgets(sLine,999,fp); /* Skip header line */
-
-        while (fgets(sLine, 999, fp))
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
-            sVarVal = strtok(sLine, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &tempid1);
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &tempid2);
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%lf", &fcost);
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (is_like_numerical_data(sLine))
+                    logger.ShowWarningMessage("File " + filename + " has no header in the first line.\n");
+                else
+                    continue;
+            }
+            if (sLine.empty())
+                continue;
+
+            stringstream ss = stream_line(sLine);
+            ss >> tempid1 >> tempid2 >> fcost;
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
 
             id1 = LookupIndex(tempid1);
             id2 = LookupIndex(tempid2);
@@ -619,24 +628,31 @@ class Pu {
                 }
             }
         }
-        fclose(fp);
+        fp.close();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
     }
 
     /* Read Planning Unit Data */
     /* The pu.dat for marzone contains only the puid, and any cost columns */
     void ReadPUData(string filename, Costs& costs)
     {
-        FILE *fp = openFile(filename);
-        char sLine[1000];
-        char *sVarVal;
+        ifstream fp;
+        fp.open(filename);
+        if (!fp.is_open())
+            logger.ShowErrorMessage("Cannot open file " + filename + ".\n");
+        string sLine;
 
-        /* Scan header. We expect id header, and number of cost headers */
-        fgets(sLine, 999, fp);
+        getline(fp, sLine);
         vector<string> headerNames = getFileHeaders(sLine, filename);
 
-        /* While there are still lines left feed information into temporary link list */
-        while (fgets(sLine, 999, fp))
+        /*Feed information into temporary link list */
+        bool file_is_empty = true;
+        for (int line_num = 2; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
+            if (sLine.empty())
+                continue;
             spustuff putemp = {}; // init all to 0
             putemp.id = -1;
             putemp.cost = 0;
@@ -645,24 +661,21 @@ class Pu {
             putemp.iPULock = -1;
             putemp.costBreakdown.resize(costs.costCount, 1.0); // default cost to 1 if not supplied.
 
+            stringstream ss = stream_line(sLine);
+
             for (string temp: headerNames)
             {
-                if (temp == headerNames.front())
-                    sVarVal = strtok(sLine, " ,;:^*\"/|\t\'\\\n");
-                else
-                    sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-
                 if (temp.compare("id") == 0)
-                {
-                    sscanf(sVarVal, "%d", &putemp.id);
-                }
+                    ss >> putemp.id;
 
                 // Cost is defined
                 if (costs.Contains(temp)) {
-                    sscanf(sVarVal, "%lf", &putemp.costBreakdown[costs.GetCostIndex(temp)]);
+                    ss >> putemp.costBreakdown[costs.GetCostIndex(temp)];
                 }
 
             } /* looking for ivar different input variables */
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
 
             if (putemp.id == -1)
                 logger.ShowErrorMessage("ERROR: Unable to parse planning unit id for line "+ to_string(puList.size()+1) + "\n");
@@ -678,28 +691,40 @@ class Pu {
 
         } /* while still lines in data file */
 
-        fclose(fp);
+        fp.close();
         puno = puList.size();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
     } // ReadPUData
 
     void LoadPuLock(string filename)
     {
-        FILE *fp = openFile(filename);
-        char sLine[1000], *sVarVal;
+        ifstream fp;
+        fp.open(filename);
+        if (!fp.is_open())
+            logger.ShowErrorMessage("Cannot open file " + filename + ".\n");
+
+        string sLine;
         int puid, zoneid;
 
-        // count the number of records
-        fgets(sLine, 999, fp);
-        // create the PuLock map
-        while (fgets(sLine, 999, fp))
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
-            // read the integer puid from this line
-            sVarVal = strtok(sLine, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &puid);
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (is_like_numerical_data(sLine))
+                    logger.ShowWarningMessage("File " + filename + " has no header in the first line.\n");
+                else
+                    continue;
+            }
+            if (sLine.empty())
+                continue;
 
-            // read the integer zoneid from this line
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &zoneid);
+            stringstream ss = stream_line(sLine);
+            ss >> puid >> zoneid;
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
 
             // persist only if pu is already defined
             if (lookup.find(puid) != lookup.end())
@@ -711,30 +736,39 @@ class Pu {
             }
         }
         puLockCount = puLock.size();
-        fclose(fp);
+        fp.close();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
     }
 
     vector<puzonestruct> LoadPuZone(string filename)
     {
-        FILE *fp = openFile(filename);
-        char sLine[1000], *sVarVal;
+        ifstream fp;
+        fp.open(filename);
+        if (!fp.is_open())
+            logger.ShowErrorMessage("Cannot open file " + filename + ".\n");
+
+        string sLine;
         int puid, zoneid;
         vector<puzonestruct> puZoneTemp;
 
-        // skip header
-        fgets(sLine, 999, fp);
-
-        // create the PuLock array
-        while (fgets(sLine, 999, fp))
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
-            // read the integer puid from this line
-            sVarVal = strtok(sLine, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &puid);
-
-            // read the integer zoneid from this line
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &zoneid);
-
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (is_like_numerical_data(sLine))
+                    logger.ShowWarningMessage("File " + filename + " has no header in the first line.\n");
+                else
+                    continue;
+            }
+            if (sLine.empty())
+                continue;
+            stringstream ss = stream_line(sLine);
+            ss >> puid >> zoneid;
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
             // persist only if pu is already defined
             if (lookup.find(puid) != lookup.end())
                 puZoneTemp.push_back({puid, zoneid});
@@ -742,8 +776,9 @@ class Pu {
                 logger.ShowWarningMessage(filename + ": puid found that was not defined in pu.dat. Puid will be ignored: " + to_string(puid) + "\n");
         }
         puZoneCount = puZoneTemp.size();
-        fclose(fp);
-
+        fp.close();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
         return puZoneTemp;
     }
 

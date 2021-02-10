@@ -219,32 +219,6 @@ FILE* openFile(string filename) {
     return fp;
 }
 
-inline
-// Toks the given header line and returns an ordered list of header names. 
-// We could use set instead of vector, but the size of these sets is very small (i.e under 10) so vector should be equal perf.
-vector<string> getFileHeaders(char* header, string filename) {
-    vector<string> headers;
-
-    char* sVarName = strtok(header, " ,;:^*\"/|\t\'\\\n");
-    string cleaned(sVarName);
-    trim(cleaned);
-    headers.push_back(cleaned);
-
-    while ((sVarName = strtok(NULL, " ,;:^*\"/|\t\'\\\n")) != NULL) {
-        cleaned = string(sVarName);
-        trim(cleaned);
-        if (find(headers.begin(), headers.end(), cleaned) == headers.end()) {
-            // Add to list if not already present.
-            headers.push_back(cleaned);
-        }
-        else {
-            throw invalid_argument("Header name " + string(cleaned) + " has been defined twice in data file " + filename + ".");
-        }
-    }
-
-    return headers;
-}
-
 inline 
 string getFileSuffix(int mode) {
     if (mode == 3) {
@@ -317,6 +291,25 @@ bool is_like_numerical_data(const std::string& str)
     return true;
 }
 
+inline
+// Toks the given header line and returns an ordered list of header names. 
+// We could use set instead of vector, but the size of these sets is very small (i.e under 10) so vector should be equal perf.
+vector<string> getFileHeaders(const string& header, const string& filename) {
+    vector<string> headers;
+    vector<string> tokens = get_tokens(header);
+    for (string cleaned : tokens)
+    {
+        trim(cleaned);
+        if (find(headers.begin(), headers.end(), cleaned) == headers.end()) {
+            // Add to list if not already present.
+            headers.push_back(cleaned);
+        }
+        else {
+            throw invalid_argument("Header name " + string(cleaned) + " has been defined twice in data file " + filename + ".");
+        }
+    }
 
+    return headers;
+}
 
 } // namespace marzone
