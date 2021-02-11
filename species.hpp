@@ -334,6 +334,9 @@ class Species {
                 }
             } /* looking for ivar different input variables */
             
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
+
             typeList.push_back(spectemp);
 
             if (populateLookup)

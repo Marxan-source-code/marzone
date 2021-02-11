@@ -689,12 +689,12 @@ class Zones {
             // read the integer zoneid1 from this line
             stringstream ss = stream_line(sLine);
             ss >> zoneid1;
-
             // read the integer zoneid2 from this line
             ss >> zoneid2;
-
             // read the double fraction from this line
             ss >> fraction;
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
 
             zoneRelConnectionCost.push_back({zoneid1, zoneid2, fraction});
         }
@@ -730,13 +730,12 @@ class Zones {
             // read the integer zoneid from this line
             stringstream ss = stream_line(sLine);
             ss >> zoneid;
-
             // read the integer costid from this line
             ss >> costid;
-
             // read the double fraction from this line
             ss >> fraction;
-
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
             tempZoneCost.push_back({zoneid, costid, fraction});
         }
         fp.close();
@@ -770,12 +769,12 @@ class Zones {
             // read the integer zoneid from this line
             stringstream ss = stream_line(sLine);
             ss >> zoneid;
-
             // read the integer speciesid from this line
             ss >> speciesid;
-
             // read the double fraction from this line
             ss >> fraction;
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
 
             zoneContrib.push_back({zoneid, speciesid, fraction});
             zoneContribCount++;
@@ -814,6 +813,9 @@ class Zones {
 
             // read the double fraction from this line
             ss >> fraction;
+
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
 
             zoneContrib2.push_back({zoneid, fraction});
             zoneContrib2Count++;
@@ -856,6 +858,10 @@ class Zones {
 
             // read the double fraction from this line
             ss >> fraction;
+
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
+
 
             zoneContrib3.push_back({zoneid, puid, speciesid, fraction});
             zoneContrib3Count++;
@@ -903,7 +909,9 @@ class Zones {
                 targettype = 0;
             else
                 ss >> targettype;
-
+           
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
             zoneTargets.push_back({zoneid, speciesid, target, targettype});
         }
         fp.close();
@@ -937,6 +945,8 @@ class Zones {
             // read the string name from this line
             string sval;
             ss >> sval;
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
             trim(sval);
             zoneNames[tempId] = {sval, zoneCount};
 

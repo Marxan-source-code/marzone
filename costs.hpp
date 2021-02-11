@@ -86,6 +86,8 @@ class Costs {
             ss >> id;
             string costName;
             ss >> costName;
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
             trim(costName);
             costNames[costName] = {id, costCount};
             costCount++;
