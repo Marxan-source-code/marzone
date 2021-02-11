@@ -8,9 +8,12 @@
 #include <string>
 #include "common.hpp"
 #include "util.hpp"
+#include "logger.hpp"
 
 namespace marzone {
 using namespace std;
+
+extern Logger logger;
 
 class Species {
     public:
@@ -141,24 +144,35 @@ class Species {
     }
 
     void LoadCustomPenalties(string filename) {
-        FILE *fp = openFile(filename);
-        char sLine[500], *sVarVal;
+        ifstream fp = openFile(filename);
+        string sLine;
 
-        /* Scan header */
-        fgets(sLine,499,fp);
+        int i=0, spid;
 
-        int i=0, _spid;
-        while (fgets(sLine,499,fp))
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
-            sVarVal = strtok(sLine," ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal,"%d",&_spid);
-            sVarVal = strtok(NULL," ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal,"%lf",&specList[i].penalty);
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (is_like_numerical_data(sLine))
+                    logger.ShowWarningMessage("File " + filename + " has no header in the first line.\n");
+                else
+                    continue;//skip header
+            }
+            if (sLine.empty())
+                continue;
 
+            stringstream ss = stream_line(sLine);
+            ss >> spid >> specList[i].penalty;
+            if (ss.fail())
+                logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
             i++;
         }
+        fp.close();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
 
-        fclose(fp);
     }
 
     // Writes species penalties into filename
@@ -221,19 +235,22 @@ class Species {
     // precondition - T must be of type sgenspec or one of its inheritors
     template<typename T>
     void ReadSpeciesData(string filename, vector<T>& typeList, unsigned& count, bool populateLookup) {
-        FILE *fp = openFile(filename);
-        char sLine[1000];
+        ifstream fp = openFile(filename);
+        string sLine;
 
         int numvars = 10,namespecial = 0;
-        char *sVarName = nullptr,*sVarVal = nullptr;
-
         /* Scan header */
-        fgets(sLine,999,fp);
+        getline(fp, sLine);
         vector<string> headerNames = getFileHeaders(sLine, filename);
 
         /* While there are still lines left populate specList */
-        while (fgets(sLine,999,fp))
+        bool file_is_empty = true;
+        for (int line_num = 2; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
+            if (sLine.empty())
+                continue;
+
             T spectemp = {};
             /** Clear important species stats **/
             spectemp.target = -1;
@@ -244,88 +261,76 @@ class Species {
             spectemp.sepdistance = -1;
             spectemp.sepnum = -1;
 
+            stringstream ss = stream_line(sLine);
+
             for (string temp : headerNames)
             { /* Tok out the next Variable */
+
 
                 if (namespecial)
                 { /* used for special name handling function */
                     namespecial = 0;
                 }
-                else
-                {
-                    if (temp == headerNames.front())
-                    {
-                        sVarVal = strtok(sLine, " ,;:^*\"/|\t\'\\\n");
-                    }
-                    else {
-                        sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-                    }
-                }
 
                 if (temp.compare("id") == 0)
                 {
-                    sscanf(sVarVal, "%d", &spectemp.name);
+                    ss >> spectemp.name;
                 }
                 else if (temp.compare("name") == 0)
                 {
-                    /* Cpy first part of name into this */
-                    string speciesname(sVarVal);
-                    /* get next part of name */
-                    do
+                    string speciesname, word;
+                    ss >> word;
+                    speciesname += word;
+                    //read the rest words of multiple word names
+                    while(ss)
                     {
-                        sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-                        if (!sVarVal)
-                            namespecial = 2;
-                        else
+                        char delim;
+                        ss >> delim; //do not need to put delimeter back into stream
+                        if (!ss)
+                            break;
+                        char first_letter = ss.peek();
+                        if (isalpha(first_letter))
                         {
-                            if (isalpha(sVarVal[0]))
-                            {
-                                speciesname += " ";
-                                speciesname += string(sVarVal);
-                            }
-                            else
-                                namespecial = 1;
+                            ss >> word;
+                            speciesname += " ";
+                            speciesname += word;
                         }
-                    } while (!namespecial);
-                    if (namespecial == 2)
-                        namespecial = 0; /* Handles end of line case */
-                    /* namespecial == 1 means not at end of line and next variable should be processed*/
-
+                    }
                     spectemp.sname = speciesname;
-                } /* Special name handling routine */
+                } 
                 else if (temp.compare("type") == 0)
                 {
-                    sscanf(sVarVal, "%d", &spectemp.type);
+                    ss >> spectemp.type;
                 }
                 else if (temp.compare("target") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &spectemp.target);
+                    ss >> spectemp.target;
                 }
                 else if (temp.compare("prop") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &spectemp.prop);
+                    ss >> spectemp.prop;
                     if (spectemp.prop > 0)
                         fSpecPROPLoaded = true;
                 }
                 else if (temp.compare("fpf") == 0 || temp.compare("spf") == 0) // fpf, spf same header meaning.
                 {
-                    sscanf(sVarVal, "%lf", &spectemp.spf);
+                    ss >> spectemp.spf;
                 }
                 else if (temp.compare("sepdistance") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &spectemp.sepdistance);
+                    ss >> spectemp.sepdistance;
                 }
                 else if (temp.compare("sepnum") == 0)
                 {
-                    sscanf(sVarVal, "%d", &spectemp.sepnum);
+                    ss >> spectemp.sepnum;
                 }
                 else if (temp.compare("target2") == 0)
                 {
-                    sscanf(sVarVal, "%lf", &spectemp.target2);
+                    ss >> spectemp.target2;
                 }
                 else if (temp.compare("targetocc") == 0)
                 {
-                    sscanf(sVarVal, "%d", &spectemp.targetocc);
+                    ss >> spectemp.targetocc;
                 }
             } /* looking for ivar different input variables */
             
@@ -337,7 +342,10 @@ class Species {
             count++;
         } /* Scanning through each line of file */
 
-        fclose(fp);
+        fp.close();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
+
     }
 };
 

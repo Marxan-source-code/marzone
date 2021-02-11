@@ -4,11 +4,13 @@
 
 #include "common.hpp"
 #include "util.hpp"
-
+#include "logger.hpp"
 /*
  Short class that handles cost information.
 */
 namespace marzone {
+
+extern Logger logger;
 
 typedef struct costField
 {
@@ -60,28 +62,37 @@ class Costs {
     private:
     void LoadCostNames(string filename)
     {
-        FILE *fp = openFile(filename);
-        char sLine[1000], *sVarVal;
+        ifstream fp = openFile(filename);
+        string sLine;
         int id;
         string name;
 
-        // ignore header
-        fgets(sLine,999,fp);
-
         // create the CostNames array
         // load the data to an array
-        while (fgets(sLine,999,fp))
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
-            sVarVal = strtok(sLine," ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &id);
-
-            sVarVal = strtok(NULL," ,;:^*\"/|\t\'\\\n");
-            string s(sVarVal);
-            trim(s);
-            costNames[s] = {id, costCount};
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (is_like_numerical_data(sLine))
+                    logger.ShowWarningMessage("File " + filename + " has no header in the first line.\n");
+                else
+                    continue;//skip header
+            }
+            if (sLine.empty())
+                continue;
+            stringstream ss = stream_line(sLine);
+            ss >> id;
+            string costName;
+            ss >> costName;
+            trim(costName);
+            costNames[costName] = {id, costCount};
             costCount++;
         }
-        fclose(fp);
+        fp.close();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
     }
 
     void DefaultCostNames()

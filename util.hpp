@@ -11,6 +11,7 @@
 
 #include "common.hpp"
 #include <iostream>
+#include <fstream>
 
 namespace marzone {
 
@@ -212,9 +213,10 @@ void readInputOption(vector<string>& infile, string varname, T& value, bool crit
 } // readInputOption
 
 inline
-FILE* openFile(string filename) {
-    FILE* fp = fopen(filename.c_str(),"r");
-    if (fp==NULL)
+ifstream openFile(string filename) {
+    ifstream fp;
+    fp.open(filename);
+    if (!fp.is_open())
         throw invalid_argument("Cannot find or open file " + filename + ". Aborting program.");
     return fp;
 }

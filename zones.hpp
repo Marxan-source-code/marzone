@@ -9,8 +9,12 @@
 #include "pu.hpp"
 #include "species.hpp"
 #include "util.hpp"
+#include "logger.hpp"
 
 namespace marzone {
+
+extern Logger logger;
+    
 typedef struct ZoneIndex : ZoneName {
     int id;
 } ZoneIndex;
@@ -661,33 +665,42 @@ class Zones {
     }
 
     vector<relconnectioncoststruct> LoadRelConnectionCost(string filename) {
-        FILE *fp = openFile(filename);
-        char sLine[1000], *sVarVal;
+        ifstream fp = openFile(filename);
+        string sLine;
         int zoneid1, zoneid2;
         double fraction;
         vector<relconnectioncoststruct> zoneRelConnectionCost;
 
-        // count the number of records
-        fgets(sLine,999,fp);
-
         // create the RelConnectionCost array
-        while (fgets(sLine,999,fp))
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (is_like_numerical_data(sLine))
+                    logger.ShowWarningMessage("File " + filename + " has no header in the first line.\n");
+                else
+                    continue;//skip header
+            }
+            if (sLine.empty())
+                continue;
+
             // read the integer zoneid1 from this line
-            sVarVal = strtok(sLine," ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &zoneid1);
+            stringstream ss = stream_line(sLine);
+            ss >> zoneid1;
 
             // read the integer zoneid2 from this line
-            sVarVal = strtok(NULL," ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &zoneid2);
+            ss >> zoneid2;
 
             // read the double fraction from this line
-            sVarVal = strtok(NULL," ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%lf", &fraction);
+            ss >> fraction;
 
             zoneRelConnectionCost.push_back({zoneid1, zoneid2, fraction});
         }
-        fclose(fp);
+        fp.close();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");
 
         return zoneRelConnectionCost;
     }
@@ -695,186 +708,235 @@ class Zones {
     vector<zonecoststruct> LoadZoneCost(string filename)
     {
         vector<zonecoststruct> tempZoneCost;
-        FILE *fp = openFile(filename);
-        char sLine[1000], *sVarVal;
-        int zoneid, costid; 
+        ifstream fp = openFile(filename);
+        string sLine;
+        int zoneid, costid;
         double fraction;
 
-        fgets(sLine,999,fp);
-
         // load the data to an array
-        while (fgets(sLine,999,fp))
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (is_like_numerical_data(sLine))
+                    logger.ShowWarningMessage("File " + filename + " has no header in the first line.\n");
+                else
+                    continue;//skip header
+            }
+            if (sLine.empty())
+                continue;
             // read the integer zoneid from this line
-            sVarVal = strtok(sLine," ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &zoneid);
+            stringstream ss = stream_line(sLine);
+            ss >> zoneid;
 
             // read the integer costid from this line
-            sVarVal = strtok(NULL," ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &costid);
+            ss >> costid;
 
             // read the double fraction from this line
-            sVarVal = strtok(NULL," ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%lf", &fraction);
+            ss >> fraction;
 
             tempZoneCost.push_back({zoneid, costid, fraction});
         }
-        fclose(fp);
+        fp.close();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");
 
         return tempZoneCost;
     }
 
     void LoadZoneContrib(string filename) 
     {
-        FILE *fp = openFile(filename);
-        char sLine[1000], *sVarVal;
+        ifstream fp = openFile(filename);
+        string sLine;
         int zoneid, speciesid;
         double fraction;
 
-        // skip header
-        fgets(sLine, 999, fp);
-
         // create the ZoneContrib array
-        while (fgets(sLine, 999, fp))
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (is_like_numerical_data(sLine))
+                    logger.ShowWarningMessage("File " + filename + " has no header in the first line.\n");
+                else
+                    continue;//skip header
+            }
+            if (sLine.empty())
+                continue;
             // read the integer zoneid from this line
-            sVarVal = strtok(sLine, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &zoneid);
+            stringstream ss = stream_line(sLine);
+            ss >> zoneid;
 
             // read the integer speciesid from this line
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &speciesid);
+            ss >> speciesid;
 
             // read the double fraction from this line
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%lf", &fraction);
+            ss >> fraction;
 
             zoneContrib.push_back({zoneid, speciesid, fraction});
             zoneContribCount++;
         }
-        fclose(fp);
+        fp.close();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");
     }
 
     // This file should just be num zones sized. 
     void LoadZoneContrib2(string filename)
     {
-        FILE *fp = openFile(filename);
-        char sLine[1000], *sVarVal;
+        ifstream fp = openFile(filename);
+        string sLine;
         int zoneid;
         double fraction;
 
-        // skip header
-        fgets(sLine, 999, fp);
-
         // create the ZoneContrib array
         // load the data to an array
-        while (fgets(sLine, 999, fp))
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (is_like_numerical_data(sLine))
+                    logger.ShowWarningMessage("File " + filename + " has no header in the first line.\n");
+                else
+                    continue;//skip header
+            }
+            if (sLine.empty())
+                continue;
             // read the integer zoneid from this line
-            sVarVal = strtok(sLine, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &zoneid);
+            stringstream ss = stream_line(sLine);
+            ss >> zoneid;
 
             // read the double fraction from this line
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%lf", &fraction);
+            ss >> fraction;
 
             zoneContrib2.push_back({zoneid, fraction});
             zoneContrib2Count++;
         }
-        fclose(fp);
+        fp.close();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");
     }
 
     void LoadZoneContrib3(string filename)
     {
-        FILE *fp = openFile(filename);
-        char sLine[1000], *sVarVal;
+        ifstream fp = openFile(filename);
+        string sLine;
         int zoneid, puid, speciesid;
         double fraction;
 
-        // skip header
-        fgets(sLine, 999, fp);
-
         // load the data to an array
-        while (fgets(sLine, 999, fp))
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (is_like_numerical_data(sLine))
+                    logger.ShowWarningMessage("File " + filename + " has no header in the first line.\n");
+                else
+                    continue;//skip header
+            }
+            if (sLine.empty())
+                continue;
             // read the integer zoneid from this line
-            sVarVal = strtok(sLine, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &zoneid);
+            stringstream ss = stream_line(sLine);
+            ss >> zoneid;
 
             // read the integer puid from this line
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &puid);
+            ss >> puid;
 
             // read the integer speciesid from this line
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &speciesid);
+            ss >> speciesid;
 
             // read the double fraction from this line
-            sVarVal = strtok(NULL, " ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%lf", &fraction);
+            ss >> fraction;
 
             zoneContrib3.push_back({zoneid, puid, speciesid, fraction});
             zoneContrib3Count++;
         }
-        fclose(fp);
+        fp.close();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");
     }
 
     // type = determines which kind of target is being loaded. targetMode=1 means regular target. Else target2.
     void LoadZoneTarget(string filename, int targetMode, vector<zonetargetstructtemp>& zoneTargets)
     {
-        FILE *fp = openFile(filename);
-        char sLine[1000], *sVarVal;
+        ifstream fp = openFile(filename);
+        string sLine;
         int zoneid, speciesid = -1, targettype;
         double target;
 
         // skip header
-        fgets(sLine,999,fp);
-        while (fgets(sLine,999,fp))
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (is_like_numerical_data(sLine))
+                    logger.ShowWarningMessage("File " + filename + " has no header in the first line.\n");
+                else
+                    continue;//skip header
+            }
+            if (sLine.empty())
+                continue;
             // read the integer zoneid from this line
-            sVarVal = strtok(sLine," ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &zoneid);
-
+            stringstream ss = stream_line(sLine);
+            ss >> zoneid;
             // read the integer speciesid from this line if type1
             if (targetMode == 1) {
-                sVarVal = strtok(NULL," ,;:^*\"/|\t\'\\\n");
-                sscanf(sVarVal, "%d", &speciesid);
+                ss >> speciesid;
             }
 
             // read the double fraction from this line
-            sVarVal = strtok(NULL," ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%lf", &target);
+            ss >> target;
 
             // read the integer targettype from this line if it exists
-            sVarVal = strtok(NULL," ,;:^*\"/|\t\'\\\n");
-            if (sVarVal == NULL)
+            if (!ss)
                 targettype = 0;
             else
-                sscanf(sVarVal, "%d", &targettype);
+                ss >> targettype;
 
             zoneTargets.push_back({zoneid, speciesid, target, targettype});
         }
-        fclose(fp);
+        fp.close();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
     }
 
     void LoadZones(string filename) {
-        FILE *fp = openFile(filename);
-        char sLine[5000], *sVarVal;
+        ifstream fp = openFile(filename);
+        string sLine;
         int tempId;
 
-        // skip header
-        fgets(sLine,4999,fp);
-
         // load the data to a zones map
-        while (fgets(sLine,4999,fp))
+        bool file_is_empty = true;
+        for (int line_num = 1; getline(fp, sLine); line_num++)
         {
+            file_is_empty = false;
+            if (line_num == 1)
+            {
+                if (is_like_numerical_data(sLine))
+                    logger.ShowWarningMessage("File " + filename + " has no header in the first line.\n");
+                else
+                    continue;//skip header
+            }
+            if (sLine.empty())
+                continue;
             // read the integer id from this line
-            sVarVal = strtok(sLine," ,;:^*\"/|\t\'\\\n");
-            sscanf(sVarVal, "%d", &tempId);
+            stringstream ss = stream_line(sLine);
+            ss >> tempId;
 
             // read the string name from this line
-            sVarVal = strtok(NULL," ,;:^*\"/|\t\'\\\n");
-            string sval = string(sVarVal);
+            string sval;
+            ss >> sval;
             trim(sval);
             zoneNames[tempId] = {sval, zoneCount};
 
@@ -886,7 +948,9 @@ class Zones {
             
             zoneCount++;
         }
-        fclose(fp);
+        fp.close();
+        if (file_is_empty)
+            logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");
     }
 
     // Non supplied zones - create the default zones id to name map
