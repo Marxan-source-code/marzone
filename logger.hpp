@@ -4,7 +4,9 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <sstream>
 #include "common.hpp"
+
 
 namespace marzone {
     using namespace std;
