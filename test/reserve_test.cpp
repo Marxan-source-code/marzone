@@ -241,3 +241,57 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_ZoneTargets_test)
     CHECK(change1.shortfall == -pre_change);
     CHECK(change1.penalty == -pre_penalty);
 }
+
+// This is a generic test that ensures flipping pu back and forth gives symmetrical results.
+// This test does not check for specific values
+TEST(ReserveTestsGroup, Reserve_Symmetry_test)
+{
+    sfname fnames = {};
+    fnames.costsname = "data/costs_test1.dat";
+    fnames.specname = "data/species_test1.dat";
+    fnames.puname = "data/pu_test1.dat";
+    fnames.zonesname = "data/zones_test1.dat";
+    fnames.zonecontribname = "data/zonecontrib_test1.dat";
+    fnames.zonetargetname = "data/zonetarget_test1.dat";
+    fnames.inputdir = "";
+    Costs c(fnames);
+    Species spec(fnames);
+
+    // set dummy penalties
+    vector<double> penalties {1000.0, 1000.0, 1000.0};
+    spec.SetPenalties(penalties);
+
+    Zones zones(fnames, c);
+    LoggerMock logger;
+    Pu pu(fnames, c, 0, zones.zoneNames, logger);
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
+    zones.BuildZoneContributions(spec, pu);
+    zones.BuildZoneTarget(spec, pu, fnames);
+
+    Reserve r(spec, 3, 1); // 3 zones
+    // set a solution to 0 0 0 0 0 
+    r.InitializeSolution(pu.puno);
+
+    // Evaluate objective value. and check shortfall, connections, cost
+    r.EvaluateObjectiveValue(pu, spec, zones);
+
+    // Set up objects needed for symmetry testing.
+    uniform_int_distribution<int> randomDist(0, zones.zoneCount);
+    mt19937 rngEngine(1); // arbitrary seed.
+    int preZone, postZone;
+    schange preChange = r.InitializeChange(spec, zones), postChange = r.InitializeChange(spec, zones);
+    for (int i = 0; i < pu.puno; i++) {
+        preZone = r.solution[i];
+        postZone = pu.RtnValidZoneForPu(i, preZone, randomDist, rngEngine, 3);
+        r.CheckChangeValue(preChange, i, preZone, postZone, pu, zones, spec, 0);
+        r.ApplyChange(i, postZone, preChange, pu, zones, spec);
+        r.CheckChangeValue(postChange, i, postZone, preZone, pu, zones, spec, 0);
+
+        // Ensure symmetry in changes
+        CHECK_EQUAL(preChange.total, -postChange.total);
+        CHECK_EQUAL(preChange.shortfall, -postChange.shortfall);
+        CHECK_EQUAL(preChange.penalty, -postChange.penalty);
+        CHECK_EQUAL(preChange.cost, -postChange.cost);
+        CHECK_EQUAL(preChange.connection, -postChange.connection);
+    }
+}
