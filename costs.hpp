@@ -36,6 +36,10 @@ class Costs {
         return costNames[costName].index;
     }
 
+    unsigned GetCostIndex(int costId) {
+        return costIds[costId];
+    }
+
     // Checks if costName is defined
     bool Contains(string costName) {
         if (costNames.find(costName) == costNames.end()) {
@@ -90,6 +94,7 @@ class Costs {
                 logger.ShowErrorMessage("File " + filename + " has incorrect values at line " + to_string(line_num) + ".\n");
             trim(costName);
             costNames[costName] = {id, costCount};
+            costIds[id] = costCount;
             costCount++;
         }
         fp.close();
@@ -100,10 +105,12 @@ class Costs {
     void DefaultCostNames()
     {
         costCount= 1;
+        costIds[1] = 0u;
         costNames["cost"] = {1, 0u};
     }
 
     map<string, costField> costNames;
+    map<int, unsigned> costIds; // cost id to index.
 };
 
 } // namespace marzone

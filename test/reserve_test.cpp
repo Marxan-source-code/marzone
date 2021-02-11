@@ -172,7 +172,8 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_test)
     CHECK_EQUAL(expected, r.objective.shortfall);
 
     // Since all pu are being used, and there's no zoneCost supplied, it should be total pu cost in this case.
-    CHECK_EQUAL(6+66+666+2+2, r.objective.cost);
+    // note that the 5 missing costs get defaulted to 1, hence +5.
+    CHECK_EQUAL(6+66+666+2+2+5, r.objective.cost);
 
     // Connection cost - 0 in this case since no connections entered
     CHECK_EQUAL(0, r.objective.connection);

@@ -60,10 +60,7 @@ namespace marzone {
 
 // Version specific constants
 string sVersionString = "Marxan with Zones v 4.0 alpha";
-string sIanBallEmail = "ian.ball@aad.gov.au";
-string sHughPossinghamEmail = "hugh.possingham@tnc.org";
-string sMattWattsEmail = "matt.watts@une.edu.au";
-string sMarxanWebSite = "http://marxan.net";
+string sMarxanWebSite = "https://marxansolutions.org/";
 string sDebugTraceFileName = "DebugTraceFile_Marxan_with_Zones.txt";
 
 int iMemoryUsed=0;
@@ -93,9 +90,6 @@ string StartMessage()
     myfile << "   Written by Ian Ball, Hugh Possingham and Matthew Watts\n\n";
     myfile << "   Based on Marxan coded by Ian Ball, modified by Matthew Watts\n";
     myfile << "   Written by Ian Ball and Hugh Possingham\n\n";
-    myfile << sIanBallEmail << "\n"
-           << sHughPossinghamEmail << "\n"
-           << sMattWattsEmail << "\n\n";
     myfile << "   Marxan website\n\n";
     myfile << sMarxanWebSite << "\n\n";
 
