@@ -11,7 +11,8 @@ TEST_GROUP(CostsTestsGroup)
 TEST(CostsTestsGroup, defaultCost_test)
 {
     sfname fnames = {}; // default, no cost file
-    Costs c(fnames);
+    LoggerMock logger;
+    Costs c(fnames, logger);
 
     CHECK_EQUAL(1, c.costCount);
     CHECK_EQUAL(0, c.GetCostIndex("cost")); // default cost name is "cost"
@@ -24,7 +25,8 @@ TEST(CostsTestsGroup, customCost_test)
     sfname fnames = {};
     fnames.costsname = "data/costs_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
+    LoggerMock logger;
+    Costs c(fnames, logger);
 
     CHECK_EQUAL(3, c.costCount);
     CHECK(c.Contains("area"));

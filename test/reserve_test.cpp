@@ -14,8 +14,9 @@ TEST(ReserveTestsGroup, Reserve_InitializeSolution_test)
     fnames.costsname = "data/costs_test1.dat";
     fnames.specname = "data/species_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Species spec(fnames);
+    LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
 
     Reserve r(spec, 3, 1); // 3 zones
     CHECK_EQUAL(3, r.speciesAmounts.size());
@@ -38,10 +39,10 @@ TEST(ReserveTestsGroup, Reserve_ComputeSpeciesAmounts_test)
     fnames.zonesname = "data/zones_test1.dat";
     fnames.zonecontribname = "data/zonecontrib_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Species spec(fnames);
-    Zones zones(fnames, c);
     LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
+    Zones zones(fnames, c, logger);
     Pu pu(fnames, c, 0, zones.zoneNames, logger);
     pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     zones.BuildZoneContributions(spec, pu);
@@ -86,10 +87,10 @@ TEST(ReserveTestsGroup, Reserve_CheckChangeValue_test)
     fnames.zonesname = "data/zones_test1.dat";
     fnames.zonecontribname = "data/zonecontrib_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Species spec(fnames);
-    Zones zones(fnames, c);
     LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
+    Zones zones(fnames, c, logger);
     Pu pu(fnames, c, 0, zones.zoneNames, logger);
     pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     zones.BuildZoneContributions(spec, pu);
@@ -151,10 +152,10 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_test)
     fnames.zonesname = "data/zones_test1.dat";
     fnames.zonecontribname = "data/zonecontrib_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Species spec(fnames);
-    Zones zones(fnames, c);
     LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
+    Zones zones(fnames, c, logger);
     Pu pu(fnames, c, 0, zones.zoneNames, logger);
     pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     zones.BuildZoneContributions(spec, pu);
