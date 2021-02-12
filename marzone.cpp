@@ -159,10 +159,10 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     //  ****     Data File Entry    * * * * * * *
     logger.ShowGenProg("\nEntering in the data files \n");
     logger.AppendDebugTraceFile("before Loading Cost Names\n");
-    Costs costs(fnames);
+    Costs costs(fnames, logger);
 
     logger.AppendDebugTraceFile("before Loading Zone Files\n");
-    Zones zones(fnames, costs); // load all zone files
+    Zones zones(fnames, costs, logger); // load all zone files
 
     // read in the MarZone files
     logger.AppendDebugTraceFile("before Loading Pu Files (Pu lock, pu zone etc.)\n");
@@ -171,7 +171,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     logger.ShowGenProg("   There are " + to_string(pu.puno) + " Planning units.\n  " + to_string(pu.puno) + " Planning Unit names read in \n");
     logger.ShowDetProg("    Reading in the species file \n");
 
-    Species spec(fnames);
+    Species spec(fnames, logger);
     logger.AppendDebugTraceFile("After Loading species files\n");
     logger.ShowGenProg("  " + to_string(spec.spno) + " species read in \n");
 

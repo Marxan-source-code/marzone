@@ -64,7 +64,7 @@ class SimulatedAnnealing {
         uniform_int_distribution<int> randomPuDist(0, pu.validPuIndices.size()-1);
         uniform_real_distribution<double> float_range(0.0, 1.0);
         int ipu, iZone, itemp, iPreviousZone, iGoodChange, iRowCounter = 0;
-        uint64_t ichanges, snapcount = 0;
+        uint64_t ichanges = 0, snapcount = 0;
         string tempname;
         ofstream zonefp, tracefp;
         ostringstream debugBuffer, annealTraceBuffer; // debug buffer and progress buffer

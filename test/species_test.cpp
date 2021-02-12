@@ -14,8 +14,8 @@ TEST(SpeciesTestsGroup, ReadSpeciesData_fileparsing_test)
     sfname fnames = {}; // default, no cost file
     fnames.inputdir = "";
     fnames.specname = "data/species_test1.dat";
-
-    Species sp(fnames);
+    LoggerMock logger;
+    Species sp(fnames, logger);
     CHECK_EQUAL(3, sp.spno);
 
     // ensure ids were transformed into indices
@@ -64,8 +64,8 @@ TEST(SpeciesTestsGroup, SetSpeciesDefaults_test)
     sfname fnames = {}; // default, no cost file
     fnames.inputdir = "";
     fnames.specname = "data/species_test2.dat";
-
-    Species sp(fnames);
+    LoggerMock logger;
+    Species sp(fnames, logger);
 
     // ensure ids were transformed into indices
     int ind1 = sp.LookupIndex(2);
@@ -98,8 +98,8 @@ TEST(SpeciesTestsGroup, SetPenalties_test)
     sfname fnames = {}; // default, no cost file
     fnames.inputdir = "";
     fnames.specname = "data/species_test1.dat";
-
-    Species sp(fnames);
+    LoggerMock logger;
+    Species sp(fnames, logger);
     CHECK_EQUAL(3, sp.spno);
 
     // ensure ids were transformed into indices
@@ -127,8 +127,8 @@ TEST(SpeciesTestsGroup, TestSpfFpfHeader_test)
     sfname fnames = {}; // default, no cost file
     fnames.inputdir = "";
     fnames.specname = "data/species_test3_spf.dat";
-
-    Species sp(fnames);
+    LoggerMock logger;
+    Species sp(fnames, logger);
     CHECK_EQUAL(2, sp.spno);
 
         // ensure ids were transformed into indices

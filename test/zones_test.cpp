@@ -14,8 +14,9 @@ TEST(ZonesTestsGroup, LoadZones_fileparsing_test)
     fnames.costsname = "data/costs_test1.dat";
     fnames.zonesname = "data/zones_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Zones z(fnames, c);
+    LoggerMock logger;
+    Costs c(fnames, logger);
+    Zones z(fnames, c, logger);
 
     CHECK_EQUAL(3, z.zoneCount);
 
@@ -45,8 +46,9 @@ TEST(ZonesTestsGroup, DefaultCosts_test)
     fnames.costsname = "data/costs_test1.dat";
     fnames.zonesname = "data/zones_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Zones z(fnames, c);
+    LoggerMock logger;
+    Costs c(fnames, logger);
+    Zones z(fnames, c, logger);
 
     // Ensure connectionCosts and zoneCosts are non-empty and set to 1 if file NOT supplied.
     CHECK_EQUAL(c.costCount*z.zoneCount, z.zoneCost.size());
@@ -72,10 +74,10 @@ TEST(ZonesTestsGroup, DefaultZoneContrib_test)
     fnames.puname = "data/pu_test1.dat";
     fnames.zonesname = "data/zones_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Species spec(fnames);
-    Zones z(fnames, c);
     LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
+    Zones z(fnames, c, logger);
     Pu pu(fnames, c, 0, z.zoneNames, logger);
 
     // Build zone contribs
@@ -109,10 +111,10 @@ TEST(ZonesTestsGroup, LoadZoneContrib_fileparsing_test)
     fnames.zonesname = "data/zones_test1.dat";
     fnames.zonecontribname = "data/zonecontrib_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Species spec(fnames);
-    Zones z(fnames, c);
     LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
+    Zones z(fnames, c, logger);
     Pu pu(fnames, c, 0, z.zoneNames, logger);
 
     // Build zone contribs
