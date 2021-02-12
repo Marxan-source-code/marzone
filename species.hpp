@@ -238,7 +238,7 @@ class Species {
         ifstream fp = openFile(filename);
         string sLine;
 
-        int numvars = 10,namespecial = 0;
+        int numvars = 10;
         /* Scan header */
         getline(fp, sLine);
         vector<string> headerNames = getFileHeaders(sLine, filename);
@@ -266,12 +266,6 @@ class Species {
             for (string temp : headerNames)
             { /* Tok out the next Variable */
 
-
-                if (namespecial)
-                { /* used for special name handling function */
-                    namespecial = 0;
-                }
-
                 if (temp.compare("id") == 0)
                 {
                     ss >> spectemp.name;
@@ -285,7 +279,7 @@ class Species {
                     while(ss)
                     {
                         char delim;
-                        ss >> delim; //do not need to put delimeter back into stream
+                        ss.get(delim); //do not need to put delimeter back into stream
                         if (!ss)
                             break;
                         char first_letter = ss.peek();
@@ -295,6 +289,8 @@ class Species {
                             speciesname += " ";
                             speciesname += word;
                         }
+                        else
+                            break;
                     }
                     spectemp.sname = speciesname;
                 } 
