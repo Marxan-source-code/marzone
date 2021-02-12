@@ -879,7 +879,7 @@ namespace marzone
     }
 
     // Writes amounts related to species amounts in this particular reserve to a file.
-    // not threadsafe?
+    // See zones.WriteZoneTargetHeaders for header structure.
     void WriteSpeciesAmounts(string filename, Species &spec, Zones &zones, int imode, double misslevel)
     {
       ofstream myfile;
@@ -892,7 +892,7 @@ namespace marzone
       {
         rMPM = 1;
 
-        // Write species statis
+        // Write species status
         myfile << spec.specList[isp].name << d << spec.specList[isp].sname << d << spec.specList[isp].target;
 
         if (imode > 1)
@@ -900,7 +900,7 @@ namespace marzone
         else
           myfile << d << speciesAmounts[isp].amount;
 
-        myfile << speciesAmounts[isp].amount << d << spec.specList[isp].targetocc << d << speciesAmounts[isp].occurrence;
+        myfile << d << speciesAmounts[isp].amount << d << spec.specList[isp].targetocc << d << speciesAmounts[isp].occurrence;
 
         temp = ReturnStringIfTargetMet(spec.specList[isp].target, speciesAmounts[isp].amount,
                                        spec.specList[isp].targetocc, speciesAmounts[isp].occurrence, rMPM, misslevel);
