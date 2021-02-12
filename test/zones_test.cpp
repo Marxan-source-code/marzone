@@ -134,3 +134,39 @@ TEST(ZonesTestsGroup, LoadZoneContrib_fileparsing_test)
     CHECK_EQUAL(0.5, z.GetZoneContrib(ind2,1));
     CHECK_EQUAL(0.5, z.GetZoneContrib(ind2,2));
 }
+
+TEST(ZonesTestsGroup, LoadZoneTargets_fileparsing_test)
+{
+    sfname fnames = {};
+    fnames.costsname = "data/costs_test1.dat";
+    fnames.specname = "data/species_test1.dat";
+    fnames.puname = "data/pu_test1.dat";
+    fnames.zonesname = "data/zones_test1.dat";
+    fnames.zonecontribname = "data/zonecontrib_test1.dat";
+    fnames.zonetargetname = "data/zonetarget_test1.dat";
+    fnames.inputdir = "";
+    LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
+    Zones z(fnames, c, logger);
+    Pu pu(fnames, c, 0, z.zoneNames, logger);
+
+    z.BuildZoneTarget(spec, pu, fnames);
+
+    // ensure 4th and 5th row skipped because invalid species id 
+    CHECK_EQUAL(3, z.zoneTarget.size());
+    CHECK_EQUAL(3, z.zoneTarget[0].size());
+    CHECK_EQUAL(3, z.zoneTarget[1].size());
+    CHECK_EQUAL(3, z.zoneTarget[2].size());
+
+    // ensure targets loaded correctly
+    CHECK_EQUAL(1000, z.zoneTarget[0][0].target);
+    CHECK_EQUAL(500, z.zoneTarget[0][1].target);
+    CHECK_EQUAL(100, z.zoneTarget[0][2].target);
+    CHECK_EQUAL(0, z.zoneTarget[1][0].target);
+    CHECK_EQUAL(0, z.zoneTarget[1][1].target);
+    CHECK_EQUAL(0, z.zoneTarget[1][2].target);
+    CHECK_EQUAL(0, z.zoneTarget[2][0].target);
+    CHECK_EQUAL(0, z.zoneTarget[2][1].target);
+    CHECK_EQUAL(0, z.zoneTarget[2][2].target);
+}
