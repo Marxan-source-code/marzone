@@ -283,7 +283,7 @@ class Species {
                         if (!ss)
                             break;
                         char first_letter = ss.peek();
-                        if (isalpha(first_letter))
+                        if (isalpha(first_letter) || first_letter == '(' || first_letter == ')')
                         {
                             ss >> word;
                             speciesname += " ";
