@@ -12,8 +12,6 @@
 #include "logger.hpp"
 
 namespace marzone {
-
-extern Logger logger;
     
 typedef struct ZoneIndex : ZoneName {
     int id;
@@ -49,10 +47,11 @@ typedef struct zonetarget
 
 class Zones {
     public:
-    Zones(sfname& fnames, Costs& costs) :
+    Zones(sfname& fnames, Costs& costs, LoggerBase& logger) :
         zoneCount(0), zoneContribCount(0), zoneContrib2Count(0), zoneContrib3Count(0),
         zoneContribSupplied(false), availableZoneCost(false)
     {
+        this->logger = logger;
         // Parse all zone files 
         if (!fnames.zonesname.empty())
         {
@@ -976,6 +975,8 @@ class Zones {
         zoneNameIndexed[1].id = 2;
         zoneNameIndexed[1].name = "reserved";
     }
+
+    LoggerBase logger;
 };
 
 } // namespace marzone

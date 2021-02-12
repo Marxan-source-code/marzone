@@ -13,11 +13,10 @@
 namespace marzone {
 using namespace std;
 
-extern Logger logger;
-
 class Species {
     public:
-    Species(sfname& fnames): spno(0), gspno(0), aggexist(false), sepexist(false), fSpecPROPLoaded(false) {
+    Species(sfname& fnames, LoggerBase& logger): spno(0), gspno(0), aggexist(false), sepexist(false), fSpecPROPLoaded(false) {
+        this->logger = logger;
         ReadSpeciesData(fnames.inputdir + fnames.specname, specList, spno, true);
 
         if (!fnames.blockdefname.empty())
@@ -346,6 +345,8 @@ class Species {
             logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
 
     }
+
+    LoggerBase logger;
 };
 
 } // namespace marzone

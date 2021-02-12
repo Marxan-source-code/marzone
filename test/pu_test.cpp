@@ -15,9 +15,8 @@ TEST(PuTestsGroup, ReadPuData_fileparsing_test)
     fnames.costsname = "data/costs_test1.dat";
     fnames.puname = "data/pu_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
     LoggerMock logger;
-    
+    Costs c(fnames, logger);    
     // arbitrary zones map
     map<int, ZoneName> zoneNames;
     Pu pu(fnames, c, 0, zoneNames, logger);
@@ -74,7 +73,8 @@ TEST(PuTestsGroup, PuLockPuZone_fileparsing_test)
     fnames.pulockname = "data/pulock_test1.dat";
     fnames.puzonename = "data/puzone_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
+    LoggerMock logger;
+    Costs c(fnames, logger);
 
     // build zones map
     map<int, ZoneName> zoneNames;
@@ -82,7 +82,6 @@ TEST(PuTestsGroup, PuLockPuZone_fileparsing_test)
     zoneNames[2] = {"available", 1};
     zoneNames[3] = {"available", 2};
 
-    LoggerMock logger;
     Pu pu(fnames, c, 0, zoneNames, logger);
     
     // Ensure locked pus get returned as such.
@@ -123,10 +122,10 @@ TEST(PuTestsGroup, Connections_fileparsing_test)
     fnames.puname = "data/pu_test1.dat";
     fnames.connectionname = "data/connections_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
+    LoggerMock logger;
+    Costs c(fnames, logger);
     
     // arbitrary zones map
-    LoggerMock logger;
     map<int, ZoneName> zoneNames;
     Pu pu(fnames, c, 0, zoneNames, logger);
 
@@ -164,12 +163,12 @@ TEST(PuTestsGroup, Puvspr_fileparsing_test)
     fnames.specname = "data/species_test1.dat";
     fnames.puname = "data/pu_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Species spec(fnames);
+    LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
 
     // arbitrary zones map
     map<int, ZoneName> zoneNames;
-    LoggerMock logger;
     Pu pu(fnames, c, 0, zoneNames, logger);
 
     //load puvspr file
@@ -208,12 +207,12 @@ TEST(PuTestsGroup, Puvspr_RtnAmountSpecAtPu_test)
     fnames.specname = "data/species_test1.dat";
     fnames.puname = "data/pu_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Species spec(fnames);
+    LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
 
     // arbitrary zones map
     map<int, ZoneName> zoneNames;
-    LoggerMock logger;
     Pu pu(fnames, c, 0, zoneNames, logger);
 
     //load puvspr file
@@ -268,12 +267,12 @@ TEST(PuTestsGroup, RtnAmountAllSpecAtPu_test)
     fnames.specname = "data/species_test1.dat";
     fnames.puname = "data/pu_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Species spec(fnames);
+    LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
 
     // arbitrary zones map
     map<int, ZoneName> zoneNames;
-    LoggerMock logger;
     Pu pu(fnames, c, 0, zoneNames, logger);
 
     //load puvspr file
@@ -308,12 +307,12 @@ TEST(PuTestsGroup, getPuAmountsSorted_test)
     fnames.specname = "data/species_test1.dat";
     fnames.puname = "data/pu_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Species spec(fnames);
+    LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
 
     // arbitrary zones map
     map<int, ZoneName> zoneNames;
-    LoggerMock logger;
     Pu pu(fnames, c, 0, zoneNames, logger);
 
     //load puvspr file
@@ -358,7 +357,8 @@ TEST(PuTestsGroup, RtnValidZoneForPu_test)
     fnames.pulockname = "data/pulock_test1.dat";
     fnames.puzonename = "data/puzone_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
+    LoggerMock logger;
+    Costs c(fnames, logger);
 
     // build zones map
     map<int, ZoneName> zoneNames;
@@ -366,7 +366,6 @@ TEST(PuTestsGroup, RtnValidZoneForPu_test)
     zoneNames[2] = {"available", 1};
     zoneNames[3] = {"available", 2};
 
-    LoggerMock logger;
     Pu pu(fnames, c, 0, zoneNames, logger);
 
     int ind1 = pu.LookupIndex(2);

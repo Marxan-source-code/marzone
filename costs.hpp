@@ -10,8 +10,6 @@
 */
 namespace marzone {
 
-extern Logger logger;
-
 typedef struct costField
 {
     int id; // original cost id
@@ -20,7 +18,8 @@ typedef struct costField
 
 class Costs {
     public:
-    Costs(sfname& fnames) : costCount(0) {
+    Costs(sfname& fnames, LoggerBase& logger) : costCount(0) {
+        this->logger = logger;
         if (!fnames.costsname.empty())
         {
             LoadCostNames(fnames.inputdir + fnames.costsname);
@@ -111,6 +110,7 @@ class Costs {
 
     map<string, costField> costNames;
     map<int, unsigned> costIds; // cost id to index.
+    LoggerBase logger;
 };
 
 } // namespace marzone

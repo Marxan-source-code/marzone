@@ -22,7 +22,7 @@ using namespace std;
 class Pu {
     public:
     Pu(sfname& fnames, Costs& costs, int asymmetric, map<int, ZoneName>& zoneLookup, LoggerBase& logger) : puno(0), puLockCount(0), puZoneCount(0) {
-        logger = logger;
+        this->logger = logger;
         ReadPUData(fnames.inputdir + fnames.puname, costs);
 
         if (!fnames.pulockname.empty())
