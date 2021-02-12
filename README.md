@@ -17,6 +17,12 @@ You can access the code for the new version in a separate branch of this repo: /
 We will officially announce the release of the new version and merge changes to main soon, and are looking for your feedback in the meantime.  
 Please feel free to use our [Google Group](https://groups.google.com/g/marxan). You can also create GitHub issues on this repo or e-mail marxancloud@gmail.com  
 
+# Releases
+## v4.0.3
+- Windows [x64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/marzone4.0.3Windows.zip)
+- [Linux](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/marzone4.0.3Linux.zip)
+- [Mac](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/Marzone-4.0.3-macOS.zip)
+
 
 ## Overview of Code Structure
 If you want to start contributing to the codebase, we encourage you to familiarise yourself with the type of problems that Marzone is intended to solve, and be familiar with the input files and their roles within the program. 
