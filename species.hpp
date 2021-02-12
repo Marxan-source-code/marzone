@@ -276,11 +276,11 @@ class Species {
                     ss >> word;
                     speciesname += word;
                     //read the rest words of multiple word names
-                    while(ss)
+                    while(!ss.eof())
                     {
                         char delim;
                         ss.get(delim); //do not need to put delimeter back into stream
-                        if (!ss)
+                        if (ss.eof())
                             break;
                         char first_letter = ss.peek();
                         if (isalpha(first_letter) || first_letter == '(' || first_letter == ')')
