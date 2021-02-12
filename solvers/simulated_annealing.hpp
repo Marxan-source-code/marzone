@@ -71,15 +71,17 @@ class SimulatedAnnealing {
 
         // Initialize objects and files (if any)
         schange change = r.InitializeChange(spec, zones);
-        if (suppressAnnealZones == 0)
-        {
-            tempname = savename + "_anneal_zones" + to_string(r.id%10000) + getFileSuffix(annealTraceType);
-            zonefp.open(tempname);
-        }
+
         if (annealTraceType)
         {
             tempname = savename + "_anneal_objective" + to_string(r.id%10000) + getFileSuffix(annealTraceType);
             tracefp.open(tempname);
+
+            if (suppressAnnealZones == 0)
+            {
+                tempname = savename + "_anneal_zones" + to_string(r.id % 10000) + getFileSuffix(annealTraceType);
+                zonefp.open(tempname);
+            }
         }
 
         for (int itime = 1; itime <= settings.iterations; itime++)
@@ -203,13 +205,13 @@ class SimulatedAnnealing {
             }
         } /* Run Through Annealing */
 
-        if (suppressAnnealZones == 0)
-        {
-            zonefp.close();
-        }
         if (annealTraceType)
         {
             tracefp.close();
+            if (suppressAnnealZones == 0)
+            {
+                zonefp.close();
+            }
         }
     }
 
