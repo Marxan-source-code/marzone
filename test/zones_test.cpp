@@ -145,10 +145,10 @@ TEST(ZonesTestsGroup, LoadZoneTargets_fileparsing_test)
     fnames.zonecontribname = "data/zonecontrib_test1.dat";
     fnames.zonetargetname = "data/zonetarget_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Species spec(fnames);
-    Zones z(fnames, c);
     LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
+    Zones z(fnames, c, logger);
     Pu pu(fnames, c, 0, z.zoneNames, logger);
 
     z.BuildZoneTarget(spec, pu, fnames);

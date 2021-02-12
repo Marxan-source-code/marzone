@@ -191,15 +191,15 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_ZoneTargets_test)
     fnames.zonecontribname = "data/zonecontrib_test1.dat";
     fnames.zonetargetname = "data/zonetarget_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Species spec(fnames);
+    LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
 
     // set dummy penalties
     vector<double> penalties {1000.0, 1000.0, 1000.0};
     spec.SetPenalties(penalties);
 
-    Zones zones(fnames, c);
-    LoggerMock logger;
+    Zones zones(fnames, c, logger);
     Pu pu(fnames, c, 0, zones.zoneNames, logger);
     pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     zones.BuildZoneContributions(spec, pu);
@@ -255,15 +255,16 @@ TEST(ReserveTestsGroup, Reserve_Symmetry_test)
     fnames.zonecontribname = "data/zonecontrib_test1.dat";
     fnames.zonetargetname = "data/zonetarget_test1.dat";
     fnames.inputdir = "";
-    Costs c(fnames);
-    Species spec(fnames);
+    LoggerMock logger;
+    Costs c(fnames, logger);
+    Species spec(fnames, logger);
 
     // set dummy penalties
     vector<double> penalties {1000.0, 1000.0, 1000.0};
     spec.SetPenalties(penalties);
 
-    Zones zones(fnames, c);
-    LoggerMock logger;
+    Zones zones(fnames, c, logger);
+    
     Pu pu(fnames, c, 0, zones.zoneNames, logger);
     pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
     zones.BuildZoneContributions(spec, pu);
