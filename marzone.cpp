@@ -381,7 +381,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
        for (int i=1;i<=zones.zoneCount;i++)
        {
-           string saveSolutionMatrixNameByZone = fnames.savename + "_solutionsmatrix" + to_string(i) + getFileSuffix(fnames.savesolutionsmatrix);
+           string saveSolutionMatrixNameByZone = fnames.savename + "_solutionsmatrix_zone" + to_string(i) + getFileSuffix(fnames.savesolutionsmatrix);
            // init solutions matrix for each zone separately
            pu.WriteSolutionsMatrixHeader(saveSolutionMatrixNameByZone,fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
        }
