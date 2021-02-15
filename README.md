@@ -19,10 +19,12 @@ Please feel free to use our [Google Group](https://groups.google.com/g/marxan). 
 
 # Releases
 ## v4.0.3
-- Windows [x64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/marzone4.0.3Windows.zip)
-- [Linux](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/marzone4.0.3Linux.zip)
-- [Mac](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/Marzone-4.0.3-macOS.zip)
+- Windows [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/marzone4.0.3Windows.zip)
+- Linux [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/marzone4.0.3Linux.zip)
+- MacOS [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/Marzone-4.0.3-macOS.zip)
 
+# Test Data
+[MarZoneData.zip](https://microsofteur.sharepoint.com/:u:/r/teams/TNC-MSFTQuantumEAP/Shared%20Documents/General/MarZoneData.zip?csf=1&web=1&e=OwRe9R)
 
 ## Overview of Code Structure
 If you want to start contributing to the codebase, we encourage you to familiarise yourself with the type of problems that Marzone is intended to solve, and be familiar with the input files and their roles within the program. 
@@ -61,6 +63,25 @@ g++ -O3 -std=c++17 -static -fopenmp marzone.cpp -o bin/marzone
 ```
 TBC
 ```
+
+# How to run (Mac with M1 processor)
+Install translator from Intel architecture using terminal command:
+```
+softwareupdate --install-rosetta
+```
+Follow the steps for Mac with x86-64 processor.
+# How to run (Mac with x86-64 processor)
+From directory with marzone excutable, assign executable flag to marzone
+```
+chmod +x ./marzone
+```
+Try to run marzone:
+```
+./marzone
+```
+System will prevent it from running. 
+Go to System preferences -> Security & Privacy -> Allow apps downloaded from:  
+Allow to run marzone.
 
 ## How to run tests (WSL/Linux only)
 Prerequisites - install [cpputest](https://cpputest.github.io/manual.html). 
