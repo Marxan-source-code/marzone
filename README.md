@@ -24,7 +24,8 @@ Please feel free to use our [Google Group](https://groups.google.com/g/marxan). 
 - MacOS [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/Marzone-4.0.3-macOS.zip)
 
 # Test Data
-[MarZoneData.zip](https://drive.google.com/file/d/1ljsJxZ5d9VW6G07zveg1tfW23MapLXez/view?usp=sharing)
+From Google Drive: [MarZoneData.zip](https://drive.google.com/file/d/1ljsJxZ5d9VW6G07zveg1tfW23MapLXez/view?usp=sharing)
+From Releases: [MarZoneData.zip](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/MarZoneData.zip)
 
 ## Overview of Code Structure
 If you want to start contributing to the codebase, we encourage you to familiarise yourself with the type of problems that Marzone is intended to solve, and be familiar with the input files and their roles within the program. 
