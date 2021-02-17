@@ -1065,6 +1065,8 @@ void SetOptions(string &sInputFileName, srunoptions &runoptions, sanneal &anneal
     fnames.puvsprname = "puvspr2.dat";
     readInputOption(lines, "PUVSPRNAME", fnames.puvsprname, false, present, warningMessage, errorMessage);
     readInputOption(lines, "MATRIXSPORDERNAME", fnames.matrixspordername, false, present, warningMessage, errorMessage);
+    if (present)
+        logger.ShowWarningMessage("input.dat option: MATRIXSPORDERNAME no longer needed and will be ignored. Please refer to the version 4 feature changelog.md");
 
     readInputOption(lines, "BOUNDNAME", fnames.connectionname, false, present, warningMessage, errorMessage);
     if (!present)
