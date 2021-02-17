@@ -141,3 +141,12 @@ TEST(UtilTestsGroup, Range_test1) {
     CHECK_EQUAL(2, v1.size());
     CHECK_EQUAL(5, v1[0]);
 }
+
+TEST(UtilsTestsGroup, intToPaddedString_test)
+{
+    CHECK_EQUAL("01", intToPaddedString(1,2));
+    CHECK_EQUAL("0100", intToPaddedString(100,4));
+    CHECK_EQUAL("100", intToPaddedString(100,2));
+    CHECK_EQUAL("1", intToPaddedString(1,1));
+    CHECK_EQUAL("0000056", intToPaddedString(56,7));
+}

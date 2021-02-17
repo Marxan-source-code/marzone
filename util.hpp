@@ -11,7 +11,7 @@
 
 #include "common.hpp"
 #include <iostream>
-#include <fstream>
+#include <iomanip>
 
 namespace marzone {
 
@@ -312,6 +312,16 @@ vector<string> getFileHeaders(const string& header, const string& filename) {
     }
 
     return headers;
+}
+
+// converts number to a string form, but with padding
+// does nothing if stringLength is longer than digits in number
+inline 
+std::string intToPaddedString(int number, int stringLength)
+{
+    std::ostringstream ss;
+    ss << std::setw(stringLength) << std::setfill('0') << number;
+    return ss.str();
 }
 
 } // namespace marzone

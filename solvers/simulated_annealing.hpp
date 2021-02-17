@@ -65,7 +65,7 @@ class SimulatedAnnealing {
         uniform_real_distribution<double> float_range(0.0, 1.0);
         int ipu, iZone, itemp, iPreviousZone, iGoodChange, iRowCounter = 0;
         uint64_t ichanges = 0, snapcount = 0;
-        string tempname;
+        string tempname, paddedRun = intToPaddedString(r.id, 5);
         ofstream zonefp, tracefp;
         ostringstream debugBuffer, annealTraceBuffer; // debug buffer and progress buffer
 
@@ -74,12 +74,12 @@ class SimulatedAnnealing {
 
         if (annealTraceType)
         {
-            tempname = savename + "_anneal_objective" + to_string(r.id%10000) + getFileSuffix(annealTraceType);
+            tempname = savename + "_anneal_objective" + paddedRun + getFileSuffix(annealTraceType);
             tracefp.open(tempname);
 
             if (suppressAnnealZones == 0)
             {
-                tempname = savename + "_anneal_zones" + to_string(r.id % 10000) + getFileSuffix(annealTraceType);
+                tempname = savename + "_anneal_zones" + paddedRun + getFileSuffix(annealTraceType);
                 zonefp.open(tempname);
             }
         }
@@ -125,8 +125,8 @@ class SimulatedAnnealing {
 
             if (saveSnapSteps && !(itime % saveSnapFrequency))
             {
-                tempname = savename + "_snap_r" + to_string(r.id) 
-                    + "t" + to_string(++snapcount%10000) + getFileSuffix(saveSnapChanges); 
+                tempname = savename + "_snap_r" + paddedRun
+                    + "t" + intToPaddedString(++snapcount, 5) + getFileSuffix(saveSnapChanges); 
 
                 r.WriteSolution(tempname, pu, zones, saveSnapSteps);
             } /* Save snapshot every savesnapfreq timesteps */
@@ -140,8 +140,8 @@ class SimulatedAnnealing {
 
                 if (saveSnapChanges && !(ichanges % saveSnapFrequency))
                 {
-                    tempname = savename + "_snap_r" + to_string(r.id) + "c" 
-                        + to_string(++snapcount % 10000) + getFileSuffix(saveSnapChanges);
+                    tempname = savename + "_snap_r" + paddedRun + "c" 
+                        + intToPaddedString(++snapcount, 5) + getFileSuffix(saveSnapChanges);
 
                     r.WriteSolution(tempname, pu, zones, saveSnapChanges);
                 } /* Save snapshot every savesnapfreq changes */

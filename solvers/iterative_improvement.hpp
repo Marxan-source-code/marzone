@@ -87,15 +87,15 @@ class IterativeImprovement {
     }
 
     void InitSaveItImpTrace(ofstream& ttfp, ofstream& zonefp, Pu& pu, Reserve& r, int puvalid) {
-        string tempname;
+        string tempname, paddedRun = intToPaddedString(r.id, 5);
         string d = saveItimpTrace > 1 ? "," : " ";
         if (saveItimpTrace)
         {
-            tempname = savename + "_itimp_objective" + to_string(r.id) + getFileSuffix(saveItimpTrace);
+            tempname = savename + "_itimp_objective" + paddedRun + getFileSuffix(saveItimpTrace);
             ttfp.open(tempname);
             ttfp << "improvement" << d << "total" << d << "cost" << d << "connection" << d << "penalty\n";
 
-            tempname = savename + "_itimp_zones" + to_string(r.id) + getFileSuffix(saveItimpTrace);
+            tempname = savename + "_itimp_zones" + paddedRun + getFileSuffix(saveItimpTrace);
             zonefp.open(tempname);
             zonefp << "configuration";
 

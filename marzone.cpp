@@ -495,9 +495,10 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
             // Start writing output
             string tempname2;
+            string paddedRun = intToPaddedString(irun, 5);
             if (fnames.saverun)
             {
-                tempname2 = fnames.savename + "_r" + to_string(irun) + getFileSuffix(fnames.saverun);
+                tempname2 = fnames.savename + "_r" + paddedRun + getFileSuffix(fnames.saverun);
                 reserveThread.WriteSolution(tempname2, pu, zones, fnames.saverun);
             }
 
@@ -506,7 +507,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (fnames.savespecies && fnames.saverun)
             {
                 // output species distribution for a run (specific reserve)
-                tempname2 = fnames.savename + "_mv" + to_string(irun) + getFileSuffix(fnames.savespecies);
+                tempname2 = fnames.savename + "_mv" + paddedRun + getFileSuffix(fnames.savespecies);
                 OutputFeatures(tempname2, zones, reserveThread, spec, fnames.savespecies, runoptions.misslevel);
             }
 
@@ -560,7 +561,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
             if (fnames.savezoneconnectivitysum)
             {
-                string zoneConnectivityName = fnames.savename + "_zoneconnectivitysum" + to_string(irun) + getFileSuffix(fnames.savezoneconnectivitysum);
+                string zoneConnectivityName = fnames.savename + "_zoneconnectivitysum" + paddedRun + getFileSuffix(fnames.savezoneconnectivitysum);
                 reserveThread.WriteZoneConnectivitySum(zoneConnectivityName, pu, zones, fnames.savezoneconnectivitysum);
             }
 
