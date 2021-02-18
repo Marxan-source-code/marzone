@@ -21,7 +21,8 @@ Please feel free to use our [Google Group](https://groups.google.com/g/marxan). 
 ## v4.0.3
 - Windows [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/marzone4.0.3Windows.zip)
 - Linux [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/marzone4.0.3Linux.zip)
-- MacOS [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/Marzone-4.0.3-macOS.zip)
+- MacOS 10.15 (Catalina) [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/Marzone-4.0.3-macOS.zip)
+- MacOS 10.13 (High Sierra) [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/Marzone-4.0.3-macOS-10.13.zip)
 
 # Test Data
 - From Google Drive: [MarZoneData.zip](https://drive.google.com/file/d/1ljsJxZ5d9VW6G07zveg1tfW23MapLXez/view?usp=sharing)
