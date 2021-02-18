@@ -76,11 +76,13 @@ class SimulatedAnnealing {
         {
             tempname = savename + "_anneal_objective" + paddedRun + getFileSuffix(annealTraceType);
             tracefp.open(tempname);
+            WriteAnnealTraceHeader(tracefp, r, costthresh);
 
             if (suppressAnnealZones == 0)
             {
                 tempname = savename + "_anneal_zones" + paddedRun + getFileSuffix(annealTraceType);
                 zonefp.open(tempname);
+                WriteZoneTraceHeader(zonefp, r, pu);
             }
         }
 
@@ -233,6 +235,29 @@ class SimulatedAnnealing {
     sanneal settings;
 
     private:
+    void WriteAnnealTraceHeader(ofstream& fp, Reserve& r, double costthresh) {
+        string d = annealTraceType > 1 ? "," : " ";
+        fp << "iteration" << d << "threshold"<< d << "dochange" << d << "total" << d << "cost" << d << "connection" 
+           << d << "penalty" << d << "shortfall" << d << "puindex" << d << "anneal.temp" << "\n";
+
+        // write iteration 0
+        fp << 0 << d << costthresh << d << false << d << r.objective.total << d << r.objective.cost << d << r.objective.connection 
+            << d << r.objective.penalty << d << r.objective.shortfall << d << -1 << d << settings.temp << "\n";
+    }   
+
+    void WriteZoneTraceHeader(ofstream& fp, Reserve& r, Pu& pu) {
+        string d = annealTraceType > 1 ? "," : " ";
+        fp << "configuration";
+        for (int i = 0; i < pu.puno; i++) {
+            fp << d << pu.puList[i].id;
+        }
+        fp << "\n0";
+        for (int i = 0; i < pu.puno; i++) {
+            fp << d << r.solution[i];
+        }
+        fp << "\n";
+    }
+
     // * * * * Good Change * * * *
     int GoodChange(schange& change, uniform_real_distribution<double>& float_range)
     {
