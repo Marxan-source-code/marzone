@@ -91,6 +91,7 @@ void SetDefaultOptions(srunoptions &runoptions, sanneal &anneal, sfname &fnames)
     runoptions.heurotype = 1;
     runoptions.clumptype = 0;
     runoptions.verbose = 1;
+    runoptions.blm = 1;
 }
 
 inline

@@ -546,7 +546,7 @@ namespace marzone
 
     // Computes the change in value of a pu from preZone to postZone
     void CheckChangeValue(schange& change, int puindex, int iPreZone, int iPostZone, Pu& pu, Zones& zones, Species& spec, 
-    double costthresh, double tpf1 = 0, double tpf2 = 0, double timeprop = 1) {
+    double costthresh, double blm, double tpf1 = 0, double tpf2 = 0, double timeprop = 1) {
       int imode = 1;
       double threshpen = 0;
 
@@ -559,8 +559,8 @@ namespace marzone
 
       // Connection cost
       if (pu.connectionsEntered)
-        change.connection = zones.ConnectionCost2(pu, puindex, imode, solution, iPostZone) 
-            - zones.ConnectionCost2(pu, puindex, imode, solution, iPreZone);
+        change.connection = zones.ConnectionCost2(pu, puindex, imode, solution, iPostZone, blm) 
+            - zones.ConnectionCost2(pu, puindex, imode, solution, iPreZone, blm);
 
       change.penalty = ComputeChangePenalty(pu, zones, spec, change, puindex, iPreZone, iPostZone);
 
@@ -780,7 +780,7 @@ namespace marzone
 
     // * * * * ****** Value of a Zonation System * * * *
     // Note! This call is expensive as it does a full recompute of the reserve value, based on the current solution.
-    void EvaluateObjectiveValue(Pu &pu, Species &spec, Zones &zones)
+    void EvaluateObjectiveValue(Pu &pu, Species &spec, Zones &zones, double blm)
     {
       // Evaluate the existing solution and update the scost values
       objective.cost = 0, objective.penalty = 0, objective.connection = 0, objective.shortfall = 0;
@@ -871,7 +871,7 @@ namespace marzone
         objective.cost += zones.AggregateTotalCostByPuAndZone(solution[j], pu.puList[j].costBreakdown);
         if (pu.connectionsEntered)
         {
-          objective.connection += zones.ConnectionCost2Linear(pu, j, 1, solution); // confirm imode 1
+          objective.connection += zones.ConnectionCost2Linear(pu, j, 1, solution, blm); // confirm imode 1
         }
       }
 

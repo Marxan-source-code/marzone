@@ -224,9 +224,9 @@ class Zones {
 
     // Returns the connection cost of a puindex, given the zones of the other pu.
     // imode = check specifics of this param. For now I am assuming 1, 0 or -1
-    double ConnectionCost2Linear(Pu& pu, int puindex, int imode, vector<int> &solution)
+    double ConnectionCost2Linear(Pu& pu, int puindex, int imode, vector<int> &solution, double blm)
     {
-        if (pu.connectionsEntered) {
+        if (pu.connectionsEntered && blm != 0) {
             double fcost, rZoneConnectionCost;
             int iCurrentZone = solution[puindex];
 
@@ -240,15 +240,15 @@ class Zones {
                 }
             }
 
-            return fcost;
+            return fcost*blm;
         }
 
         return 0;
     }
 
     // Connection cost but we can specify which zone to calculate the current pu for
-    double ConnectionCost2(Pu& pu, int puindex, int imode, vector<int>& solution, int curZone) {
-        if (pu.connectionsEntered)
+    double ConnectionCost2(Pu& pu, int puindex, int imode, vector<int>& solution, int curZone, double blm) {
+        if (pu.connectionsEntered && blm != 0)
         {
             double fcost, rZoneConnectionCost;
             // Initial fixed cost
@@ -262,7 +262,7 @@ class Zones {
                 fcost += imode * p.cost * rZoneConnectionCost;
             }
 
-            return fcost;
+            return fcost*blm;
         }
         return 0;
     }

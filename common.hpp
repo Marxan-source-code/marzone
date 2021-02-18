@@ -232,6 +232,7 @@ namespace marzone {
         // Run constants
         double prop;
         long int iseed;
+        double blm; // boundary length modifier
         double misslevel;
         double costthresh;
         double tpf1, tpf2;

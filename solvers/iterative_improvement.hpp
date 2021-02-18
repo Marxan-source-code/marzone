@@ -23,18 +23,18 @@ class IterativeImprovement {
         itimpTraceRows = fnames.itimptracerows;
     }
 
-    void Run(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh) {
+    void Run(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm) {
         // run iterative improvement
-        RunOptimisedItImp(r, spec, pu, zones, tpf1, tpf2, costthresh);
+        RunOptimisedItImp(r, spec, pu, zones, tpf1, tpf2, costthresh, blm);
 
         if (iterativeImprovementMode == 3) // run again if mode = 3
-            RunOptimisedItImp(r, spec, pu, zones, tpf1, tpf2, costthresh);
+            RunOptimisedItImp(r, spec, pu, zones, tpf1, tpf2, costthresh, blm);
     }
 
     vector<double> rare;
 
     private:
-    void RunOptimisedItImp(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh) {
+    void RunOptimisedItImp(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm) {
         int puvalid = 0, ipu = 0, imode, ichoice, iZone, iPreviousR, ichanges = 0;
         struct iimp *iimparray;
         double debugfloat;
@@ -72,7 +72,7 @@ class IterativeImprovement {
                 iZone = pu.RtnValidZoneForPu(ichoice, iPreviousR, randomDist, rngEngine, zones.zoneCount);
 
                 // Check change value
-                r.CheckChangeValue(change, ichoice, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
+                r.CheckChangeValue(change, ichoice, iPreviousR, iZone, pu, zones, spec, costthresh, blm, tpf1, tpf2);
                 if (change.total < 0) {
                     ichanges++;
                     r.ApplyChange(ichoice, iZone, change, pu, zones, spec);

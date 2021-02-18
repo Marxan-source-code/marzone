@@ -35,7 +35,7 @@ namespace marzone
 
     void SaveSeed(int iseed);
     void DumpFileNames(sfname& fnames, Logger& logger);
-    string OutputSummaryString(Pu& pu, Species& spec, Zones& zones, Reserve& r, double misslevel, int imode);
+    string OutputSummaryString(Pu& pu, Species& spec, Zones& zones, Reserve& r, double misslevel, int imode, double blm);
     void OutputSummary(Pu& pu, Zones& zones, vector<string>& summaries, string filename, int imode);
     void OutputScenario(int puno,int spno, int zoneCount, int costCount, Logger& logger,
                         sanneal& anneal, srunoptions& runoptions,
@@ -70,7 +70,6 @@ namespace marzone
                          struct spustuff pu[], struct spu SM[], sspecies spec[], int imode);
     void CheckDist(struct sseplist *Dist, int sepnum);
     */
-
 
     double rtnMaxNonAvailableCost(int ipu, Pu& pu, Zones& zones);
 

@@ -105,7 +105,7 @@ TEST(ReserveTestsGroup, Reserve_CheckChangeValue_test)
     int spind3 = spec.LookupIndex(3);
 
     schange change1 = r.InitializeChange(spec, zones);
-    r.CheckChangeValue(change1, 0, 0, 1, pu, zones, spec, 0); //puindex 0, preZone 0, postZone 1.
+    r.CheckChangeValue(change1, 0, 0, 1, pu, zones, spec, 0, 1); //puindex 0, preZone 0, postZone 1.
 
     // Check species amounts not changed
     CHECK_EQUAL(70.5, r.speciesAmounts[spind1].amount); //20.0*1 + 50.5*1
@@ -165,7 +165,7 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_test)
     r.InitializeSolution(pu.puno);
 
     // Evaluate objective value. and check shortfall, connections, cost
-    r.EvaluateObjectiveValue(pu, spec, zones);
+    r.EvaluateObjectiveValue(pu, spec, zones, 1);
 
     // We know given this configuration, the species amounts are 70.5, 66.9, 212
     // we have not called SetProportionTargets so the regular (non proportion) targets are 100, 110 and 120
@@ -210,7 +210,7 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_ZoneTargets_test)
     r.InitializeSolution(pu.puno);
 
     // Evaluate objective value. and check shortfall, connections, cost
-    r.EvaluateObjectiveValue(pu, spec, zones);
+    r.EvaluateObjectiveValue(pu, spec, zones, 1);
 
     double expected = (100-70.5)+(110-66.9) + (3-2); // regular shortfall
     expected += 100+ 500+ (1000-70.5); // shortfall with zone targets. Zone targ only supplied for species 1, but for all zones.
@@ -219,7 +219,7 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_ZoneTargets_test)
 
     // Test change with pu2 to zone 1.
     schange change1 = r.InitializeChange(spec, zones);
-    r.CheckChangeValue(change1, 0, 0, 1, pu, zones, spec, 0); //puindex 0, preZone 0, postZone 1.
+    r.CheckChangeValue(change1, 0, 0, 1, pu, zones, spec, 0, 1); //puindex 0, preZone 0, postZone 1.
 
     // ensure targets adjusted. Zone1 loses 20 and zone2 gains 20
     CHECK_EQUAL(2, change1.zoneTargetChange.size());
@@ -236,7 +236,7 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_ZoneTargets_test)
     CHECK(pre_penalty > 0);
 
     r.ApplyChange(0, 1, change1, pu, zones, spec);
-    r.CheckChangeValue(change1, 0, 1, 0, pu, zones, spec, 0); //puindex 0, preZone 1, postZone 0. Opposite of before.
+    r.CheckChangeValue(change1, 0, 1, 0, pu, zones, spec, 0, 1); //puindex 0, preZone 1, postZone 0. Opposite of before.
 
     // ensure symmetry of values
     CHECK(change1.shortfall == -pre_change);
@@ -275,7 +275,7 @@ TEST(ReserveTestsGroup, Reserve_Symmetry_test)
     r.InitializeSolution(pu.puno);
 
     // Evaluate objective value. and check shortfall, connections, cost
-    r.EvaluateObjectiveValue(pu, spec, zones);
+    r.EvaluateObjectiveValue(pu, spec, zones, 1);
 
     // Set up objects needed for symmetry testing.
     uniform_int_distribution<int> randomDist(0, zones.zoneCount);
@@ -285,9 +285,9 @@ TEST(ReserveTestsGroup, Reserve_Symmetry_test)
     for (int i = 0; i < pu.puno; i++) {
         preZone = r.solution[i];
         postZone = pu.RtnValidZoneForPu(i, preZone, randomDist, rngEngine, 3);
-        r.CheckChangeValue(preChange, i, preZone, postZone, pu, zones, spec, 0);
+        r.CheckChangeValue(preChange, i, preZone, postZone, pu, zones, spec, 0, 1);
         r.ApplyChange(i, postZone, preChange, pu, zones, spec);
-        r.CheckChangeValue(postChange, i, postZone, preZone, pu, zones, spec, 0);
+        r.CheckChangeValue(postChange, i, postZone, preZone, pu, zones, spec, 0, 1);
 
         // Ensure symmetry in changes
         CHECK_EQUAL(preChange.total, -postChange.total);

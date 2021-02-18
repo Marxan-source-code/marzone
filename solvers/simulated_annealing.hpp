@@ -42,23 +42,23 @@ class SimulatedAnnealing {
         }
     }
 
-    void Initialize(Species& spec, Pu& pu, Zones& zones, int clumptype) {
+    void Initialize(Species& spec, Pu& pu, Zones& zones, int clumptype, double blm) {
         if (settings.type >= 2)
         {
             if (settings.type == 2)
             {
-                ConnollyInit(spec, pu, zones, clumptype);
+                ConnollyInit(spec, pu, zones, clumptype, blm);
             }
             else if (settings.type == 3)
             {
-                AdaptiveInit(spec, pu, zones, clumptype);
+                AdaptiveInit(spec, pu, zones, clumptype, blm);
             }
         }
 
         settings.temp = settings.Tinit;
     }
 
-    void RunAnneal(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, 
+    void RunAnneal(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm,
         LoggerBase& logger) {
         uniform_int_distribution<int> randomDist(0, numeric_limits<int>::max());
         uniform_int_distribution<int> randomPuDist(0, pu.validPuIndices.size()-1);
@@ -97,7 +97,7 @@ class SimulatedAnnealing {
 #ifdef TRACE_ZONE_TARGETS
             debugbuffer << "annealing time " << itime << " of " << settings.iterations << "\n";
 #endif
-            r.CheckChangeValue(change, ipu, iPreviousZone, iZone, pu, zones, spec, costthresh, 
+            r.CheckChangeValue(change, ipu, iPreviousZone, iZone, pu, zones, spec, costthresh, blm, 
             tpf1, tpf2, (double)itime / (double)settings.iterations);
 
 #ifdef TRACE_ZONE_TARGETS
@@ -261,7 +261,7 @@ class SimulatedAnnealing {
         settings.sum2 = 0;
     }
 
-    void ConnollyInit(Species& spec, Pu& pu, Zones& zones, int clumptype) {
+    void ConnollyInit(Species& spec, Pu& pu, Zones& zones, int clumptype, double blm) {
         double localdelta = numeric_limits<double>::epsilon();
         uniform_int_distribution<int> random_dist(0, numeric_limits<int>::max());
         uniform_int_distribution<int> random_pu_dist(0, pu.validPuIndices.size()-1);
@@ -270,7 +270,7 @@ class SimulatedAnnealing {
         Reserve r(spec, zones.zoneCount, clumptype);
         r.InitializeSolution(pu.puno);
         r.RandomiseSolution(pu, rngEngine, zones.zoneCount);
-        r.EvaluateObjectiveValue(pu, spec, zones);
+        r.EvaluateObjectiveValue(pu, spec, zones, blm);
 
         schange change = r.InitializeChange(spec, zones);
 
@@ -284,8 +284,7 @@ class SimulatedAnnealing {
             chosenZone = next.second;
 
             // Check change in zone on penalty
-            //schange change = r.CheckChangeValue(ipu, r.solution[ipu], chosenZone, pu, zones, spec, 0);
-            r.CheckChangeValue(change, ipu, r.solution[ipu], chosenZone, pu, zones, spec, 0);
+            r.CheckChangeValue(change, ipu, r.solution[ipu], chosenZone, pu, zones, spec, 0, blm);
 
             // apply change
             r.ApplyChange(ipu, chosenZone, change, pu, zones, spec);
@@ -321,7 +320,7 @@ class SimulatedAnnealing {
 
     /* * * * Adaptive Annealing 2 * * * * * * * * *****/
     /**** Initial Trial Runs. Run for some small time to establish sigma. ****/
-    void AdaptiveInit(Species& spec, Pu& pu, Zones& zones, int clumptype) {
+    void AdaptiveInit(Species& spec, Pu& pu, Zones& zones, int clumptype, double blm) {
         int i, isamples = 1000; /* Hardwired number of samples to take */
         double sum = 0, sum2 = 0;
         double sigma;
@@ -333,7 +332,7 @@ class SimulatedAnnealing {
         { /* Generate Random Reserve */
             r.RandomiseSolution(pu, rngEngine, zones.zoneCount);
             /* Score Random reserve */
-            r.EvaluateObjectiveValue(pu, spec, zones);
+            r.EvaluateObjectiveValue(pu, spec, zones, blm);
 
             /* Add Score to Sum */
             sum += r.objective.total;
