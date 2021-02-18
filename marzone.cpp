@@ -379,9 +379,9 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         string saveSolutionMatrixName = fnames.savename + "_solutionsmatrix" + getFileSuffix(fnames.savesolutionsmatrix);
         pu.WriteSolutionsMatrixHeader(saveSolutionMatrixName,fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
 
-       for (int i=1;i<=zones.zoneCount;i++)
+       for (int i=0;i<zones.zoneCount;i++)
        {
-           string saveSolutionMatrixNameByZone = fnames.savename + "_solutionsmatrix_zone" + to_string(i) + getFileSuffix(fnames.savesolutionsmatrix);
+           string saveSolutionMatrixNameByZone = fnames.savename + "_solutionsmatrix_zone" + to_string(zones.IndexToId(i)) + getFileSuffix(fnames.savesolutionsmatrix);
            // init solutions matrix for each zone separately
            pu.WriteSolutionsMatrixHeader(saveSolutionMatrixNameByZone,fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
        }
@@ -421,14 +421,14 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 debugbuffer << "before Annealling Init run " << irun << "\n";
 
                 // init sa parameters if setting is appropriate
-                sa.Initialize(spec, pu, zones, runoptions.clumptype);
+                sa.Initialize(spec, pu, zones, runoptions.clumptype, runoptions.blm);
                 debugbuffer << "after Annealling Init run " << irun << "\n";
                 progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
             } // Annealing Setup
 
             progbuffer << "  creating the initial reserve \n";
             debugbuffer << "before ZonationCost run " << irun << "\n";
-            reserveThread.EvaluateObjectiveValue(pu, spec, zones);
+            reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
             debugbuffer << "after ZonationCost run " << irun << "\n";
 
             if (runoptions.verbose > 1)
@@ -451,7 +451,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 debugbuffer << "before Annealing run " << irun << "\n";
                 progbuffer << "  Main Annealing Section.\n";
 
-                sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, logger);
+                sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm, logger);
 
                 if (runoptions.verbose > 1)
                 {
@@ -466,7 +466,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             {
                 debugbuffer << "before Heuristics run " << irun << "\n";
                 Heuristic heur = Heuristic(rngEngine, runoptions.heurotype);
-                heur.RunHeuristic(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
+                heur.RunHeuristic(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm);
 
                 if (runoptions.verbose > 1 && (runoptions.runopts == 2 || runoptions.runopts == 5))
                 {
@@ -481,7 +481,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             {
                 debugbuffer << "before IterativeImprovementOptimise run " << irun << "\n";
                 IterativeImprovement itImp = IterativeImprovement(rngEngine, fnames, runoptions.itimptype);
-                itImp.Run(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh);
+                itImp.Run(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm);
                 debugbuffer << "after IterativeImprovementOptimise run " << irun << "\n";
 
                 if (runoptions.verbose > 1)
@@ -513,7 +513,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
             if (fnames.savesum)
             {
-                summaries[irun - 1] = OutputSummaryString(pu, spec, zones, reserveThread, runoptions.misslevel, fnames.savesum);
+                summaries[irun - 1] = OutputSummaryString(pu, spec, zones, reserveThread, runoptions.misslevel, fnames.savesum, runoptions.blm);
             }
 
 #ifdef DEBUGFPERROR
@@ -524,7 +524,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (fnames.savebest)
             {
                 // re-evaluate entire system in case of any floating point/evaluation errors.
-                 reserveThread.EvaluateObjectiveValue(pu, spec, zones);
+                 reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
                 if (reserveThread.objective.total < bestR.objective.total)
                 {
                     omp_set_lock(&bestR_write_lock);
@@ -540,7 +540,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                     }
                     omp_unset_lock(&bestR_write_lock);
                 }
-                
             }
 
             if (fnames.savesumsoln) // Add current run to my summed solution
@@ -551,11 +550,11 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 string solutionsMatrixName = fnames.savename + "_solutionsmatrix" + getFileSuffix(fnames.savesolutionsmatrix);
                 reserveThread.AppendSolutionsMatrix(solutionsMatrixName, zones.zoneCount, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
 
-                for (int i = 1; i <= zones.zoneCount; i++)
+                for (int i = 0; i < zones.zoneCount; i++)
                 {
-                    string solutionsMatrixZoneName = fnames.savename + "_solutionsmatrix_zone" + to_string(i) + getFileSuffix(fnames.savesolutionsmatrix);
+                    string solutionsMatrixZoneName = fnames.savename + "_solutionsmatrix_zone" + to_string(zones.IndexToId(i)) + getFileSuffix(fnames.savesolutionsmatrix);
                     // append solutions matrix for each zone separately
-                    reserveThread.AppendSolutionsMatrixZone(solutionsMatrixZoneName, i - 1, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
+                    reserveThread.AppendSolutionsMatrixZone(solutionsMatrixZoneName, i, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
                 }
             }
 
@@ -883,7 +882,7 @@ void OutputSummary(Pu& pu, Zones& zones, vector<string>& summaries, string filen
 }
 
 // formats a summary string for a particular run.
-string OutputSummaryString(Pu& pu, Species& spec, Zones& zones, Reserve& r, double misslevel, int imode)
+string OutputSummaryString(Pu& pu, Species& spec, Zones& zones, Reserve& r, double misslevel, int imode, double blm)
 {
     int ino=0,isp;
     double connectiontemp = 0,rMPM;
@@ -902,7 +901,7 @@ string OutputSummaryString(Pu& pu, Species& spec, Zones& zones, Reserve& r, doub
     isp = r.CountMissing(spec, zones, misslevel, rMPM);
     for (int i=0;i<pu.puno;i++)
     {
-        connectiontemp += zones.ConnectionCost2Linear(pu, i, 1, r.solution);
+        connectiontemp += zones.ConnectionCost2Linear(pu, i, 1, r.solution, blm);
     } /* Find True (non modified) connection */
 
     s << r.id << d << r.objective.total << d << r.objective.cost << d << ino << sZonePuCount 
@@ -998,6 +997,7 @@ void SetOptions(string &sInputFileName, srunoptions &runoptions, sanneal &anneal
     if (!present || runoptions.iseed == -1) { //if seed not present or -1, set as time based.
         runoptions.iseed = (long int)time(NULL);
     }
+    readInputOption(lines,"BLM",runoptions.blm, false, present, warningMessage, errorMessage);
 
     /* Annealing Controls */
     readInputOption(lines, "NUMITNS", anneal.iterations, false, present, warningMessage, errorMessage);
