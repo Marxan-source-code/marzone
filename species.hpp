@@ -84,18 +84,10 @@ class Species {
                 for (isp = 0; isp < spno; isp++)
                     if (specList[isp].type == genSpecList[igsp].type && specList[isp].targetocc < 0)
                         specList[isp].targetocc = genSpecList[igsp].targetocc;
-            if (genSpecList[igsp].sepnum > 0)
-                for (isp = 0; isp < spno; isp++)
-                    if (specList[isp].type == genSpecList[igsp].type && specList[isp].sepnum < 0)
-                        specList[isp].sepnum = genSpecList[igsp].sepnum;
             if (genSpecList[igsp].spf > 0)
                 for (isp = 0; isp < spno; isp++)
                     if (specList[isp].type == genSpecList[igsp].type && specList[isp].spf < 0)
                         specList[isp].spf = genSpecList[igsp].spf;
-            if (genSpecList[igsp].sepdistance > 0)
-                for (isp = 0; isp < spno; isp++)
-                    if (specList[isp].type == genSpecList[igsp].type && specList[isp].sepdistance < 0)
-                        specList[isp].sepdistance = genSpecList[igsp].sepdistance;
             // Percentage is not dealt with here yet. To do this identify
             // target species then determine their total abundance then set target
             // according to percentage
@@ -115,16 +107,10 @@ class Species {
                 spec.target2 = 0;
             if (spec.targetocc < 0)
                 spec.targetocc = 0;
-            if (spec.sepnum < 0)
-                spec.sepnum = 0;
-            if (spec.sepdistance < 0)
-                spec.sepdistance = 0;
             if (spec.spf < 0)
                 spec.spf = 1;
 
-            // agg and sep exist
-            if (spec.sepdistance)
-                sepexist = true;
+            // agg exist
             if (spec.target2)
                 aggexist = true;
         }
@@ -192,12 +178,12 @@ class Species {
         ofstream myfile;
         myfile.open(filename);
 
-        myfile << "i,name,type,sname,target,prop,targetocc,spf,penalty,amount,occurrence,sepdistance,sepnum,separation,clumps,target2,richness,offset\n";
+        myfile << "i,name,type,sname,target,prop,targetocc,spf,penalty,amount,occurrence,clumps,target2,richness,offset\n";
         for (int i=0;i<spno;i++) {
             myfile << i << "," << specList[i].name << "," << specList[i].type << ","
             << specList[i].sname << "," << specList[i].target << "," << specList[i].prop << "," 
             << specList[i].targetocc << "," << specList[i].spf << "," << specList[i].penalty << "," << reserveStat[i].amount << "," << reserveStat[i].occurrence << "," 
-            << specList[i].sepdistance << "," << specList[i].sepnum << "," << reserveStat[i].separation << "," << reserveStat[i].clumps << "," << specList[i].target2 << "," << specList[i].richness << "," << specList[i].offset << "\n";
+            << reserveStat[i].clumps << "," << specList[i].target2 << "," << specList[i].richness << "," << specList[i].offset << "\n";
         }
 
         myfile.close();
@@ -257,8 +243,6 @@ class Species {
             spectemp.spf = -1;
             spectemp.target2 = 0;
             spectemp.targetocc = -1;
-            spectemp.sepdistance = -1;
-            spectemp.sepnum = -1;
 
             stringstream ss = stream_line(sLine);
 
@@ -313,11 +297,11 @@ class Species {
                 }
                 else if (temp.compare("sepdistance") == 0)
                 {
-                    ss >> spectemp.sepdistance;
+                    logger.ShowWarningMessage("Warning: sepdistancem sepnum features no longer supported in v4. Please use a previous version of Marxan with Zones.");
                 }
                 else if (temp.compare("sepnum") == 0)
                 {
-                    ss >> spectemp.sepnum;
+                    logger.ShowWarningMessage("Warning: sepdistancem sepnum features no longer supported in v4. Please use a previous version of Marxan with Zones.");
                 }
                 else if (temp.compare("target2") == 0)
                 {
