@@ -107,8 +107,6 @@ namespace marzone {
         int targetocc;
         double target;
         double target2; /* Only some species need this (clumping species) */
-        int sepnum;
-        double sepdistance;
         double prop;
         double spf;
     } typegenspec;
@@ -118,7 +116,6 @@ namespace marzone {
         double amount;
         int occurrence;
         int clumps;
-        int separation;
     } reservespecies;
 
     typedef struct sspecies : sgenspec

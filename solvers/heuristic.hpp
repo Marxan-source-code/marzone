@@ -101,8 +101,7 @@ class Heuristic {
                     }
                     if (r.speciesAmounts[i].amount < spec.specList[i].target)
                         r.objective.missing++;
-                    else if (spec.specList[i].sepdistance && r.speciesAmounts[i].separation < 3)
-                        r.objective.missing++;
+
                     /** Species missing **/
                 } /** checking to see who I am missing **/
 
@@ -201,8 +200,7 @@ class Heuristic {
         {
             ism = pu.puList[ipu].offset + i;
             isp = pu.puvspr[ism].spindex;
-            if (pu.puvspr[ism].amount && (spec.specList[isp].target > r.speciesAmounts[isp].amount 
-            || (spec.specList[isp].sepdistance && r.speciesAmounts[isp].separation < 3)))
+            if (pu.puvspr[ism].amount && (spec.specList[isp].target > r.speciesAmounts[isp].amount))
             {
                 if (heuristicMode == 2) //Max Rare Score Heuristic. PU scores based on rarest beast on PU
                 {
