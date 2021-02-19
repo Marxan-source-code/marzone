@@ -228,6 +228,13 @@ class Species {
         getline(fp, sLine);
         vector<string> headerNames = getFileHeaders(sLine, filename);
 
+        // check for sepnum and sepdistance
+        if (find(headerNames.begin(), headerNames.end(), "sepnum") != headerNames.end()
+            || find(headerNames.begin(), headerNames.end(), "sepdistance") != headerNames.end())
+        {
+            logger.ShowWarningMessage("Warning: sepdistance, sepnum features no longer supported and will be ignored in v4. Please use a previous version of Marxan with Zones.");
+        }
+
         /* While there are still lines left populate specList */
         bool file_is_empty = true;
         for (int line_num = 2; getline(fp, sLine); line_num++)
@@ -294,14 +301,6 @@ class Species {
                 else if (temp.compare("fpf") == 0 || temp.compare("spf") == 0) // fpf, spf same header meaning.
                 {
                     ss >> spectemp.spf;
-                }
-                else if (temp.compare("sepdistance") == 0)
-                {
-                    logger.ShowWarningMessage("Warning: sepdistancem sepnum features no longer supported in v4. Please use a previous version of Marxan with Zones.");
-                }
-                else if (temp.compare("sepnum") == 0)
-                {
-                    logger.ShowWarningMessage("Warning: sepdistancem sepnum features no longer supported in v4. Please use a previous version of Marxan with Zones.");
                 }
                 else if (temp.compare("target2") == 0)
                 {
