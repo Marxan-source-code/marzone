@@ -386,11 +386,17 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     omp_lock_t bestR_write_lock;
     omp_init_lock(&bestR_write_lock);
 
+    //create seeds for local rng engines
+    vector<unsigned int> seeds(runoptions.repeats);
+    for (int run_id = 1; run_id <= runoptions.repeats; run_id++)
+        seeds[run_id - 1] = run_id*runoptions.iseed;
+
     int maxThreads = omp_get_max_threads();
     logger.ShowGenProg("Running " + to_string(runoptions.repeats) + " runs multithreaded over number of threads: " + to_string(maxThreads) + "\n");
     #pragma omp parallel for schedule(dynamic)
     for (int irun = 1;irun <= runoptions.repeats;irun++)
     {
+        mt19937 rngThread(seeds[irun-1]);
         stringstream debugbuffer; // buffer to print at the end
         stringstream progbuffer; // buffer to print at the end
         try
@@ -398,13 +404,14 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             // Create new reserve object and init
             Reserve reserveThread(spec, zones.zoneCount, runoptions.clumptype, irun);
             reserveThread.InitializeSolution(pu.puno);
-            reserveThread.RandomiseSolution(pu, rngEngine, zones.zoneCount);
+            reserveThread.RandomiseSolution(pu, rngThread, zones.zoneCount);
 
             debugbuffer << "annealing start run " << irun << "\n";
-            progbuffer << "\nRun: " << irun << ",";
+            if (runoptions.verbose > 1)
+                progbuffer << "\nRun: " << irun << " ";
 
             SimulatedAnnealing sa(fnames, logger, runoptions.AnnealingOn, anneal, 
-                rngEngine, fnames.saveannealingtrace, irun);
+                rngThread, fnames.saveannealingtrace, irun);
             if (runoptions.AnnealingOn)
             {
                 debugbuffer << "before Annealling Init run " << irun << "\n";
@@ -412,10 +419,14 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 // init sa parameters if setting is appropriate
                 sa.Initialize(spec, pu, zones, runoptions.clumptype, runoptions.blm);
                 debugbuffer << "after Annealling Init run " << irun << "\n";
-                progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
+
+                if (runoptions.verbose > 1)
+                    progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
             } // Annealing Setup
 
-            progbuffer << "  creating the initial reserve \n";
+            if (runoptions.verbose > 1)
+                progbuffer << "  creating the initial reserve \n";
+
             debugbuffer << "before ZonationCost run " << irun << "\n";
             reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
             debugbuffer << "after ZonationCost run " << irun << "\n";
@@ -438,7 +449,8 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (runoptions.AnnealingOn)
             {
                 debugbuffer << "before Annealing run " << irun << "\n";
-                progbuffer << "  Main Annealing Section.\n";
+                if (runoptions.verbose > 1)
+                    progbuffer << "  Main Annealing Section.\n";
 
                 sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm, logger);
 
@@ -454,7 +466,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (runoptions.HeuristicOn)
             {
                 debugbuffer << "before Heuristics run " << irun << "\n";
-                Heuristic heur = Heuristic(rngEngine, runoptions.heurotype);
+                Heuristic heur = Heuristic(rngThread, runoptions.heurotype);
                 heur.RunHeuristic(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm);
 
                 if (runoptions.verbose > 1 && (runoptions.runopts == 2 || runoptions.runopts == 5))
@@ -469,7 +481,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (runoptions.ItImpOn)
             {
                 debugbuffer << "before IterativeImprovementOptimise run " << irun << "\n";
-                IterativeImprovement itImp = IterativeImprovement(rngEngine, fnames, runoptions.itimptype);
+                IterativeImprovement itImp = IterativeImprovement(rngThread, fnames, runoptions.itimptype);
                 itImp.Run(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm);
                 debugbuffer << "after IterativeImprovementOptimise run " << irun << "\n";
 
@@ -513,7 +525,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (fnames.savebest)
             {
                 // re-evaluate entire system in case of any floating point/evaluation errors.
-                 reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
+                reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
                 if (reserveThread.objective.total < bestR.objective.total)
                 {
                     omp_set_lock(&bestR_write_lock);
@@ -590,7 +602,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         bestR.WriteSolution(saveBestName, pu, zones, fnames.savebest);
 
         logger.AppendDebugTraceFile("Best solution is run " + to_string(bestR.id) + "\n");
-        logger.ShowGenProg("\nBest solution is run " + to_string(bestR.id) + "\n");
+        logger.ShowProg("\nBest solution is run " + to_string(bestR.id) + "\n");
 
         // Print the best solution
         stringstream bestbuf; 
