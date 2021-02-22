@@ -401,7 +401,8 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             reserveThread.RandomiseSolution(pu, rngEngine, zones.zoneCount);
 
             debugbuffer << "annealing start run " << irun << "\n";
-            progbuffer << "\nRun: " << irun << ",";
+            if (runoptions.verbose > 1)
+                progbuffer << "\nRun: " << irun << " ";
 
             SimulatedAnnealing sa(fnames, logger, runoptions.AnnealingOn, anneal, 
                 rngEngine, fnames.saveannealingtrace, irun);
@@ -412,10 +413,14 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 // init sa parameters if setting is appropriate
                 sa.Initialize(spec, pu, zones, runoptions.clumptype, runoptions.blm);
                 debugbuffer << "after Annealling Init run " << irun << "\n";
-                progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
+
+                if (runoptions.verbose > 1)
+                    progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
             } // Annealing Setup
 
-            progbuffer << "  creating the initial reserve \n";
+            if (runoptions.verbose > 1)
+                progbuffer << "  creating the initial reserve \n";
+
             debugbuffer << "before ZonationCost run " << irun << "\n";
             reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
             debugbuffer << "after ZonationCost run " << irun << "\n";
@@ -438,7 +443,8 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (runoptions.AnnealingOn)
             {
                 debugbuffer << "before Annealing run " << irun << "\n";
-                progbuffer << "  Main Annealing Section.\n";
+                if (runoptions.verbose > 1)
+                    progbuffer << "  Main Annealing Section.\n";
 
                 sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm, logger);
 
