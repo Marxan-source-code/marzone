@@ -51,8 +51,9 @@
 #include "logger.hpp"
 #include "marzone.hpp"
 
-// Solver filers
+// Solver files
 #include "solvers/simulated_annealing.hpp"
+#include "solvers/population_annealing.hpp"
 #include "solvers/heuristic.hpp"
 #include "solvers/iterative_improvement.hpp"
 
@@ -414,6 +415,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             debugbuffer << "annealing start run " << irun << "\n";
             progbuffer << "\nRun: " << irun << ",";
 
+            /*
             SimulatedAnnealing sa(fnames, logger, runoptions.AnnealingOn, anneal, 
                 rngEngine, fnames.saveannealingtrace, irun);
             if (runoptions.AnnealingOn)
@@ -425,6 +427,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 debugbuffer << "after Annealling Init run " << irun << "\n";
                 progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
             } // Annealing Setup
+            */
 
             progbuffer << "  creating the initial reserve \n";
             debugbuffer << "before ZonationCost run " << irun << "\n";
@@ -445,13 +448,13 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             // * * * * * * * * * * * * * * * * * * * ***
             // * * *  main annealing algorithm * * * * *
             // * * * * * * * * * * * * * * * * * * * ***
-
+            /*
             if (runoptions.AnnealingOn)
             {
                 debugbuffer << "before Annealing run " << irun << "\n";
                 progbuffer << "  Main Annealing Section.\n";
 
-                sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm, logger);
+                sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm);
 
                 if (runoptions.verbose > 1)
                 {
@@ -461,6 +464,15 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
                 debugbuffer << "after Annealing run " << irun << "\n";
             } // End of Annealing On
+            */
+
+           PopulationAnnealing popAnneal(anneal, rngEngine, irun, logger);
+           popAnneal.Run(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm);
+           if (runoptions.verbose > 1)
+           {
+               progbuffer << "  PopAnnealing:";
+               PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
+           }
 
             if (runoptions.HeuristicOn)
             {

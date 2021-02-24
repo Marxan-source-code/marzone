@@ -58,8 +58,7 @@ class SimulatedAnnealing {
         settings.temp = settings.Tinit;
     }
 
-    void RunAnneal(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm,
-        LoggerBase& logger) {
+    void RunAnneal(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm) {
         uniform_int_distribution<int> randomDist(0, numeric_limits<int>::max());
         uniform_int_distribution<int> randomPuDist(0, pu.validPuIndices.size()-1);
         uniform_real_distribution<double> float_range(0.0, 1.0);
