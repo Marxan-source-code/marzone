@@ -3,7 +3,7 @@
 /*
     Population annealing is an extension of the simulated annealing process.
     The implementation roughly follows the paper described here, with some adjustments: https://arxiv.org/pdf/2102.06611.pdf
-    Uses the same parameters as thermal annealing.
+    Uses the same parameters as simulated annealing, although with some different interpretations.
 */
 
 #include <limits>
@@ -27,6 +27,7 @@ class PopulationAnnealing {
         populationSize = max(omp_get_max_threads(), 10);
         settings = anneal;
         settings.type = 2; // only type 2 thermal annealing supported - override others.
+        logger = logger;
     }
 
     void Run(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm) {
@@ -37,7 +38,6 @@ class PopulationAnnealing {
         vector<schange> changePop;
         InitPopulation(population, changePop, r, spec, pu, zones, blm);
 
-        logger.ShowWarningMessage("Running population annealing with " + to_string(numSweeps) + " sweeps.");
         for (unsigned i = 0; i < tIterations; i++)
         {
             // Sweep across all population reserves
