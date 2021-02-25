@@ -14,7 +14,7 @@ TEST(ReserveTestsGroup, Reserve_InitializeSolution_test)
     fnames.costsname = "data/costs_test1.dat";
     fnames.specname = "data/species_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
     Species spec(fnames, logger);
 
@@ -39,12 +39,12 @@ TEST(ReserveTestsGroup, Reserve_ComputeSpeciesAmounts_test)
     fnames.zonesname = "data/zones_test1.dat";
     fnames.zonecontribname = "data/zonecontrib_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
     Species spec(fnames, logger);
     Zones zones(fnames, c, logger);
     Pu pu(fnames, c, 0, zones.zoneNames, logger);
-    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat", logger);
     zones.BuildZoneContributions(spec, pu);
 
     Reserve r(spec, 3, 1); // 3 zones
@@ -87,12 +87,12 @@ TEST(ReserveTestsGroup, Reserve_CheckChangeValue_test)
     fnames.zonesname = "data/zones_test1.dat";
     fnames.zonecontribname = "data/zonecontrib_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
     Species spec(fnames, logger);
     Zones zones(fnames, c, logger);
     Pu pu(fnames, c, 0, zones.zoneNames, logger);
-    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat", logger);
     zones.BuildZoneContributions(spec, pu);
 
     Reserve r(spec, 3, 1); // 3 zones
@@ -152,12 +152,12 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_test)
     fnames.zonesname = "data/zones_test1.dat";
     fnames.zonecontribname = "data/zonecontrib_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
     Species spec(fnames, logger);
     Zones zones(fnames, c, logger);
     Pu pu(fnames, c, 0, zones.zoneNames, logger);
-    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat", logger);
     zones.BuildZoneContributions(spec, pu);
 
     Reserve r(spec, 3, 1); // 3 zones
@@ -191,7 +191,7 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_ZoneTargets_test)
     fnames.zonecontribname = "data/zonecontrib_test1.dat";
     fnames.zonetargetname = "data/zonetarget_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
     Species spec(fnames, logger);
 
@@ -201,9 +201,9 @@ TEST(ReserveTestsGroup, Reserve_EvaluateObjectiveValue_ZoneTargets_test)
 
     Zones zones(fnames, c, logger);
     Pu pu(fnames, c, 0, zones.zoneNames, logger);
-    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat", logger);
     zones.BuildZoneContributions(spec, pu);
-    zones.BuildZoneTarget(spec, pu, fnames);
+    zones.BuildZoneTarget(spec, pu, fnames, logger);
 
     Reserve r(spec, 3, 1); // 3 zones
     // set a solution to 0 0 0 0 0 
@@ -255,7 +255,7 @@ TEST(ReserveTestsGroup, Reserve_Symmetry_test)
     fnames.zonecontribname = "data/zonecontrib_test1.dat";
     fnames.zonetargetname = "data/zonetarget_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
     Species spec(fnames, logger);
 
@@ -266,9 +266,9 @@ TEST(ReserveTestsGroup, Reserve_Symmetry_test)
     Zones zones(fnames, c, logger);
     
     Pu pu(fnames, c, 0, zones.zoneNames, logger);
-    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat", logger);
     zones.BuildZoneContributions(spec, pu);
-    zones.BuildZoneTarget(spec, pu, fnames);
+    zones.BuildZoneTarget(spec, pu, fnames, logger);
 
     Reserve r(spec, 3, 1); // 3 zones
     // set a solution to 0 0 0 0 0 
