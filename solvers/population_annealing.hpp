@@ -1,7 +1,9 @@
 #pragma once
 
 /*
-    Population annealing is an extension of the existing simulated annealing solver.
+    Population annealing is an extension of the simulated annealing process.
+    The implementation roughly follows the paper described here, with some adjustments: https://arxiv.org/pdf/2102.06611.pdf
+    Uses the same parameters as thermal annealing.
 */
 
 #include <limits>
@@ -20,8 +22,9 @@ using namespace std;
 class PopulationAnnealing {
     public:
     PopulationAnnealing(sanneal& anneal, mt19937& rngEngine, int id, LoggerBase& logger) 
-    : rngEngine(rngEngine), id(id), populationSize(50), numSweeps(0)
+    : rngEngine(rngEngine), id(id), numSweeps(0), tIterations(0)
     {
+        populationSize = max(omp_get_max_threads(), 10);
         settings = anneal;
         settings.type = 2; // only type 2 thermal annealing supported - override others.
     }
@@ -35,24 +38,25 @@ class PopulationAnnealing {
         InitPopulation(population, changePop, r, spec, pu, zones, blm);
 
         logger.ShowWarningMessage("Running population annealing with " + to_string(numSweeps) + " sweeps.");
-        for (int i = 0; i < numSweeps; i++)
+        for (unsigned i = 0; i < tIterations; i++)
         {
             // Sweep across all population reserves
-            //#pragma omp parallel for schedule(dynamic)
-            for (int j = 0; j < populationSize; j++) {
-                Sweep(population[i], changePop[i], spec, pu, zones, tpf1, tpf2, costthresh, blm, randomDist, floatRange);
+            #pragma omp parallel for
+            for (unsigned j = 0; j < populationSize; j++) {
+                for (unsigned k = 0; k < numSweeps; k++)
+                    Sweep(population[j], changePop[j], spec, pu, zones, tpf1, tpf2, costthresh, blm, randomDist, floatRange);
             }
             
             // Resample population.
             ResamplePopulation(population, changePop, spec, zones);
 
-            // Todo - should keep track of the bestR after every sweep.
-            // update temperatures. Linearly reduce existing temperature
+            // Technically we should keep track of the bestR after every sweep.
+            // update temperatures. Reduce existing temperature
             settings.temp = settings.temp*settings.Tcool;
         }
 
         // Replace r with the best reserve solution
-        r = FindBestReserve(population);
+        r.Assign(population[FindBestReserve(population)]);
     }
 
     // perform a single sweep on the reserve, and only on non-locked pu.
@@ -75,7 +79,7 @@ class PopulationAnnealing {
         }
     }
 
-    Reserve& FindBestReserve(vector<Reserve>& population) {
+    unsigned FindBestReserve(vector<Reserve>& population) {
         int bestInd = 0;
         double bestValue = numeric_limits<double>::max();
 
@@ -88,7 +92,7 @@ class PopulationAnnealing {
             }
         }
 
-        return population[bestInd];
+        return bestInd;
     }
 
     mt19937 &rngEngine;
@@ -98,16 +102,19 @@ class PopulationAnnealing {
 
     private:
     unsigned populationSize; // starting population size.
+    const unsigned minPopulationSize = omp_get_max_threads(); // minimum population size (such that resampling cant go below this number)
     uint64_t numSweeps;
+    uint64_t tIterations; // number of temperature changes.
 
     // based on reserve values, resamples and population and duplicates/removes certain pops.
     void ResamplePopulation(vector<Reserve>& population, vector<schange>& changePop, Species& spec, Zones& zones)
     {
         // get new weights for each replica
         vector<unsigned> newWeights = CalculateResamplingWeights(population);
-        vector<Reserve> newPop;
+        vector<Reserve> oldPop = population; // copy construct old population.
         unsigned newPopSize = 0;
 
+        population.clear();
         for (int i =0; i < populationSize; i++)
         {
             if (newWeights[i] > 0) 
@@ -116,8 +123,8 @@ class PopulationAnnealing {
                 // clone this many replicas.
                 for (int j = 0; j < newWeights[i]; j++)
                 {
-                    Reserve& rTemp(population[i]);
-                    newPop.push_back(rTemp);
+                    Reserve& rTemp(oldPop[i]);
+                    population.push_back(rTemp);
                 }
             }
         }
@@ -129,29 +136,62 @@ class PopulationAnnealing {
         }
         
         populationSize = newPopSize;
-        population = newPop;
     }
 
     // gets the boltzmann resampling weights for each population.
     vector<unsigned> CalculateResamplingWeights(vector<Reserve>& population) {
-        double betaDiff = 1/(settings.temp*(1-settings.Tcool));
-        vector<unsigned> newWeights(populationSize, 0);
+        double betaDiff = 1/(settings.temp) - 1/(settings.temp*settings.Tcool);
+        double objectiveScale = GetObjectiveScale(population, betaDiff); // normalization factor since we run into values that are too close to 0, or too high.
+        vector<double> newWeights(populationSize, 0);
+        vector<unsigned> newPopulations(populationSize, 1);
 
         // compute average ratio
         double averageRatio = 0.0;
         for (int i =0; i < populationSize; i++)
         {
-            averageRatio += exp(betaDiff*population[i].objective.total);
+            averageRatio += exp(objectiveScale*betaDiff*population[i].objective.total);
         }
         averageRatio /= populationSize;
 
-        // compute new ratio and take the floor to be the new # of copies of this configuration.
+        // compute new weights and scale to the min population size the new # of copies of this configuration.
+        int newPopSampling = 1;
         for (int i =0; i < populationSize; i++)
         {
-            newWeights[i] = (unsigned) exp(betaDiff*population[i].objective.total)/averageRatio;
+            newWeights[i] = exp(objectiveScale*betaDiff*population[i].objective.total)/averageRatio;
+            newPopSampling += (unsigned) newWeights[i];
         }
 
-        return newWeights;
+        // if new pop is 0 for whatever reason, we just keep the existing pop
+        if (newPopSampling == 0) 
+        {
+            return newPopulations;
+        }
+
+        // The idea behind scaleUpFactor is to keep new pop size above the minimum pop size.
+        double scaleUpFactor = newPopSampling > minPopulationSize ? 1 : minPopulationSize/(double) newPopSampling;
+        unsigned total = 0;
+        for (int i =0; i < populationSize; i++)
+        {
+            newPopulations[i] = (unsigned) (newWeights[i]*scaleUpFactor);
+            total += newPopulations[i];
+        }
+
+        return newPopulations;
+    }
+
+    // Given a set of population, get the average normalizing factor to deal with values that are too small or big compared to the beta. 
+    // betaDiff is a negative value.
+    double GetObjectiveScale(vector<Reserve>& population, double betaDiff) {
+        double bestObj = numeric_limits<double>::max();;
+        double betaMagnitude = -betaDiff;
+        for (int i = 0; i < population.size(); i++) 
+        {
+            if (population[i].objective.total < bestObj)
+                bestObj = population[i].objective.total;
+        }
+
+        bestObj *= betaMagnitude;
+        return 100/bestObj;
     }
 
     // Initializes parameters of a population
@@ -173,7 +213,8 @@ class PopulationAnnealing {
         } 
 
         // set sweeps consistent with sa
-        numSweeps = settings.iterations/settings.Tlen;
+        tIterations = settings.Titns;
+        numSweeps = settings.iterations/pu.puno;
     }
 
     bool GoodChange(double changeTotal, uniform_real_distribution<double>& float_range)

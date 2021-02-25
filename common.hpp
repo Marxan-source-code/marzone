@@ -223,6 +223,7 @@ namespace marzone {
         int AnnealingOn;
         int HeuristicOn;
         int ItImpOn;
+        bool PopulationAnnealingOn; // whether population annealing is run intead of simluated annealing.
 
         // Algorithm settings
         int heurotype;
