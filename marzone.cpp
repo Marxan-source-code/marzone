@@ -213,7 +213,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         zones.DumpZoneContribFinalValues(fnames.outputdir + "debug_ZoneContrib.csv", spec);
         zones.DumpZoneCostFinalValues(fnames.outputdir + "debug_ZoneCost.csv", costs);
         zones.DumpRelConnectionCostFinalValues(fnames.outputdir + "debug_ZoneConnectionCost.csv");
-        //DumpZoneSpec(iMessageCounter,spno,iZoneCount,ZoneSpec,spec,fnames);
         pu.DumpPuLockZoneData(fnames.outputdir + "debugPuLockZone.csv");
     }
     #endif
@@ -227,16 +226,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         analysis.initSumSolution(pu.puno, zones.zoneCount);
         logger.AppendDebugTraceFile("after InitSumSoln\n");
     }
-
-    /* re-enable once asym connectivity is supported.
-    if (asymmetricconnectivity)
-    {
-        logger.AppendDebugTraceFile("Asymmetric connectivity is on.\n");
-        DumpAsymmetricConnectionFile(puno,connections,pu,fnames);
-
-        ShowGenProg("  Asymmetric connectivity is on.\n");
-    }
-    */ 
 
     logger.ShowGenProg("  " + to_string(pu.connections.size()) + " connections entered \n");
     logger.ShowDetProg("    Reading in the Planning Unit versus Species File \n");
@@ -398,11 +387,17 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     omp_lock_t bestR_write_lock;
     omp_init_lock(&bestR_write_lock);
 
+    //create seeds for local rng engines
+    vector<unsigned int> seeds(runoptions.repeats);
+    for (int run_id = 1; run_id <= runoptions.repeats; run_id++)
+        seeds[run_id - 1] = run_id*runoptions.iseed;
+
     int maxThreads = omp_get_max_threads();
     logger.ShowGenProg("Running " + to_string(runoptions.repeats) + " runs multithreaded over number of threads: " + to_string(maxThreads) + "\n");
     #pragma omp parallel for schedule(dynamic)
     for (int irun = 1;irun <= runoptions.repeats;irun++)
     {
+        mt19937 rngThread(seeds[irun-1]);
         stringstream debugbuffer; // buffer to print at the end
         stringstream progbuffer; // buffer to print at the end
         try
@@ -410,13 +405,14 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             // Create new reserve object and init
             Reserve reserveThread(spec, zones.zoneCount, runoptions.clumptype, irun);
             reserveThread.InitializeSolution(pu.puno);
-            reserveThread.RandomiseSolution(pu, rngEngine, zones.zoneCount);
+            reserveThread.RandomiseSolution(pu, rngThread, zones.zoneCount);
 
             debugbuffer << "annealing start run " << irun << "\n";
-            progbuffer << "\nRun: " << irun << ",";
+            if (runoptions.verbose > 1)
+                progbuffer << "\nRun: " << irun << " ";
 
             
-            SimulatedAnnealing sa(fnames, logger, runoptions.AnnealingOn, anneal, 
+            SimulatedAnnealing sa(fnames, logger, runoptions.AnnealingOn, anneal,
                 rngEngine, fnames.saveannealingtrace, irun);
             if (runoptions.AnnealingOn && !runoptions.PopulationAnnealingOn)
             {
@@ -429,7 +425,9 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             } // Annealing Setup only for sa
 
 
-            progbuffer << "  creating the initial reserve \n";
+            if (runoptions.verbose > 1)
+                progbuffer << "  creating the initial reserve \n";
+
             debugbuffer << "before ZonationCost run " << irun << "\n";
             reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
             debugbuffer << "after ZonationCost run " << irun << "\n";
@@ -452,7 +450,8 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (runoptions.AnnealingOn && !runoptions.PopulationAnnealingOn)
             {
                 debugbuffer << "before Annealing run " << irun << "\n";
-                progbuffer << "  Main Annealing Section.\n";
+                if (runoptions.verbose > 1)
+                    progbuffer << "  Main Annealing Section.\n";
 
                 sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm);
 
@@ -482,7 +481,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (runoptions.HeuristicOn)
             {
                 debugbuffer << "before Heuristics run " << irun << "\n";
-                Heuristic heur = Heuristic(rngEngine, runoptions.heurotype);
+                Heuristic heur = Heuristic(rngThread, runoptions.heurotype);
                 heur.RunHeuristic(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm);
 
                 if (runoptions.verbose > 1 && (runoptions.runopts == 2 || runoptions.runopts == 5))
@@ -497,7 +496,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (runoptions.ItImpOn)
             {
                 debugbuffer << "before IterativeImprovementOptimise run " << irun << "\n";
-                IterativeImprovement itImp = IterativeImprovement(rngEngine, fnames, runoptions.itimptype);
+                IterativeImprovement itImp = IterativeImprovement(rngThread, fnames, runoptions.itimptype);
                 itImp.Run(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm);
                 debugbuffer << "after IterativeImprovementOptimise run " << irun << "\n";
 
@@ -541,7 +540,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (fnames.savebest)
             {
                 // re-evaluate entire system in case of any floating point/evaluation errors.
-                 reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
+                reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
                 if (reserveThread.objective.total < bestR.objective.total)
                 {
                     omp_set_lock(&bestR_write_lock);
@@ -618,7 +617,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         bestR.WriteSolution(saveBestName, pu, zones, fnames.savebest);
 
         logger.AppendDebugTraceFile("Best solution is run " + to_string(bestR.id) + "\n");
-        logger.ShowGenProg("\nBest solution is run " + to_string(bestR.id) + "\n");
+        logger.ShowProg("\nBest solution is run " + to_string(bestR.id) + "\n");
 
         // Print the best solution
         stringstream bestbuf; 
@@ -732,7 +731,7 @@ int CalcPenalties(Pu& pu, Species& spec, Zones& zones, Reserve& r, int clumptype
         if (specTerm.targetocc > iZoneSumOcc)
             iZoneSumOcc = specTerm.targetocc;
 
-        if (specTerm.target2 || specTerm.sepnum)
+        if (specTerm.target2)
         {
             int j = r.ComputePenaltyType4(specTerm, specPuAmounts[i], i, rZoneSumTarg, specTerm.target2, iZoneSumOcc); 
             badspecies += (j > 0);
@@ -1135,167 +1134,6 @@ void SetOptions(string &sInputFileName, srunoptions &runoptions, sanneal &anneal
         logger.ShowErrorMessage(errorMessage.str());
 
 } /***** Set Options 2* * * */
-
-
-// penalty associated with separation
-/*
-double SepPenalty(int ival)
-{
-       // here ival = 1, 2 or 3. being number of separate locations for speceis
-
-       switch (ival)
-       {
-              case 1: return(0.5);
-              case 2: return(0.2);
-              case 3: return (0.0);
-       }
-
-       return(0); // This line should never be reached
-
-} // SepPenalty
-*/
-
-// * * * **** Sep Penalty 2 * * * * * * * *
-// This returns the penalty for not meeting separation requirments. Feed in sepnum and current
-//    separation and returns a value from 0 to 1 which is an artificial shortfall.
-/*
-double SepPenalty2(int ival,int itarget)
-{
-    double fval;
-
-    if (!itarget)
-        return (0); // no penalty if no separation requirement
-    fval = (double) ival / (double) itarget;
-    if (!ival)
-        fval = 1.0 /(double) itarget;
-
-    return(1/(7*fval+0.2)-(1/7.2)); // Gives a nice hyperbole with fval = 1 return 0 and
-                                    // fval = 0 or 0.1 returning almost 1
-} // SepPenalty2
-*/
-
-/* TODO - for Sepnum/Sepdistance
-int CheckDistance(int i, int j,struct spustuff pu[],double squaretarget)
-{
-    // compare x1*x2+y1*y2 with squaretarget
-    if ((pu[i].xloc-pu[j].xloc)*(pu[i].xloc-pu[j].xloc) + (pu[i].yloc-pu[j].yloc)* (pu[i].yloc-pu[j].yloc) >= squaretarget)
-        return(1);
-    else
-        return(0);
-} // Is Distant returns true if PU's are big enough distance apart
-*/
-
-/*
-int CountSeparation(int isp,struct sclumps *newno,
-                    struct spustuff pu[],struct spu SM[],sspecies spec[],int imode)
-{
-    // imode 0 = count separation on current
-    // imode 1 = count separation if ipu were included
-    // imode -1 = count separation if ipu were excluded
-    // The following assumes imode = 0 for starters
-
-    struct slink{int id; struct slink *next;} *first = NULL, *second = NULL,*ptemp,*ptest;
-    struct sclumps *pclump;
-    struct sclumppu *ppu;
-    int sepcount = 1,test;
-    double targetdist;
-    targetdist = spec[isp].sepdistance * spec[isp].sepdistance;
-
-    if (targetdist == 0)
-        return(3); // Shortcut if sep not apply to this species
-                   // This assumes that 3 is highest sep count
-
-    // Set up the first list
-    if (imode == 1)
-    {
-        if (ValidPU(newno->clumpid,isp,newno,spec,pu,SM,imode))
-        {
-            ptemp = (struct slink *) malloc(sizeof(struct slink));
-            ptemp->id = newno->clumpid;
-            ptemp->next = first;
-            first = ptemp;
-        }
-    }
-    for (pclump = spec[isp].head;pclump;pclump = pclump->next)
-    {
-        for (ppu = pclump->head;ppu;ppu= ppu->next)
-        {
-            if (ValidPU(ppu->puid,isp,newno,spec,pu,SM,imode))
-            {
-                ptemp = (struct slink *) malloc(sizeof(struct slink));
-                ptemp->id = ppu->puid;
-                ptemp->next = first;
-                first = ptemp;
-            }  // Add all valid species bearing PU's to list
-        }
-    }
-    // need to worry about added pu which is not on spec[isp].head list
-
-    // cycle through this list
-    while (first)
-    {
-        test = first->id;
-        ptemp = first;
-        first = first->next;
-        free(ptemp);
-        DebugFree(sizeof(struct slink));
-
-        for (ptemp = first;ptemp;ptemp = ptemp->next)
-        {
-            if (CheckDistance(ptemp->id,test,pu,targetdist))
-            {
-                for (ptest=second;ptest;ptest = ptest->next)
-                {
-                    if (CheckDistance(ptemp->id,ptest->id,pu,targetdist))
-                    {
-                        // Clear all lists
-                        while (first)
-                        {
-                            ptemp = first;
-                            first = ptemp->next;
-                            free(ptemp);
-                            DebugFree(sizeof(struct slink));
-                        }
-                        while (second)
-                        {
-                            ptemp = second;
-                            second = ptemp->next;
-                            free(ptemp);
-                            DebugFree(sizeof(struct slink));
-                        }
-                        return(3);
-                    } // I have succeeded in finding what I'm looking for
-                }
-
-                 ptest = (struct slink *) malloc(sizeof(struct slink));
-                 ptest->id = ptemp->id;
-                 ptest->next = second;
-                  second = ptest;
-                 sepcount = 2; // there is a separation of at least2.
-                               // This should be used to cut down calls to this function
-            } // I am sufficient distance from test location
-        }
-
-        while (second)
-        {
-            ptemp = second;
-            second = ptemp->next;
-            free(ptemp);
-            DebugFree(sizeof(struct slink));
-        } // clear second between tests
-    } // finished scanning through list. first is neccessarily empty now
-
-    while (second)
-    {
-        ptemp = second;
-        second = ptemp->next;
-        free(ptemp);
-        DebugFree(sizeof(struct slink));
-    }
-
-    return(sepcount);
-} // CountSeparation
-*/
 
 // use the prop value from the conservation feature file to set a proportion target for species
 void ApplySpecProp(Species& spec, Pu& pu)

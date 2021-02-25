@@ -261,11 +261,6 @@ namespace marzone
               }
             }
           }
-
-        if (spec.specList[i].sepdistance && speciesAmounts[i].separation < 3)
-        {
-          specCount++; /* count species if not met separation and not already counted */
-        }
       }
 
       return specCount;
@@ -297,13 +292,6 @@ namespace marzone
 
       /* Check first to see if I've already satisfied targets for this species with the current clump setup*/
       SpeciesAmounts4(isp, target2); // recompute amounts for this species.
-      /* NOTE - reenable later if we have time to migrate the separation code.
-      if (spec.specList[isp].sepnum > 0)
-      {
-        sepCount = CountSeparation2(isp);
-        speciesAmounts[isp].separation = sepCount == -1 ? spec.specList[isp].sepnum : sepCount;
-      }
-      */
 
       if ((speciesAmounts[isp].amount >= target) 
         && (speciesAmounts[isp].occurrence >= targetocc)) {
@@ -927,14 +915,6 @@ namespace marzone
         temp = ReturnStringIfTargetMet(spec.specList[isp].target, speciesAmounts[isp].amount,
                                        spec.specList[isp].targetocc, speciesAmounts[isp].occurrence, rMPM, misslevel);
 
-        if (imode > 1)
-        {
-          if (spec.specList[isp].sepnum)
-          {
-            if (speciesAmounts[isp].separation / spec.specList[isp].sepnum < misslevel)
-              temp = "no";
-          }
-        }
         myfile << d << temp;
 
         int iZoneArrayIndex;
@@ -1078,16 +1058,6 @@ namespace marzone
     int clumptype;
 
   private:
-    // This is a modified form of count separation where the user can specify any
-    // maximum separation distance rather than just assuming a sep distance of three
-    /* NOTE - separation does not seem to work. If there's time we can implement it later.
-    int CountSeparation2(int isp, int sepdistance) {
-      double targetdist = sepdistance*sepdistance;
-      if (targetdist == 0)
-        return -1; //Shortcut if sep not apply to this species
-    }
-    */
-
     // For a given species with target2 requirements, sum up its clumping pu amounts
     // and set into speciesAmounts.
     void SpeciesAmounts4(int isp, double target2) {
