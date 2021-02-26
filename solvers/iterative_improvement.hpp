@@ -16,7 +16,7 @@ using namespace std;
 class IterativeImprovement {
     public:
     IterativeImprovement(mt19937& rngEngine, sfname& fnames, int iterativeImprovementMode) 
-    : rngEngine(rngEngine), iterativeImprovementMode(iterativeImprovementMode), optimise(optimise)
+    : rngEngine(rngEngine), iterativeImprovementMode(iterativeImprovementMode)
     {
         savename = fnames.savename;
         saveItimpTrace = fnames.saveitimptrace;
@@ -147,7 +147,6 @@ class IterativeImprovement {
     mt19937 &rngEngine;
     int iterativeImprovementMode;
     int saveItimpTrace;
-    int optimise;
     unsigned rowCounter;
     unsigned itimpTraceRows;
     unsigned rowLimit;
