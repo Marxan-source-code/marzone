@@ -486,6 +486,9 @@ class Zones {
 
     void DumpZoneTargetFinalValues(string filename, Species& spec) 
     {
+        if (zoneTarget.size() == 0)
+            return; // do nothing on empty size
+            
         ofstream myfile;
         myfile.open(filename);
         myfile << "spname,spindex";
