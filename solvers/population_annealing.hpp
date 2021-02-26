@@ -21,13 +21,14 @@ using namespace std;
 
 class PopulationAnnealing {
     public:
-    PopulationAnnealing(sanneal& anneal, mt19937& rngEngine, int id, LoggerBase& logger) 
+    PopulationAnnealing(sanneal& anneal, mt19937& rngEngine, int id, sfname& fnames) 
     : rngEngine(rngEngine), id(id), numSweeps(0), tIterations(0)
     {
         populationSize = max(omp_get_max_threads(), 10);
         settings = anneal;
         settings.type = 2; // only type 2 thermal annealing supported - override others.
-        logger = logger;
+        outputPrefix = fnames.savename;
+        saveAnnealingTrace = fnames.saveannealingtrace;
     }
 
     void Run(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm) {
@@ -46,6 +47,10 @@ class PopulationAnnealing {
                 for (unsigned k = 0; k < numSweeps; k++)
                     Sweep(population[j], changePop[j], spec, pu, zones, tpf1, tpf2, costthresh, blm, randomDist, floatRange);
             }
+
+            // store best solution if trace required.
+            if (saveAnnealingTrace)
+                iterationResults.push_back(population[FindBestReserve(population)].objective);
             
             // Resample population.
             ResamplePopulation(population, changePop, spec, zones);
@@ -54,6 +59,10 @@ class PopulationAnnealing {
             // update temperatures. Reduce existing temperature
             settings.temp = settings.temp*settings.Tcool;
         }
+
+        // Write pop trace if needed
+        if (saveAnnealingTrace)
+            WriteTrace();
 
         // Replace r with the best reserve solution
         r.Assign(population[FindBestReserve(population)]);
@@ -105,6 +114,27 @@ class PopulationAnnealing {
     const unsigned minPopulationSize = omp_get_max_threads(); // minimum population size (such that resampling cant go below this number)
     uint64_t numSweeps;
     uint64_t tIterations; // number of temperature changes.
+
+    // for convergence plotting.
+    int saveAnnealingTrace; 
+    vector<scost> iterationResults;
+    string outputPrefix;
+
+    void WriteTrace() {
+        string filename = outputPrefix + "_popanneal_trace" + intToPaddedString(id, 5) + getFileSuffix(saveAnnealingTrace);
+
+        ofstream file;
+        file.open(filename);
+        file << "iteration,total,cost,connection,penalty,shortfall\n"; // header
+
+        for (int i = 1; i <= iterationResults.size(); i++) 
+        {
+            scost& term = iterationResults[i-1];
+            file << i << "," << term.total << "," << term.cost << "," << term.connection << "," << term.penalty << "," << term.shortfall << "\n";
+        }
+
+        file.close();
+    }
 
     // based on reserve values, resamples and population and duplicates/removes certain pops.
     void ResamplePopulation(vector<Reserve>& population, vector<schange>& changePop, Species& spec, Zones& zones)
