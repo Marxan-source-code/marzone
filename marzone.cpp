@@ -59,7 +59,7 @@
 namespace marzone {
 
 // Version specific constants
-string sVersionString = "Marxan with Zones v 4.0 alpha";
+string sVersionString = "Marxan with Zones v 4.0.4";
 string sMarxanWebSite = "https://marxansolutions.org/";
 string sDebugTraceFileName = "DebugTraceFile_Marxan_with_Zones.txt";
 
