@@ -1182,17 +1182,17 @@ void DumpFileNames(sfname& fnames, Logger& logger)
 
     fprintf(fp,"input name,file name\n");
 
-    fprintf(fp,"zonesname,%s\n",fnames.zonesname);
-    fprintf(fp,"costsname,%s\n",fnames.costsname);
-    fprintf(fp,"zonecontribname,%s\n",fnames.zonecontribname);
-    fprintf(fp,"zonecontrib2name,%s\n",fnames.zonecontrib2name);
-    fprintf(fp,"zonecontrib3name,%s\n",fnames.zonecontrib3name);
-    fprintf(fp,"zonetargetname,%s\n",fnames.zonetargetname);
-    fprintf(fp,"zonetarget2name,%s\n",fnames.zonetarget2name);
-    fprintf(fp,"zonecostname,%s\n",fnames.zonecostname);
-    fprintf(fp,"pulockname,%s\n",fnames.pulockname);
-    fprintf(fp,"puzonename,%s\n",fnames.puzonename);
-    fprintf(fp,"zoneconnectioncostname,%s\n",fnames.relconnectioncostname);
+    fprintf(fp,"zonesname,%s\n",fnames.zonesname.c_str());
+    fprintf(fp,"costsname,%s\n",fnames.costsname.c_str());
+    fprintf(fp,"zonecontribname,%s\n",fnames.zonecontribname.c_str());
+    fprintf(fp,"zonecontrib2name,%s\n",fnames.zonecontrib2name.c_str());
+    fprintf(fp,"zonecontrib3name,%s\n",fnames.zonecontrib3name.c_str());
+    fprintf(fp,"zonetargetname,%s\n",fnames.zonetargetname.c_str());
+    fprintf(fp,"zonetarget2name,%s\n",fnames.zonetarget2name.c_str());
+    fprintf(fp,"zonecostname,%s\n",fnames.zonecostname.c_str());
+    fprintf(fp,"pulockname,%s\n",fnames.pulockname.c_str());
+    fprintf(fp,"puzonename,%s\n",fnames.puzonename.c_str());
+    fprintf(fp,"zoneconnectioncostname,%s\n",fnames.relconnectioncostname.c_str());
 
     fclose(fp);
 }
