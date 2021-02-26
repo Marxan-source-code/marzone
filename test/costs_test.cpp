@@ -11,7 +11,7 @@ TEST_GROUP(CostsTestsGroup)
 TEST(CostsTestsGroup, defaultCost_test)
 {
     sfname fnames = {}; // default, no cost file
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
 
     CHECK_EQUAL(1, c.costCount);
@@ -25,7 +25,7 @@ TEST(CostsTestsGroup, customCost_test)
     sfname fnames = {};
     fnames.costsname = "data/costs_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
 
     CHECK_EQUAL(3, c.costCount);

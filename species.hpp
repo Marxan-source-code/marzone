@@ -15,14 +15,13 @@ using namespace std;
 
 class Species {
     public:
-    Species(sfname& fnames, LoggerBase& logger): spno(0), gspno(0), aggexist(false), sepexist(false), fSpecPROPLoaded(false) {
-        this->logger = logger;
-        ReadSpeciesData(fnames.inputdir + fnames.specname, specList, spno, true);
+    Species(sfname& fnames, Logger& logger): spno(0), gspno(0), aggexist(false), sepexist(false), fSpecPROPLoaded(false) {
+        ReadSpeciesData(fnames.inputdir + fnames.specname, specList, spno, true, logger);
 
         if (!fnames.blockdefname.empty())
         {
             // read the general species file too
-            ReadSpeciesData(fnames.inputdir + fnames.specname, genSpecList, gspno, false);
+            ReadSpeciesData(fnames.inputdir + fnames.specname, genSpecList, gspno, false, logger);
         }
     }
 
@@ -128,7 +127,7 @@ class Species {
         }
     }
 
-    void LoadCustomPenalties(string filename) {
+    void LoadCustomPenalties(string filename, Logger& logger) {
         ifstream fp = openFile(filename);
         string sLine;
 
@@ -219,7 +218,7 @@ class Species {
     private:
     // precondition - T must be of type sgenspec or one of its inheritors
     template<typename T>
-    void ReadSpeciesData(string filename, vector<T>& typeList, unsigned& count, bool populateLookup) {
+    void ReadSpeciesData(string filename, vector<T>& typeList, unsigned& count, bool populateLookup, Logger& logger) {
         ifstream fp = openFile(filename);
         string sLine;
 
@@ -328,8 +327,6 @@ class Species {
             logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
 
     }
-
-    LoggerBase logger;
 };
 
 } // namespace marzone

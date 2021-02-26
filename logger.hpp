@@ -11,26 +11,7 @@
 namespace marzone {
     using namespace std;
 
-    // Base abstract class for mocking purposes.
-    class LoggerBase {
-        public:
-        virtual void ShowErrorMessage(string sMess) {}
-        virtual void ShowWarningMessage(string sMess) {}
-        virtual void AppendDebugTraceFile(string sMess) {}
-        virtual int GetVerbosity() { return 1; }
-    };
-
-    // mock class for unit tests.
-    class LoggerMock: public LoggerBase {
-        public:
-        LoggerMock() {}
-        void ShowErrorMessage(string sMess) {}
-        void ShowWarningMessage(string sMess) {}
-        void AppendDebugTraceFile(string sMess) {}
-        int GetVerbosity() { return 1; }
-    };
-
-    class Logger : public LoggerBase {
+    class Logger {
     public:
     Logger() {}
 
@@ -167,8 +148,7 @@ namespace marzone {
 
         // Wait for user input
         cout << "Program terminated due to error. Press any key to continue.\n";
-        char temp;
-        cin >> temp;
+        cin.get();
         throw runtime_error(sMess);
     }
 

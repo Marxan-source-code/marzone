@@ -229,7 +229,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     logger.ShowGenProg("  " + to_string(pu.connections.size()) + " connections entered \n");
     logger.ShowDetProg("    Reading in the Planning Unit versus Species File \n");
     logger.AppendDebugTraceFile("before LoadSparseMatrix\n");
-    pu.LoadSparseMatrix(spec, fnames.inputdir + fnames.puvsprname);
+    pu.LoadSparseMatrix(spec, fnames.inputdir + fnames.puvsprname, logger);
     logger.ShowGenProg(to_string(pu.puvspr.size()) + " conservation values counted, " + 
         to_string(pu.puno*spec.spno) + " big matrix size, " + to_string(pu.density) + "% density of matrix \n");
     logger.AppendDebugTraceFile("after LoadSparseMatrix\n");
@@ -259,7 +259,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     }
 
     logger.AppendDebugTraceFile("before Build_ZoneTarget\n");
-    zones.BuildZoneTarget(spec, pu, fnames);
+    zones.BuildZoneTarget(spec, pu, fnames, logger);
     logger.AppendDebugTraceFile("after Build_ZoneTarget\n");
 
     if (iVerbosity > 3)
@@ -334,7 +334,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     else
     {
         logger.AppendDebugTraceFile("before LoadPenalties\n");
-        spec.LoadCustomPenalties(fnames.inputdir + fnames.penaltyname);
+        spec.LoadCustomPenalties(fnames.inputdir + fnames.penaltyname, logger);
         logger.AppendDebugTraceFile("after LoadPenalties\n");
     }
 
@@ -393,6 +393,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
     int maxThreads = omp_get_max_threads();
     logger.ShowGenProg("Running " + to_string(runoptions.repeats) + " runs multithreaded over number of threads: " + to_string(maxThreads) + "\n");
+    logger.ShowGenProg("Runs will show as they complete, and may not be in sequential order.");
     #pragma omp parallel for schedule(dynamic)
     for (int irun = 1;irun <= runoptions.repeats;irun++)
     {
@@ -410,7 +411,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (runoptions.verbose > 1)
                 progbuffer << "\nRun: " << irun << " ";
 
-            SimulatedAnnealing sa(fnames, logger, runoptions.AnnealingOn, anneal, 
+            SimulatedAnnealing sa(fnames, runoptions.AnnealingOn, anneal, 
                 rngThread, fnames.saveannealingtrace, irun);
             if (runoptions.AnnealingOn)
             {
@@ -930,7 +931,8 @@ void ShowShutdownScreen(void)
 {
         logger.ShowProg("\n");
         logger.ShowTimePassed(startTime);
-        logger.ShowProg("\n              The End \n");
+        logger.ShowProg("\n              The End. Press any key to continue. \n");
+        std::cin.get(); // pause screen.
 }
 
 void SaveSeed(int iseed)
@@ -946,7 +948,7 @@ void SaveSeed(int iseed)
 void ShowPauseExit(void)
 {
      logger.ShowProg("Press return to exit.\n");
-     getchar();
+     std::cin.get();
 }  /* Show Pause Exit  */
 
 void WriteSecondarySyncFileRun(int iSyncRun)
