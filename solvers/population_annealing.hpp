@@ -4,6 +4,8 @@
     Population annealing is an extension of the simulated annealing process.
     The implementation roughly follows the paper described here, with some adjustments: https://arxiv.org/pdf/2102.06611.pdf
     Uses the same parameters as simulated annealing, although with some different interpretations.
+
+    Currently this is experimental code. It is slower than traditional simulated annealing but if left running long enough, can get better results.
 */
 
 #include <limits>
@@ -14,10 +16,14 @@
 #include "../reserve.hpp"
 #include "../zones.hpp"
 #include "../logger.hpp"
-#include "simulated_annealing.hpp"
 
 namespace marzone {
 using namespace std;
+
+typedef struct scosttrace : scost {
+    double temperature;
+    unsigned popSize;
+} scosttrace;
 
 class PopulationAnnealing {
     public:
@@ -31,14 +37,21 @@ class PopulationAnnealing {
         saveAnnealingTrace = fnames.saveannealingtrace;
     }
 
-    void Run(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm) {
+    void Run(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm, Logger& logger) {
         uniform_int_distribution<int> randomDist(0, numeric_limits<int>::max());
         uniform_real_distribution<double> floatRange(0.0, 1.0);
         
         vector<Reserve> population;
         vector<schange> changePop;
-        InitPopulation(population, changePop, r, spec, pu, zones, blm);
+        InitPopulation(population, changePop, r, spec, pu, zones, costthresh, blm, tpf1, tpf2);
 
+        logger.ShowWarningMessage("Temp start " + to_string(settings.temp) + " dec: " + to_string(settings.Tcool) + "\n");
+
+        if (saveAnnealingTrace)
+        {
+            iterationResults.push_back({r.objective, settings.temp, populationSize});
+        }
+            
         for (unsigned i = 0; i < tIterations; i++)
         {
             // Sweep across all population reserves
@@ -50,7 +63,10 @@ class PopulationAnnealing {
 
             // store best solution if trace required.
             if (saveAnnealingTrace)
-                iterationResults.push_back(population[FindBestReserve(population)].objective);
+            {
+                scost& best = population[FindBestReserve(population)].objective;
+                iterationResults.push_back({best, settings.temp, populationSize});
+            }
             
             // Resample population.
             ResamplePopulation(population, changePop, spec, zones);
@@ -117,7 +133,7 @@ class PopulationAnnealing {
 
     // for convergence plotting.
     int saveAnnealingTrace; 
-    vector<scost> iterationResults;
+    vector<scosttrace> iterationResults;
     string outputPrefix;
 
     void WriteTrace() {
@@ -125,12 +141,13 @@ class PopulationAnnealing {
 
         ofstream file;
         file.open(filename);
-        file << "iteration,total,cost,connection,penalty,shortfall\n"; // header
+        file << "t,iteration,total,cost,connection,penalty,shortfall,populationsize\n"; // header
 
         for (int i = 1; i <= iterationResults.size(); i++) 
         {
-            scost& term = iterationResults[i-1];
-            file << i << "," << term.total << "," << term.cost << "," << term.connection << "," << term.penalty << "," << term.shortfall << "\n";
+            scosttrace& term = iterationResults[i-1];
+            file << term.temperature << "," << i << "," << term.total << "," << term.cost << "," 
+                << term.connection << "," << term.penalty << "," << term.shortfall << "," << term.popSize << "\n";
         }
 
         file.close();
@@ -225,15 +242,14 @@ class PopulationAnnealing {
     }
 
     // Initializes parameters of a population
-    void InitPopulation(vector<Reserve>& population, vector<schange>& changePop, Reserve& r, Species& spec, Pu& pu, Zones& zones, double blm) 
+    void InitPopulation(vector<Reserve>& population, vector<schange>& changePop, Reserve& r, Species& spec, Pu& pu, Zones& zones, 
+    double costthresh, double blm, double tpf1, double tpf2) 
     {
         population.reserve(populationSize);
         changePop.resize(populationSize);
 
         sfname fnamesDummy = {}; // placeholder
-        SimulatedAnnealing base(fnamesDummy, logger, 1, settings, rngEngine, 0, id);
-        base.Initialize(spec, pu, zones, 0, blm); // initialize parameters.
-        settings = base.settings; // borrow the initialized temperature parameters from first run. 
+        InitParameters(r, pu, spec, zones, costthresh, blm, tpf1, tpf2);
 
         // create reserve configurations and add them to population.
         for (int i = 0; i < populationSize; i++) {
@@ -244,7 +260,33 @@ class PopulationAnnealing {
 
         // set sweeps consistent with sa
         tIterations = settings.Titns;
-        numSweeps = settings.iterations/pu.puno;
+        numSweeps = max(1ull, settings.iterations/tIterations/pu.puno);
+    }
+
+    void InitParameters(Reserve& rInit, Pu& pu, Species& spec, Zones& zones, double costthresh, double blm, double tpf1, double tpf2) 
+    {
+        Reserve r(rInit);
+        // Sweep once and set temperatures to averageDelta and averageDelta/tItns
+        uniform_int_distribution<int> randomDist(0, numeric_limits<int>::max());
+        double averageDelta = 0.0, absChange = 0.0;
+        schange change = r.InitializeChange(spec, zones);
+        unsigned iZone;
+
+        for (int& ipu: pu.validPuIndices) {
+            iZone = pu.RtnValidZoneForPu(ipu, r.solution[ipu], randomDist, rngEngine, zones.zoneCount);
+            r.CheckChangeValue(change, ipu, r.solution[ipu], iZone, pu, zones, spec, costthresh, blm, 
+                tpf1, tpf2);
+            
+            if (change.total < 0)
+                r.ApplyChange(ipu, iZone, change, pu, zones, spec);
+
+            absChange = abs(change.total);
+            averageDelta += absChange/(double) pu.validPuIndices.size();
+        }
+
+        settings.Tinit = averageDelta/(double) settings.Titns;
+        settings.temp = settings.Tinit;
+        settings.Tcool = pow(1.0/averageDelta, 1.0/(double)settings.Titns);
     }
 
     bool GoodChange(double changeTotal, uniform_real_distribution<double>& float_range)

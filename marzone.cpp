@@ -470,7 +470,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 progbuffer << "  Main Population Annealing Section.\n";
 
                 PopulationAnnealing popAnneal(anneal, rngEngine, irun, fnames);
-                popAnneal.Run(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm);
+                popAnneal.Run(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm, logger);
                 if (runoptions.verbose > 1)
                 {
                     progbuffer << "  PopAnnealing:";
