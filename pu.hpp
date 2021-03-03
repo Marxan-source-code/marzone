@@ -21,13 +21,12 @@ using namespace std;
 
 class Pu {
     public:
-    Pu(sfname& fnames, Costs& costs, int asymmetric, map<int, ZoneName>& zoneLookup, LoggerBase& logger) : puno(0), puLockCount(0), puZoneCount(0) {
-        this->logger = logger;
-        ReadPUData(fnames.inputdir + fnames.puname, costs);
+    Pu(sfname& fnames, Costs& costs, int asymmetric, map<int, ZoneName>& zoneLookup, Logger& logger) : puno(0), puLockCount(0), puZoneCount(0) {
+        ReadPUData(fnames.inputdir + fnames.puname, costs, logger);
 
         if (!fnames.pulockname.empty())
         {
-            LoadPuLock(fnames.inputdir + fnames.pulockname);
+            LoadPuLock(fnames.inputdir + fnames.pulockname, logger);
         }
 
        // Persist pulock and puzone counts
@@ -36,15 +35,15 @@ class Pu {
         // Read and persist puzone.
         if (!fnames.puzonename.empty())
         {
-            puZoneTemp = LoadPuZone(fnames.inputdir + fnames.puzonename);
-            PersistPuZone(puZoneTemp, zoneLookup);
+            puZoneTemp = LoadPuZone(fnames.inputdir + fnames.puzonename, logger);
+            PersistPuZone(puZoneTemp, zoneLookup, logger);
         }
 
        // Read and set connections
         if (!fnames.connectionname.empty())
         {
             connectionsEntered = true;
-            ReadConnections(fnames.inputdir + fnames.connectionname, asymmetric);
+            ReadConnections(fnames.inputdir + fnames.connectionname, asymmetric, logger);
         }
         else {
             connectionsEntered = false;
@@ -67,7 +66,7 @@ class Pu {
         return -1; // pu not found.
     }
 
-    void LoadSparseMatrix(Species& spec, string filename) {
+    void LoadSparseMatrix(Species& spec, string filename, Logger& logger) {
         vector<map<int,spu>> SMTemp(puno); // temporarily storing in this structure prevents the need for ordering.
         string sLine;
         int _puid, _spid, puindex, spindex;
@@ -496,7 +495,7 @@ class Pu {
         }
     }
 
-    void PersistPuZone(vector<puzonestruct>& puZoneTemp, map<int, ZoneName>& zoneLookup) {
+    void PersistPuZone(vector<puzonestruct>& puZoneTemp, map<int, ZoneName>& zoneLookup, Logger& logger) {
         // resize puzone to puno size
         int zoneind;
         puZone.resize(puno);
@@ -526,7 +525,7 @@ class Pu {
         }
     }
 
-    void ReadConnections(string filename, int asymmetric) {
+    void ReadConnections(string filename, int asymmetric, Logger& logger) {
         ifstream fp;
         fp.open(filename);
         if (!fp.is_open())
@@ -635,7 +634,7 @@ class Pu {
 
     /* Read Planning Unit Data */
     /* The pu.dat for marzone contains only the puid, and any cost columns */
-    void ReadPUData(string filename, Costs& costs)
+    void ReadPUData(string filename, Costs& costs, Logger& logger)
     {
         ifstream fp;
         fp.open(filename);
@@ -697,7 +696,7 @@ class Pu {
             logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
     } // ReadPUData
 
-    void LoadPuLock(string filename)
+    void LoadPuLock(string filename, Logger& logger)
     {
         ifstream fp;
         fp.open(filename);
@@ -741,7 +740,7 @@ class Pu {
             logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
     }
 
-    vector<puzonestruct> LoadPuZone(string filename)
+    vector<puzonestruct> LoadPuZone(string filename, Logger& logger)
     {
         ifstream fp;
         fp.open(filename);
@@ -781,8 +780,6 @@ class Pu {
             logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
         return puZoneTemp;
     }
-
-    LoggerBase logger;
 };
     
 }

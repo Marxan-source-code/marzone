@@ -18,10 +18,9 @@ using namespace std;
 
 class SimulatedAnnealing {
     public:
-    SimulatedAnnealing(sfname& fnames, LoggerBase& logger, int annealingOn, sanneal& anneal, mt19937& rngEngine, int annealTrace, int id) 
+    SimulatedAnnealing(sfname& fnames, int annealingOn, sanneal& anneal, mt19937& rngEngine, int annealTrace, int id) 
     : rngEngine(rngEngine), annealTraceType(annealTrace), id(id)
     {
-        logger = logger;
         if (annealingOn)
         {
             settings = anneal; // copy construct
@@ -58,7 +57,8 @@ class SimulatedAnnealing {
         settings.temp = settings.Tinit;
     }
 
-    void RunAnneal(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm) {
+    void RunAnneal(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm,
+    Logger& logger) {
         uniform_int_distribution<int> randomDist(0, numeric_limits<int>::max());
         uniform_int_distribution<int> randomPuDist(0, pu.validPuIndices.size()-1);
         uniform_real_distribution<double> float_range(0.0, 1.0);
@@ -379,7 +379,6 @@ class SimulatedAnnealing {
     // anneal trace settings
     int annealTraceType;
     string savename;
-    LoggerBase logger;
 
     private:
     int saveSnapSteps;

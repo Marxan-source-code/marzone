@@ -60,7 +60,7 @@
 namespace marzone {
 
 // Version specific constants
-string sVersionString = "Marxan with Zones v 4.0 alpha";
+string sVersionString = "Marxan with Zones v 4.0.4";
 string sMarxanWebSite = "https://marxansolutions.org/";
 string sDebugTraceFileName = "DebugTraceFile_Marxan_with_Zones.txt";
 
@@ -230,7 +230,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     logger.ShowGenProg("  " + to_string(pu.connections.size()) + " connections entered \n");
     logger.ShowDetProg("    Reading in the Planning Unit versus Species File \n");
     logger.AppendDebugTraceFile("before LoadSparseMatrix\n");
-    pu.LoadSparseMatrix(spec, fnames.inputdir + fnames.puvsprname);
+    pu.LoadSparseMatrix(spec, fnames.inputdir + fnames.puvsprname, logger);
     logger.ShowGenProg(to_string(pu.puvspr.size()) + " conservation values counted, " + 
         to_string(pu.puno*spec.spno) + " big matrix size, " + to_string(pu.density) + "% density of matrix \n");
     logger.AppendDebugTraceFile("after LoadSparseMatrix\n");
@@ -260,7 +260,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     }
 
     logger.AppendDebugTraceFile("before Build_ZoneTarget\n");
-    zones.BuildZoneTarget(spec, pu, fnames);
+    zones.BuildZoneTarget(spec, pu, fnames, logger);
     logger.AppendDebugTraceFile("after Build_ZoneTarget\n");
 
     if (iVerbosity > 3)
@@ -308,6 +308,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     // * * *  Pre-processing    * * * * ***
     logger.ShowGenProg("\nPre-processing Section. \n");
     logger.ShowGenProgInfo("    Calculating all the penalties \n");
+  
 
     if (fnames.penaltyname.empty())
     {
@@ -335,7 +336,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     else
     {
         logger.AppendDebugTraceFile("before LoadPenalties\n");
-        spec.LoadCustomPenalties(fnames.inputdir + fnames.penaltyname);
+        spec.LoadCustomPenalties(fnames.inputdir + fnames.penaltyname, logger);
         logger.AppendDebugTraceFile("after LoadPenalties\n");
     }
 
@@ -394,6 +395,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
     int maxThreads = omp_get_max_threads();
     logger.ShowGenProg("Running " + to_string(runoptions.repeats) + " runs multithreaded over number of threads: " + to_string(maxThreads) + "\n");
+    logger.ShowGenProg("Runs will show as they complete, and may not be in sequential order.");
     #pragma omp parallel for schedule(dynamic)
     for (int irun = 1;irun <= runoptions.repeats;irun++)
     {
@@ -410,8 +412,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             debugbuffer << "annealing start run " << irun << "\n";
             if (runoptions.verbose > 1)
                 progbuffer << "\nRun: " << irun << " ";
-
-            
+          
             SimulatedAnnealing sa(fnames, logger, runoptions.AnnealingOn, anneal,
                 rngEngine, fnames.saveannealingtrace, irun);
             if (runoptions.AnnealingOn && !runoptions.PopulationAnnealingOn)
@@ -945,7 +946,8 @@ void ShowShutdownScreen(void)
 {
         logger.ShowProg("\n");
         logger.ShowTimePassed(startTime);
-        logger.ShowProg("\n              The End \n");
+        logger.ShowProg("\n              The End. Press any key to continue. \n");
+        std::cin.get(); // pause screen.
 }
 
 void SaveSeed(int iseed)
@@ -961,7 +963,7 @@ void SaveSeed(int iseed)
 void ShowPauseExit(void)
 {
      logger.ShowProg("Press return to exit.\n");
-     getchar();
+     std::cin.get();
 }  /* Show Pause Exit  */
 
 void WriteSecondarySyncFileRun(int iSyncRun)
@@ -1196,17 +1198,17 @@ void DumpFileNames(sfname& fnames, Logger& logger)
 
     fprintf(fp,"input name,file name\n");
 
-    fprintf(fp,"zonesname,%s\n",fnames.zonesname);
-    fprintf(fp,"costsname,%s\n",fnames.costsname);
-    fprintf(fp,"zonecontribname,%s\n",fnames.zonecontribname);
-    fprintf(fp,"zonecontrib2name,%s\n",fnames.zonecontrib2name);
-    fprintf(fp,"zonecontrib3name,%s\n",fnames.zonecontrib3name);
-    fprintf(fp,"zonetargetname,%s\n",fnames.zonetargetname);
-    fprintf(fp,"zonetarget2name,%s\n",fnames.zonetarget2name);
-    fprintf(fp,"zonecostname,%s\n",fnames.zonecostname);
-    fprintf(fp,"pulockname,%s\n",fnames.pulockname);
-    fprintf(fp,"puzonename,%s\n",fnames.puzonename);
-    fprintf(fp,"zoneconnectioncostname,%s\n",fnames.relconnectioncostname);
+    fprintf(fp,"zonesname,%s\n",fnames.zonesname.c_str());
+    fprintf(fp,"costsname,%s\n",fnames.costsname.c_str());
+    fprintf(fp,"zonecontribname,%s\n",fnames.zonecontribname.c_str());
+    fprintf(fp,"zonecontrib2name,%s\n",fnames.zonecontrib2name.c_str());
+    fprintf(fp,"zonecontrib3name,%s\n",fnames.zonecontrib3name.c_str());
+    fprintf(fp,"zonetargetname,%s\n",fnames.zonetargetname.c_str());
+    fprintf(fp,"zonetarget2name,%s\n",fnames.zonetarget2name.c_str());
+    fprintf(fp,"zonecostname,%s\n",fnames.zonecostname.c_str());
+    fprintf(fp,"pulockname,%s\n",fnames.pulockname.c_str());
+    fprintf(fp,"puzonename,%s\n",fnames.puzonename.c_str());
+    fprintf(fp,"zoneconnectioncostname,%s\n",fnames.relconnectioncostname.c_str());
 
     fclose(fp);
 }

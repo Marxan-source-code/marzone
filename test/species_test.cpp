@@ -14,7 +14,7 @@ TEST(SpeciesTestsGroup, ReadSpeciesData_fileparsing_test)
     sfname fnames = {}; // default, no cost file
     fnames.inputdir = "";
     fnames.specname = "data/species_test1.dat";
-    LoggerMock logger;
+    Logger logger;
     Species sp(fnames, logger);
     CHECK_EQUAL(3, sp.spno);
 
@@ -64,7 +64,7 @@ TEST(SpeciesTestsGroup, SetSpeciesDefaults_test)
     sfname fnames = {}; // default, no cost file
     fnames.inputdir = "";
     fnames.specname = "data/species_test2.dat";
-    LoggerMock logger;
+    Logger logger;
     Species sp(fnames, logger);
 
     // ensure ids were transformed into indices
@@ -98,7 +98,7 @@ TEST(SpeciesTestsGroup, SetPenalties_test)
     sfname fnames = {}; // default, no cost file
     fnames.inputdir = "";
     fnames.specname = "data/species_test1.dat";
-    LoggerMock logger;
+    Logger logger;
     Species sp(fnames, logger);
     CHECK_EQUAL(3, sp.spno);
 
@@ -127,7 +127,7 @@ TEST(SpeciesTestsGroup, TestSpfFpfHeader_test)
     sfname fnames = {}; // default, no cost file
     fnames.inputdir = "";
     fnames.specname = "data/species_test3_spf.dat";
-    LoggerMock logger;
+    Logger logger;
     Species sp(fnames, logger);
     CHECK_EQUAL(2, sp.spno);
 
