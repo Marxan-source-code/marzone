@@ -51,8 +51,9 @@
 #include "logger.hpp"
 #include "marzone.hpp"
 
-// Solver filers
+// Solver files
 #include "solvers/simulated_annealing.hpp"
+#include "solvers/population_annealing.hpp"
 #include "solvers/heuristic.hpp"
 #include "solvers/iterative_improvement.hpp"
 
@@ -307,6 +308,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     // * * *  Pre-processing    * * * * ***
     logger.ShowGenProg("\nPre-processing Section. \n");
     logger.ShowGenProgInfo("    Calculating all the penalties \n");
+  
 
     if (fnames.penaltyname.empty())
     {
@@ -410,20 +412,19 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             debugbuffer << "annealing start run " << irun << "\n";
             if (runoptions.verbose > 1)
                 progbuffer << "\nRun: " << irun << " ";
-
-            SimulatedAnnealing sa(fnames, runoptions.AnnealingOn, anneal, 
-                rngThread, fnames.saveannealingtrace, irun);
-            if (runoptions.AnnealingOn)
+          
+            SimulatedAnnealing sa(fnames, logger, runoptions.AnnealingOn, anneal,
+                rngEngine, fnames.saveannealingtrace, irun);
+            if (runoptions.AnnealingOn && !runoptions.PopulationAnnealingOn)
             {
                 debugbuffer << "before Annealling Init run " << irun << "\n";
 
                 // init sa parameters if setting is appropriate
                 sa.Initialize(spec, pu, zones, runoptions.clumptype, runoptions.blm);
                 debugbuffer << "after Annealling Init run " << irun << "\n";
+                progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
+            } // Annealing Setup only for sa
 
-                if (runoptions.verbose > 1)
-                    progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
-            } // Annealing Setup
 
             if (runoptions.verbose > 1)
                 progbuffer << "  creating the initial reserve \n";
@@ -446,14 +447,14 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             // * * * * * * * * * * * * * * * * * * * ***
             // * * *  main annealing algorithm * * * * *
             // * * * * * * * * * * * * * * * * * * * ***
-
-            if (runoptions.AnnealingOn)
+            
+            if (runoptions.AnnealingOn && !runoptions.PopulationAnnealingOn)
             {
                 debugbuffer << "before Annealing run " << irun << "\n";
                 if (runoptions.verbose > 1)
                     progbuffer << "  Main Annealing Section.\n";
 
-                sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm, logger);
+                sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm);
 
                 if (runoptions.verbose > 1)
                 {
@@ -462,8 +463,22 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 }
 
                 debugbuffer << "after Annealing run " << irun << "\n";
-            } // End of Annealing On
+            } 
+            else if (runoptions.PopulationAnnealingOn)
+            {
+                // run population annealing instead of regular thermal annealing
+                debugbuffer << "before population annealing run " << irun << "\n";
+                progbuffer << "  Main Population Annealing Section.\n";
 
+                PopulationAnnealing popAnneal(anneal, rngEngine, irun, fnames);
+                popAnneal.Run(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm, logger);
+                if (runoptions.verbose > 1)
+                {
+                    progbuffer << "  PopAnnealing:";
+                    PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
+                }
+            }
+            
             if (runoptions.HeuristicOn)
             {
                 debugbuffer << "before Heuristics run " << irun << "\n";
@@ -1109,6 +1124,7 @@ void SetOptions(string &sInputFileName, srunoptions &runoptions, sanneal &anneal
     readInputOption(lines, "CLUMPTYPE", runoptions.clumptype, false, present, warningMessage, errorMessage);
     readInputOption(lines, "ITIMPTYPE", runoptions.itimptype, false, present, warningMessage, errorMessage);
     readInputOption(lines, "VERBOSITY", runoptions.verbose, false, present, warningMessage, errorMessage);
+    readInputOption(lines, "POPULATIONANNEALINGON", runoptions.PopulationAnnealingOn, false, present, warningMessage, errorMessage);
     if (!fnames.outputdir.empty())
     {
         fnames.savename = fnames.outputdir + fnames.savename;

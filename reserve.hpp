@@ -45,6 +45,28 @@ namespace marzone
       InitializeObjective();
     }
 
+    // Clone existing reserve.
+    Reserve(const Reserve& r) {
+      solution = r.solution;
+      zoneSpec = r.zoneSpec;
+      speciesAmounts = r.speciesAmounts;
+      speciesClump = r.speciesClump; 
+      objective = r.objective;
+      id = r.id;
+      clumptype = r.clumptype;
+    }
+
+    // Replace existing reserve with given reserve.
+    void Assign(const Reserve& r) {
+      solution = r.solution;
+      zoneSpec = r.zoneSpec;
+      speciesAmounts = r.speciesAmounts;
+      speciesClump = r.speciesClump;
+      objective = r.objective;
+      id = r.id;
+      clumptype = r.clumptype;
+    }
+
     // Initializes a change structure to re-use for change calculations
     schange InitializeChange(Species& spec, Zones& zones) {
       schange change = {}; // init and pre-allocate

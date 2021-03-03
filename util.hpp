@@ -68,6 +68,7 @@ void SetDefaultOptions(srunoptions &runoptions, sanneal &anneal, sfname &fnames)
     runoptions.tpf1 = 0;
     runoptions.tpf2 = 0;
     runoptions.repeats = 0;
+    runoptions.PopulationAnnealingOn = false;
     fnames.saverun = 0;
     fnames.savebest = 0;
     fnames.savesum = 0;
