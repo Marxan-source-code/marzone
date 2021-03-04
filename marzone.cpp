@@ -396,7 +396,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     bool quitting_loop = false;
     int maxThreads = omp_get_max_threads();
     logger.ShowGenProg("Running " + to_string(runoptions.repeats) + " runs multithreaded over number of threads: " + to_string(maxThreads) + "\n");
-    logger.ShowGenProg("Runs will show as they complete, and may not be in sequential order.");
+    logger.ShowGenProg("Runs will show as they complete, and may not be in sequential order.\n");
     #pragma omp parallel for schedule(dynamic)
     for (int irun = 1;irun <= runoptions.repeats;irun++)
     {
