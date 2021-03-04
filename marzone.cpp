@@ -417,7 +417,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (runoptions.verbose > 1)
                 progbuffer << "\nRun: " << irun << " ";
           
-            SimulatedAnnealing sa(fnames, logger, runoptions.AnnealingOn, anneal,
+            SimulatedAnnealing sa(fnames, runoptions.AnnealingOn, anneal,
                 rngEngine, fnames.saveannealingtrace, irun);
             if (runoptions.AnnealingOn && !runoptions.PopulationAnnealingOn)
             {
@@ -458,7 +458,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 if (runoptions.verbose > 1)
                     progbuffer << "  Main Annealing Section.\n";
 
-                sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm);
+                sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm, logger);
 
                 if (runoptions.verbose > 1)
                 {
@@ -1337,14 +1337,21 @@ int main(int argc,char *argv[])
         marzone::HandleOptions(argc,argv,sInputFileName,marxanIsSecondary);  // handle the program options
 
     // Calls the main annealing unit
-    if (marzone::MarZone(sInputFileName, marxanIsSecondary))
-    {
+    try {
+        if (marzone::MarZone(sInputFileName, marxanIsSecondary))
+        {
+            if (marxanIsSecondary == 1)
+                marzone::SecondaryExit();
+            return 1;
+        } // Abnormal Exit
         if (marxanIsSecondary == 1)
-          marzone::SecondaryExit();
-        return 1;
-    }  // Abnormal Exit
-    if (marxanIsSecondary == 1)
-        marzone::SecondaryExit();
+            marzone::SecondaryExit();
+    } 
+    catch (const std::exception& e)
+    {
+        marzone::logger.ShowErrorMessage("Error occurred in execution: " + std::string(e.what()));
+        exit(EXIT_FAILURE);
+    }
 
     return 0;
 }

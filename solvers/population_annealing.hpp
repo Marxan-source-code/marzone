@@ -123,7 +123,6 @@ class PopulationAnnealing {
     mt19937 &rngEngine;
     int id;
     sanneal settings;
-    LoggerBase logger;
 
     private:
     unsigned populationSize; // starting population size.
