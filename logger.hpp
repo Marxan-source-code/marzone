@@ -141,15 +141,13 @@ namespace marzone {
     }
 
     /* ShowErrorMessage displays an error message. No matter what verbosity these are
-    always displayed. The program is terminated following a prompt*/
+    always displayed. The program is terminated.*/
     void ShowErrorMessage(string sMess)
     {
         ShowWarningMessage(sMess);
 
-        // Wait for user input
-        cout << "Program terminated due to error. Press any key to continue.\n";
-        cin.get();
-        throw runtime_error(sMess);
+        // exit with error.
+        exit(EXIT_FAILURE);
     }
 
     void CloseLogFile()

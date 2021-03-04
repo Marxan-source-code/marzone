@@ -393,12 +393,16 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     for (int run_id = 1; run_id <= runoptions.repeats; run_id++)
         seeds[run_id - 1] = run_id*runoptions.iseed;
 
+    bool quitting_loop = false;
     int maxThreads = omp_get_max_threads();
     logger.ShowGenProg("Running " + to_string(runoptions.repeats) + " runs multithreaded over number of threads: " + to_string(maxThreads) + "\n");
     logger.ShowGenProg("Runs will show as they complete, and may not be in sequential order.");
     #pragma omp parallel for schedule(dynamic)
     for (int irun = 1;irun <= runoptions.repeats;irun++)
     {
+        if(quitting_loop)
+            continue; //skipping iterations. It is not allowed to break or throw out omp for loop.
+
         mt19937 rngThread(seeds[irun-1]);
         stringstream debugbuffer; // buffer to print at the end
         stringstream progbuffer; // buffer to print at the end
@@ -587,12 +591,16 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (marxanIsSecondary == 1)
                 WriteSecondarySyncFileRun(irun);
         }
-        catch (exception &e)
+        catch (const exception &e)
         {
             // No matter how thread runs, record the message and exception if any.
             string msg = "Exception on run " + to_string(irun) + " Message: " + e.what() + "\n";
             progbuffer << msg;
             debugbuffer << msg;
+
+            //cannot throw or break out of omp loop
+            quitting_loop = true;
+            continue;
         }
 
         // print the logs/debugs
@@ -602,6 +610,11 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         if (runoptions.verbose > 1)
             logger.ShowTimePassed(startTime);
     } // ** the repeats  **
+
+    if (quitting_loop)
+    {
+        logger.ShowErrorMessage("\nRuns were aborted due to error.\n"); 
+    }
 
     // Output summary
     if (fnames.savesum)
