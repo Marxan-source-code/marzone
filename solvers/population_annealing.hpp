@@ -259,7 +259,7 @@ class PopulationAnnealing {
 
         // set sweeps consistent with sa
         tIterations = settings.Titns;
-        numSweeps = max(1ull, settings.iterations/tIterations/pu.puno);
+        numSweeps = max((uint64_t) 1, (uint64_t) settings.iterations/tIterations/pu.puno);
     }
 
     void InitParameters(Reserve& rInit, Pu& pu, Species& spec, Zones& zones, double costthresh, double blm, double tpf1, double tpf2) 
