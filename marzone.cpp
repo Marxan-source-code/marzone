@@ -393,12 +393,16 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     for (int run_id = 1; run_id <= runoptions.repeats; run_id++)
         seeds[run_id - 1] = run_id*runoptions.iseed;
 
+    bool quitting_loop = false;
     int maxThreads = omp_get_max_threads();
     logger.ShowGenProg("Running " + to_string(runoptions.repeats) + " runs multithreaded over number of threads: " + to_string(maxThreads) + "\n");
-    logger.ShowGenProg("Runs will show as they complete, and may not be in sequential order.");
+    logger.ShowGenProg("Runs will show as they complete, and may not be in sequential order.\n");
     #pragma omp parallel for schedule(dynamic)
     for (int irun = 1;irun <= runoptions.repeats;irun++)
     {
+        if(quitting_loop)
+            continue; //skipping iterations. It is not allowed to break or throw out omp for loop.
+
         mt19937 rngThread(seeds[irun-1]);
         stringstream debugbuffer; // buffer to print at the end
         stringstream progbuffer; // buffer to print at the end
@@ -413,7 +417,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (runoptions.verbose > 1)
                 progbuffer << "\nRun: " << irun << " ";
           
-            SimulatedAnnealing sa(fnames, logger, runoptions.AnnealingOn, anneal,
+            SimulatedAnnealing sa(fnames, runoptions.AnnealingOn, anneal,
                 rngEngine, fnames.saveannealingtrace, irun);
             if (runoptions.AnnealingOn && !runoptions.PopulationAnnealingOn)
             {
@@ -454,7 +458,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 if (runoptions.verbose > 1)
                     progbuffer << "  Main Annealing Section.\n";
 
-                sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm);
+                sa.RunAnneal(reserveThread, spec, pu, zones, runoptions.tpf1, runoptions.tpf2, runoptions.costthresh, runoptions.blm, logger);
 
                 if (runoptions.verbose > 1)
                 {
@@ -587,12 +591,16 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             if (marxanIsSecondary == 1)
                 WriteSecondarySyncFileRun(irun);
         }
-        catch (exception &e)
+        catch (const exception &e)
         {
             // No matter how thread runs, record the message and exception if any.
             string msg = "Exception on run " + to_string(irun) + " Message: " + e.what() + "\n";
             progbuffer << msg;
             debugbuffer << msg;
+
+            //cannot throw or break out of omp loop
+            quitting_loop = true;
+            continue;
         }
 
         // print the logs/debugs
@@ -602,6 +610,11 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
         if (runoptions.verbose > 1)
             logger.ShowTimePassed(startTime);
     } // ** the repeats  **
+
+    if (quitting_loop)
+    {
+        logger.ShowErrorMessage("\nRuns were aborted due to error.\n"); 
+    }
 
     // Output summary
     if (fnames.savesum)
@@ -1324,14 +1337,21 @@ int main(int argc,char *argv[])
         marzone::HandleOptions(argc,argv,sInputFileName,marxanIsSecondary);  // handle the program options
 
     // Calls the main annealing unit
-    if (marzone::MarZone(sInputFileName, marxanIsSecondary))
-    {
+    try {
+        if (marzone::MarZone(sInputFileName, marxanIsSecondary))
+        {
+            if (marxanIsSecondary == 1)
+                marzone::SecondaryExit();
+            return 1;
+        } // Abnormal Exit
         if (marxanIsSecondary == 1)
-          marzone::SecondaryExit();
-        return 1;
-    }  // Abnormal Exit
-    if (marxanIsSecondary == 1)
-        marzone::SecondaryExit();
+            marzone::SecondaryExit();
+    } 
+    catch (const std::exception& e)
+    {
+        marzone::logger.ShowErrorMessage("Error occurred in execution: " + std::string(e.what()));
+        exit(EXIT_FAILURE);
+    }
 
     return 0;
 }
