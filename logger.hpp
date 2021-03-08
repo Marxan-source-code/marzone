@@ -145,6 +145,8 @@ namespace marzone {
     void ShowErrorMessage(string sMess)
     {
         ShowWarningMessage(sMess);
+        CloseLogFile();
+        CloseDebugFile();
 
         // exit with error.
         exit(EXIT_FAILURE);

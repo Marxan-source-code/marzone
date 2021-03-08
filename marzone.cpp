@@ -119,12 +119,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     iVerbosity = runoptions.verbose;
     SetRunOptions(runoptions);
 
-    if (fnames.savelog)
-    {
-        logger.SetLogFile(fnames.savename + "_log.dat");
-        logger.AppendLogFile(StartMessage());
-    }
-
     #ifdef DEBUGTRACEFILE
     logger.StartDebugTraceFile(sDebugTraceFileName);
     logger.AppendDebugTraceFile(sVersionString + " begin execution\n\nLoadOptions\n");
@@ -426,7 +420,9 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 // init sa parameters if setting is appropriate
                 sa.Initialize(spec, pu, zones, runoptions.clumptype, runoptions.blm);
                 debugbuffer << "after Annealling Init run " << irun << "\n";
-                progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
+
+                if (runoptions.verbose > 1)
+                    progbuffer << "  Using Calculated Tinit = " << sa.settings.Tinit << "Tcool = " << sa.settings.Tcool << "\n";
             } // Annealing Setup only for sa
 
 
@@ -959,8 +955,7 @@ void ShowShutdownScreen(void)
 {
         logger.ShowProg("\n");
         logger.ShowTimePassed(startTime);
-        logger.ShowProg("\n              The End. Press any key to continue. \n");
-        std::cin.get(); // pause screen.
+        logger.ShowProg("\n              The End. \n");
 }
 
 void SaveSeed(int iseed)
@@ -1082,6 +1077,17 @@ void SetOptions(string &sInputFileName, srunoptions &runoptions, sanneal &anneal
     readInputOption(lines, "OUTPUTDIR", fnames.outputdir, true, present, warningMessage, errorMessage);
     fnames.outputdir = cleanDirectoryString(fnames.outputdir);
 
+    if (!fnames.outputdir.empty())
+    {
+        fnames.savename = fnames.outputdir + fnames.savename;
+    }
+
+    if (fnames.savelog)
+    {
+        logger.SetLogFile(fnames.savename + "_log.dat");
+        logger.AppendLogFile(StartMessage());
+    }
+
     readInputOption(lines, "PUNAME", fnames.puname, true, present, warningMessage, errorMessage);
 
     stemp = "spec.dat";
@@ -1138,10 +1144,7 @@ void SetOptions(string &sInputFileName, srunoptions &runoptions, sanneal &anneal
     readInputOption(lines, "ITIMPTYPE", runoptions.itimptype, false, present, warningMessage, errorMessage);
     readInputOption(lines, "VERBOSITY", runoptions.verbose, false, present, warningMessage, errorMessage);
     readInputOption(lines, "POPULATIONANNEALINGON", runoptions.PopulationAnnealingOn, false, present, warningMessage, errorMessage);
-    if (!fnames.outputdir.empty())
-    {
-        fnames.savename = fnames.outputdir + fnames.savename;
-    }
+
     
     // Check and print any warning/error messages
     logger.ShowWarningMessage(warningMessage.str());

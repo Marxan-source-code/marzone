@@ -220,12 +220,16 @@ class Species {
     template<typename T>
     void ReadSpeciesData(string filename, vector<T>& typeList, unsigned& count, bool populateLookup, Logger& logger) {
         ifstream fp = openFile(filename);
-        string sLine;
+        string sLine, unusedHeader;
+        stringstream errorBuf;
 
         int numvars = 10;
         /* Scan header */
         getline(fp, sLine);
-        vector<string> headerNames = getFileHeaders(sLine, filename);
+        vector<string> headerNames = getFileHeaders(sLine, filename, errorBuf);
+
+        if (!errorBuf.str().empty())
+            logger.ShowErrorMessage(errorBuf.str());
 
         // check for sepnum and sepdistance
         if (find(headerNames.begin(), headerNames.end(), "sepnum") != headerNames.end()
@@ -308,6 +312,10 @@ class Species {
                 else if (temp.compare("targetocc") == 0)
                 {
                     ss >> spectemp.targetocc;
+                }
+                else {
+                    // un-enforced header
+                    ss >> unusedHeader;
                 }
             } /* looking for ivar different input variables */
             
