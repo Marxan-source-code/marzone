@@ -1,0 +1,24 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+                "command": "g++",
+                "args": [
+                    "-g",
+                    "-O3",
+                    "-std=c++17",
+                    "-static",
+                    "-fopenmp",
+                    "marzone.cpp",
+                    "-o",
+                    "bin/marzone_debug"
+                ]
+            }
+    ]
+}

@@ -640,10 +640,14 @@ class Pu {
         fp.open(filename);
         if (!fp.is_open())
             logger.ShowErrorMessage("Cannot open file " + filename + ".\n");
-        string sLine;
+        string sLine, unusedHeader;
+        stringstream errorBuf;
 
         getline(fp, sLine);
-        vector<string> headerNames = getFileHeaders(sLine, filename);
+        vector<string> headerNames = getFileHeaders(sLine, filename, errorBuf);
+
+        if (!errorBuf.str().empty())
+            logger.ShowErrorMessage(errorBuf.str());
 
         /*Feed information into temporary link list */
         bool file_is_empty = true;
@@ -665,11 +669,16 @@ class Pu {
             for (string temp: headerNames)
             {
                 if (temp.compare("id") == 0)
+                {
                     ss >> putemp.id;
-
-                // Cost is defined
-                if (costs.Contains(temp)) {
+                }
+                else if (costs.Contains(temp)) {
+                    // Cost is defined
                     ss >> putemp.costBreakdown[costs.GetCostIndex(temp)];
+                }
+                else {
+                    // un-enforced header
+                    ss >> unusedHeader;
                 }
 
             } /* looking for ivar different input variables */

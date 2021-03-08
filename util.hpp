@@ -298,7 +298,7 @@ bool is_like_numerical_data(const std::string& str)
 inline
 // Toks the given header line and returns an ordered list of header names. 
 // We could use set instead of vector, but the size of these sets is very small (i.e under 10) so vector should be equal perf.
-vector<string> getFileHeaders(const string& header, const string& filename) {
+vector<string> getFileHeaders(const string& header, const string& filename, stringstream& errorBuf) {
     vector<string> headers;
     vector<string> tokens = get_tokens(header);
     for (string cleaned : tokens)
@@ -309,7 +309,7 @@ vector<string> getFileHeaders(const string& header, const string& filename) {
             headers.push_back(cleaned);
         }
         else {
-            throw invalid_argument("Header name " + string(cleaned) + " has been defined twice in data file " + filename + ".");
+            errorBuf << "Header name " << cleaned << " has been defined twice in data file " << filename << ".\n";
         }
     }
 
