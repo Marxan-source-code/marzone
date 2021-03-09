@@ -11,22 +11,27 @@ Marzone has been rebuilt in C++ and we are ready for you to test the new version
 - improved computational speed and efficiency  
 - additional error reporting  
  
-Download for Windows / MacOS / Linux: [TBC]()  
+Download for Windows / MacOS / Linux: See releases section.
 
 You can access the code for the new version in a separate branch of this repo: /marzone4  
 We will officially announce the release of the new version and merge changes to main soon, and are looking for your feedback in the meantime.  
 Please feel free to use our [Google Group](https://groups.google.com/g/marxan). You can also create GitHub issues on this repo or e-mail marxancloud@gmail.com  
 
 # Releases
-## v4.0.3
-- Windows [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/marzone4.0.3Windows.zip)
-- Linux [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/marzone4.0.3Linux.zip)
-- MacOS 10.15 (Catalina) [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/Marzone-4.0.3-macOS.zip)
-- MacOS 10.13 (High Sierra) [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/Marzone-4.0.3-macOS-10.13.zip)
+## v4.0.5
+- Windows [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v4.0.5/marzone4.0.5-windows.zip)
+- Linux [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v4.0.5/marzone4.0.5-linux.zip)
+- MacOS 10.15 (Catalina) [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v4.0.5/marzone-4.0.5-MacOS-10.15-x86-64.zip)
+- MacOS 11 M1 [x86-64](https://github.com/Marxan-source-code/marzone/releases/download/v4.0.5/marzone-4.0.5-MacOS-11-M1.zip)
 
 # Test Data
 - From Google Drive: [MarZoneData.zip](https://drive.google.com/file/d/1ljsJxZ5d9VW6G07zveg1tfW23MapLXez/view?usp=sharing)
 - From Releases: [MarZoneData.zip](https://github.com/Marxan-source-code/marzone/releases/download/v.4.0.3/MarZoneData.zip)
+
+# Run tips
+For fast execution:
+- set verbosity to 1
+- set all annealing trace, savefiles settings to 0 unless you need the specific output
 
 ## Overview of Code Structure
 If you want to start contributing to the codebase, we encourage you to familiarise yourself with the type of problems that Marzone is intended to solve, and be familiar with the input files and their roles within the program. 
@@ -52,6 +57,7 @@ The solvers have been moved to **/solver** folder. Currently Marzone supports th
 - Simulated Annealing 
 - Iterative Improvement
 - General Heuristic methods specific to Marzone.
+- Population Annealing (experimental algorithm)
 
 All solvers depend on **reserve, pu, zones and species** components. To add a new solver, study and follow the existing pattern of the solvers under /solver. 
 
@@ -61,10 +67,6 @@ All solvers depend on **reserve, pu, zones and species** components. To add a ne
 g++ -O3 -std=c++17 -static -fopenmp marzone.cpp -o bin/marzone
 ```
 
-## Build command (Mac)
-```
-TBC
-```
 
 # How to run (Mac with M1 processor)
 Install translator from Intel architecture using terminal command:
