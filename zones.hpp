@@ -47,15 +47,14 @@ typedef struct zonetarget
 
 class Zones {
     public:
-    Zones(sfname& fnames, Costs& costs, LoggerBase& logger) :
+    Zones(sfname& fnames, Costs& costs, Logger& logger) :
         zoneCount(0), zoneContribCount(0), zoneContrib2Count(0), zoneContrib3Count(0),
         zoneContribSupplied(false), availableZoneCost(false)
     {
-        this->logger = logger;
         // Parse all zone files 
         if (!fnames.zonesname.empty())
         {
-            LoadZones(fnames.inputdir + fnames.zonesname);
+            LoadZones(fnames.inputdir + fnames.zonesname, logger);
         }
         else
         {
@@ -66,22 +65,22 @@ class Zones {
         if (!fnames.zonecontribname.empty())
         {
             zoneContribSupplied = true;
-            LoadZoneContrib(fnames.inputdir + fnames.zonecontribname);
+            LoadZoneContrib(fnames.inputdir + fnames.zonecontribname, logger);
         }
         if (!fnames.zonecontrib2name.empty())
         {
             zoneContribSupplied = true;
-            LoadZoneContrib2(fnames.inputdir + fnames.zonecontrib2name);
+            LoadZoneContrib2(fnames.inputdir + fnames.zonecontrib2name, logger);
         }
         if (!fnames.zonecontrib3name.empty())
         {
             zoneContribSupplied = true;
-            LoadZoneContrib3(fnames.inputdir + fnames.zonecontrib3name);
+            LoadZoneContrib3(fnames.inputdir + fnames.zonecontrib3name, logger);
         }
 
         // Build zone cost with inputted information
-        PopulateZoneCosts(fnames, costs);
-        PopulateConnectionCosts(fnames);
+        PopulateZoneCosts(fnames, costs, logger);
+        PopulateConnectionCosts(fnames, logger);
     }
 
     // Constructs the zone contributions map depending on which type of zone contribution was used. 
@@ -94,17 +93,17 @@ class Zones {
         }
     }
 
-    void BuildZoneTarget(Species& spec, Pu& pu, sfname& fnames) {
+    void BuildZoneTarget(Species& spec, Pu& pu, sfname& fnames, Logger& logger) {
         int i, j, iSpeciesIndex;
 
         // Zone target files
         if (!fnames.zonetargetname.empty())
         {
-            LoadZoneTarget(fnames.inputdir + fnames.zonetargetname, 1, zoneTargetsTemp);
+            LoadZoneTarget(fnames.inputdir + fnames.zonetargetname, 1, zoneTargetsTemp, logger);
         }
         if (!fnames.zonetarget2name.empty())
         {
-            LoadZoneTarget(fnames.inputdir + fnames.zonetarget2name, 2, zoneTargetsTemp);
+            LoadZoneTarget(fnames.inputdir + fnames.zonetarget2name, 2, zoneTargetsTemp, logger);
         }
 
         if (zoneTargetsTemp.empty())
@@ -224,9 +223,9 @@ class Zones {
 
     // Returns the connection cost of a puindex, given the zones of the other pu.
     // imode = check specifics of this param. For now I am assuming 1, 0 or -1
-    double ConnectionCost2Linear(Pu& pu, int puindex, int imode, vector<int> &solution)
+    double ConnectionCost2Linear(Pu& pu, int puindex, int imode, vector<int> &solution, double blm)
     {
-        if (pu.connectionsEntered) {
+        if (pu.connectionsEntered && blm != 0) {
             double fcost, rZoneConnectionCost;
             int iCurrentZone = solution[puindex];
 
@@ -240,15 +239,15 @@ class Zones {
                 }
             }
 
-            return fcost;
+            return fcost*blm;
         }
 
         return 0;
     }
 
     // Connection cost but we can specify which zone to calculate the current pu for
-    double ConnectionCost2(Pu& pu, int puindex, int imode, vector<int>& solution, int curZone) {
-        if (pu.connectionsEntered)
+    double ConnectionCost2(Pu& pu, int puindex, int imode, vector<int>& solution, int curZone, double blm) {
+        if (pu.connectionsEntered && blm != 0)
         {
             double fcost, rZoneConnectionCost;
             // Initial fixed cost
@@ -262,7 +261,7 @@ class Zones {
                 fcost += imode * p.cost * rZoneConnectionCost;
             }
 
-            return fcost;
+            return fcost*blm;
         }
         return 0;
     }
@@ -487,6 +486,9 @@ class Zones {
 
     void DumpZoneTargetFinalValues(string filename, Species& spec) 
     {
+        if (zoneTarget.size() == 0)
+            return; // do nothing on empty size
+            
         ofstream myfile;
         myfile.open(filename);
         myfile << "spname,spindex";
@@ -560,10 +562,10 @@ class Zones {
         return zoneConnectionCost[zoneindex1*zoneCount + zoneindex2];
     }
 
-    void PopulateConnectionCosts(sfname& fnames) {
+    void PopulateConnectionCosts(sfname& fnames, Logger& logger) {
         if (!fnames.relconnectioncostname.empty())
         {
-            zoneRelConnectionCost = LoadRelConnectionCost(fnames.inputdir + fnames.relconnectioncostname);
+            zoneRelConnectionCost = LoadRelConnectionCost(fnames.inputdir + fnames.relconnectioncostname, logger);
         }
         else {
             zoneConnectionCost.assign(zoneCount*zoneCount, 1); // default zone boundary cost is 1 (to not affect pu costs)
@@ -581,11 +583,11 @@ class Zones {
         }
     }
 
-    void PopulateZoneCosts(sfname& fnames, Costs& costs) {
+    void PopulateZoneCosts(sfname& fnames, Costs& costs, Logger& logger) {
         // read zone cost files (if any)
         if (!fnames.zonecostname.empty())
         {
-            zoneCostFileLoad = LoadZoneCost(fnames.inputdir + fnames.zonecostname);
+            zoneCostFileLoad = LoadZoneCost(fnames.inputdir + fnames.zonecostname, logger);
             availableZoneCost = true;
         }
         else {
@@ -663,7 +665,7 @@ class Zones {
         }
     }
 
-    vector<relconnectioncoststruct> LoadRelConnectionCost(string filename) {
+    vector<relconnectioncoststruct> LoadRelConnectionCost(string filename, Logger& logger) {
         ifstream fp = openFile(filename);
         string sLine;
         int zoneid1, zoneid2;
@@ -704,7 +706,7 @@ class Zones {
         return zoneRelConnectionCost;
     }
 
-    vector<zonecoststruct> LoadZoneCost(string filename)
+    vector<zonecoststruct> LoadZoneCost(string filename, Logger& logger)
     {
         vector<zonecoststruct> tempZoneCost;
         ifstream fp = openFile(filename);
@@ -744,7 +746,7 @@ class Zones {
         return tempZoneCost;
     }
 
-    void LoadZoneContrib(string filename) 
+    void LoadZoneContrib(string filename, Logger& logger) 
     {
         ifstream fp = openFile(filename);
         string sLine;
@@ -784,7 +786,7 @@ class Zones {
     }
 
     // This file should just be num zones sized. 
-    void LoadZoneContrib2(string filename)
+    void LoadZoneContrib2(string filename, Logger& logger)
     {
         ifstream fp = openFile(filename);
         string sLine;
@@ -824,7 +826,7 @@ class Zones {
             logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");
     }
 
-    void LoadZoneContrib3(string filename)
+    void LoadZoneContrib3(string filename, Logger& logger)
     {
         ifstream fp = openFile(filename);
         string sLine;
@@ -871,7 +873,7 @@ class Zones {
     }
 
     // type = determines which kind of target is being loaded. targetMode=1 means regular target. Else target2.
-    void LoadZoneTarget(string filename, int targetMode, vector<zonetargetstructtemp>& zoneTargets)
+    void LoadZoneTarget(string filename, int targetMode, vector<zonetargetstructtemp>& zoneTargets, Logger& logger)
     {
         ifstream fp = openFile(filename);
         string sLine;
@@ -918,7 +920,7 @@ class Zones {
             logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
     }
 
-    void LoadZones(string filename) {
+    void LoadZones(string filename, Logger& logger) {
         ifstream fp = openFile(filename);
         string sLine;
         int tempId;
@@ -975,8 +977,6 @@ class Zones {
         zoneNameIndexed[1].id = 2;
         zoneNameIndexed[1].name = "reserved";
     }
-
-    LoggerBase logger;
 };
 
 } // namespace marzone

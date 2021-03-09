@@ -15,14 +15,13 @@ using namespace std;
 
 class Species {
     public:
-    Species(sfname& fnames, LoggerBase& logger): spno(0), gspno(0), aggexist(false), sepexist(false), fSpecPROPLoaded(false) {
-        this->logger = logger;
-        ReadSpeciesData(fnames.inputdir + fnames.specname, specList, spno, true);
+    Species(sfname& fnames, Logger& logger): spno(0), gspno(0), aggexist(false), sepexist(false), fSpecPROPLoaded(false) {
+        ReadSpeciesData(fnames.inputdir + fnames.specname, specList, spno, true, logger);
 
         if (!fnames.blockdefname.empty())
         {
             // read the general species file too
-            ReadSpeciesData(fnames.inputdir + fnames.specname, genSpecList, gspno, false);
+            ReadSpeciesData(fnames.inputdir + fnames.specname, genSpecList, gspno, false, logger);
         }
     }
 
@@ -84,18 +83,10 @@ class Species {
                 for (isp = 0; isp < spno; isp++)
                     if (specList[isp].type == genSpecList[igsp].type && specList[isp].targetocc < 0)
                         specList[isp].targetocc = genSpecList[igsp].targetocc;
-            if (genSpecList[igsp].sepnum > 0)
-                for (isp = 0; isp < spno; isp++)
-                    if (specList[isp].type == genSpecList[igsp].type && specList[isp].sepnum < 0)
-                        specList[isp].sepnum = genSpecList[igsp].sepnum;
             if (genSpecList[igsp].spf > 0)
                 for (isp = 0; isp < spno; isp++)
                     if (specList[isp].type == genSpecList[igsp].type && specList[isp].spf < 0)
                         specList[isp].spf = genSpecList[igsp].spf;
-            if (genSpecList[igsp].sepdistance > 0)
-                for (isp = 0; isp < spno; isp++)
-                    if (specList[isp].type == genSpecList[igsp].type && specList[isp].sepdistance < 0)
-                        specList[isp].sepdistance = genSpecList[igsp].sepdistance;
             // Percentage is not dealt with here yet. To do this identify
             // target species then determine their total abundance then set target
             // according to percentage
@@ -115,16 +106,10 @@ class Species {
                 spec.target2 = 0;
             if (spec.targetocc < 0)
                 spec.targetocc = 0;
-            if (spec.sepnum < 0)
-                spec.sepnum = 0;
-            if (spec.sepdistance < 0)
-                spec.sepdistance = 0;
             if (spec.spf < 0)
                 spec.spf = 1;
 
-            // agg and sep exist
-            if (spec.sepdistance)
-                sepexist = true;
+            // agg exist
             if (spec.target2)
                 aggexist = true;
         }
@@ -142,7 +127,7 @@ class Species {
         }
     }
 
-    void LoadCustomPenalties(string filename) {
+    void LoadCustomPenalties(string filename, Logger& logger) {
         ifstream fp = openFile(filename);
         string sLine;
 
@@ -192,12 +177,12 @@ class Species {
         ofstream myfile;
         myfile.open(filename);
 
-        myfile << "i,name,type,sname,target,prop,targetocc,spf,penalty,amount,occurrence,sepdistance,sepnum,separation,clumps,target2,richness,offset\n";
+        myfile << "i,name,type,sname,target,prop,targetocc,spf,penalty,amount,occurrence,clumps,target2,richness,offset\n";
         for (int i=0;i<spno;i++) {
             myfile << i << "," << specList[i].name << "," << specList[i].type << ","
             << specList[i].sname << "," << specList[i].target << "," << specList[i].prop << "," 
             << specList[i].targetocc << "," << specList[i].spf << "," << specList[i].penalty << "," << reserveStat[i].amount << "," << reserveStat[i].occurrence << "," 
-            << specList[i].sepdistance << "," << specList[i].sepnum << "," << reserveStat[i].separation << "," << reserveStat[i].clumps << "," << specList[i].target2 << "," << specList[i].richness << "," << specList[i].offset << "\n";
+            << reserveStat[i].clumps << "," << specList[i].target2 << "," << specList[i].richness << "," << specList[i].offset << "\n";
         }
 
         myfile.close();
@@ -233,14 +218,25 @@ class Species {
     private:
     // precondition - T must be of type sgenspec or one of its inheritors
     template<typename T>
-    void ReadSpeciesData(string filename, vector<T>& typeList, unsigned& count, bool populateLookup) {
+    void ReadSpeciesData(string filename, vector<T>& typeList, unsigned& count, bool populateLookup, Logger& logger) {
         ifstream fp = openFile(filename);
-        string sLine;
+        string sLine, unusedHeader;
+        stringstream errorBuf;
 
         int numvars = 10;
         /* Scan header */
         getline(fp, sLine);
-        vector<string> headerNames = getFileHeaders(sLine, filename);
+        vector<string> headerNames = getFileHeaders(sLine, filename, errorBuf);
+
+        if (!errorBuf.str().empty())
+            logger.ShowErrorMessage(errorBuf.str());
+
+        // check for sepnum and sepdistance
+        if (find(headerNames.begin(), headerNames.end(), "sepnum") != headerNames.end()
+            || find(headerNames.begin(), headerNames.end(), "sepdistance") != headerNames.end())
+        {
+            logger.ShowWarningMessage("Warning: sepdistance, sepnum features no longer supported and will be ignored in v4. Please use a previous version of Marxan with Zones.");
+        }
 
         /* While there are still lines left populate specList */
         bool file_is_empty = true;
@@ -257,8 +253,6 @@ class Species {
             spectemp.spf = -1;
             spectemp.target2 = 0;
             spectemp.targetocc = -1;
-            spectemp.sepdistance = -1;
-            spectemp.sepnum = -1;
 
             stringstream ss = stream_line(sLine);
 
@@ -311,14 +305,6 @@ class Species {
                 {
                     ss >> spectemp.spf;
                 }
-                else if (temp.compare("sepdistance") == 0)
-                {
-                    ss >> spectemp.sepdistance;
-                }
-                else if (temp.compare("sepnum") == 0)
-                {
-                    ss >> spectemp.sepnum;
-                }
                 else if (temp.compare("target2") == 0)
                 {
                     ss >> spectemp.target2;
@@ -326,6 +312,10 @@ class Species {
                 else if (temp.compare("targetocc") == 0)
                 {
                     ss >> spectemp.targetocc;
+                }
+                else {
+                    // un-enforced header
+                    ss >> unusedHeader;
                 }
             } /* looking for ivar different input variables */
             
@@ -345,8 +335,6 @@ class Species {
             logger.ShowErrorMessage("File " + filename + " cannot be read or is empty.\n");;
 
     }
-
-    LoggerBase logger;
 };
 
 } // namespace marzone

@@ -11,7 +11,7 @@
 
 #include "common.hpp"
 #include <iostream>
-#include <fstream>
+#include <iomanip>
 
 namespace marzone {
 
@@ -68,6 +68,7 @@ void SetDefaultOptions(srunoptions &runoptions, sanneal &anneal, sfname &fnames)
     runoptions.tpf1 = 0;
     runoptions.tpf2 = 0;
     runoptions.repeats = 0;
+    runoptions.PopulationAnnealingOn = false;
     fnames.saverun = 0;
     fnames.savebest = 0;
     fnames.savesum = 0;
@@ -91,6 +92,7 @@ void SetDefaultOptions(srunoptions &runoptions, sanneal &anneal, sfname &fnames)
     runoptions.heurotype = 1;
     runoptions.clumptype = 0;
     runoptions.verbose = 1;
+    runoptions.blm = 1;
 }
 
 inline
@@ -296,7 +298,7 @@ bool is_like_numerical_data(const std::string& str)
 inline
 // Toks the given header line and returns an ordered list of header names. 
 // We could use set instead of vector, but the size of these sets is very small (i.e under 10) so vector should be equal perf.
-vector<string> getFileHeaders(const string& header, const string& filename) {
+vector<string> getFileHeaders(const string& header, const string& filename, stringstream& errorBuf) {
     vector<string> headers;
     vector<string> tokens = get_tokens(header);
     for (string cleaned : tokens)
@@ -307,11 +309,21 @@ vector<string> getFileHeaders(const string& header, const string& filename) {
             headers.push_back(cleaned);
         }
         else {
-            throw invalid_argument("Header name " + string(cleaned) + " has been defined twice in data file " + filename + ".");
+            errorBuf << "Header name " << cleaned << " has been defined twice in data file " << filename << ".\n";
         }
     }
 
     return headers;
+}
+
+// converts number to a string padded with leading zeros
+// does nothing if stringLength is less than the digits in number.
+inline 
+std::string intToPaddedString(int number, int stringLength)
+{
+    std::ostringstream ss;
+    ss << std::setw(stringLength) << std::setfill('0') << number;
+    return ss.str();
 }
 
 } // namespace marzone

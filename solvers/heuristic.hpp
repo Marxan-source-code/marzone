@@ -18,7 +18,7 @@ class Heuristic {
     {
     }
 
-    void RunHeuristic(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh) {
+    void RunHeuristic(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm) {
         /**** Irreplacability ****/
 
         if (heuristicMode >= 6 && heuristicMode <= 7)
@@ -55,18 +55,17 @@ class Heuristic {
                 /* Set the score for the given Planning Unit */
                 currscore = 1; /* null if no other mode set */
                 if (heuristicMode == 0)
-                    currscore = GreedyScore(i, r, pu, spec, zones);
+                    currscore = GreedyScore(i, r, pu, spec, zones, blm);
 
                 if (heuristicMode == 1)
                 {
-                    //schange change = r.CheckChangeValue(i, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
-                    r.CheckChangeValue(change, i, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
+                    r.CheckChangeValue(change, i, iPreviousR, iZone, pu, zones, spec, costthresh, blm, tpf1, tpf2);
                     currscore = change.total;
                 }
 
                 if (heuristicMode == 2 || heuristicMode == 3 || heuristicMode == 4 || heuristicMode == 5)
                 {
-                    currscore = RareScoreByMode(i, r, pu, spec, zones);
+                    currscore = RareScoreByMode(i, r, pu, spec, zones, blm);
                 }
 
                 if (heuristicMode == 6)
@@ -86,8 +85,7 @@ class Heuristic {
 
             if (bestscore)
             {
-                //schange change = r.CheckChangeValue(bestpu, r.solution[bestpu], bestZone, pu, zones, spec, costthresh, tpf1, tpf2);
-                r.CheckChangeValue(change, bestpu, r.solution[bestpu], bestZone, pu, zones, spec, costthresh, tpf1, tpf2);
+                r.CheckChangeValue(change, bestpu, r.solution[bestpu], bestZone, pu, zones, spec, costthresh, blm, tpf1, tpf2);
                 r.ApplyChange(bestpu, bestZone, change, pu, zones, spec);
 
                 /* Different Heuristics might have different penalty effects */
@@ -103,8 +101,7 @@ class Heuristic {
                     }
                     if (r.speciesAmounts[i].amount < spec.specList[i].target)
                         r.objective.missing++;
-                    else if (spec.specList[i].sepdistance && r.speciesAmounts[i].separation < 3)
-                        r.objective.missing++;
+
                     /** Species missing **/
                 } /** checking to see who I am missing **/
 
@@ -173,12 +170,12 @@ class Heuristic {
     }
 
     /* * * * * Greedy Score an alternative to the normal objective function *****/
-    double GreedyScore(int ipu, Reserve& r, Pu& pu, Species& spec, Zones& zones)
+    double GreedyScore(int ipu, Reserve& r, Pu& pu, Species& spec, Zones& zones, double blm)
     {
         double currpen, currcost, currscore;
 
         currpen = r.GreedyPen(ipu, pu, spec);
-        currcost = pu.puList[ipu].cost + zones.ConnectionCost2(pu, ipu, 1, r.solution, r.solution[ipu]);
+        currcost = pu.puList[ipu].cost + zones.ConnectionCost2(pu, ipu, 1, r.solution, r.solution[ipu], blm);
         if (currcost <= 0)
         {
             currscore = -1.0 / delta;
@@ -192,7 +189,7 @@ class Heuristic {
     } /* Score for a planning unit based upon greedy algorithm */
 
     // Supports heuristicMode 2,3,4,5
-    double RareScoreByMode(int ipu, Reserve& r, Pu& pu, Species& spec, Zones& zones)
+    double RareScoreByMode(int ipu, Reserve& r, Pu& pu, Species& spec, Zones& zones, double blm)
     {
         int ism, isp;
         int rareno = heuristicMode != 4 ? -1 : 0; // for mode 4, rareno starts from 0
@@ -203,8 +200,7 @@ class Heuristic {
         {
             ism = pu.puList[ipu].offset + i;
             isp = pu.puvspr[ism].spindex;
-            if (pu.puvspr[ism].amount && (spec.specList[isp].target > r.speciesAmounts[isp].amount 
-            || (spec.specList[isp].sepdistance && r.speciesAmounts[isp].separation < 3)))
+            if (pu.puvspr[ism].amount && (spec.specList[isp].target > r.speciesAmounts[isp].amount))
             {
                 if (heuristicMode == 2) //Max Rare Score Heuristic. PU scores based on rarest beast on PU
                 {
@@ -216,7 +212,7 @@ class Heuristic {
                 }
                 else if (heuristicMode == 3) //Best Rarity Score. Determines each species rare score
                 {
-                    rarescore = RareScore(ipu, rareno, r, pu, spec, zones) / rare[isp];
+                    rarescore = RareScore(ipu, rareno, r, pu, spec, zones, blm) / rare[isp];
                     if (rarescore > rarest || rareno < 0)
                     {
                         rarest = rarescore;
@@ -225,7 +221,7 @@ class Heuristic {
                 }
                 else // Average(4) & Sum(5) Rare Score. Rare Score for each scoring species/number scoring species
                 {
-                    rarescore += RareScore(ipu, rareno, r, pu, spec, zones) / rare[isp];
+                    rarescore += RareScore(ipu, rareno, r, pu, spec, zones, blm) / rare[isp];
                     rareno++;
                 }
             }
@@ -234,7 +230,7 @@ class Heuristic {
         if (heuristicMode == 2)
         {
             if (rareno > -1)
-                rarescore = RareScore(ipu, rareno, r, pu, spec, zones) / rarest;
+                rarescore = RareScore(ipu, rareno, r, pu, spec, zones, blm) / rarest;
             else
                 rarescore = 1.0 / delta;
         }
@@ -246,7 +242,7 @@ class Heuristic {
     } /* Max Rare Score */
 
     /**** RareScore The score for a particular conservation value on a particular PU */
-    double RareScore(int ipu, int isp, Reserve& r, Pu& pu, Species& spec, Zones& zones)
+    double RareScore(int ipu, int isp, Reserve& r, Pu& pu, Species& spec, Zones& zones, double blm)
     {
         double currpen, currcost, currscore;
         double fold, newamount;
@@ -264,7 +260,7 @@ class Heuristic {
             currpen = newamount - fold;
         } /* Add new penalty if species isn't already in the system */
 
-        currcost = pu.puList[ipu].cost + zones.ConnectionCost2(pu, ipu, 1, r.solution, r.solution[ipu]);
+        currcost = pu.puList[ipu].cost + zones.ConnectionCost2(pu, ipu, 1, r.solution, r.solution[ipu], blm);
         if (currcost <= 0)
         {
             currscore = -1.0 / delta;

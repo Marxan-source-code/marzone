@@ -15,7 +15,7 @@ TEST(PuTestsGroup, ReadPuData_fileparsing_test)
     fnames.costsname = "data/costs_test1.dat";
     fnames.puname = "data/pu_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);    
     // arbitrary zones map
     map<int, ZoneName> zoneNames;
@@ -73,7 +73,7 @@ TEST(PuTestsGroup, PuLockPuZone_fileparsing_test)
     fnames.pulockname = "data/pulock_test1.dat";
     fnames.puzonename = "data/puzone_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
 
     // build zones map
@@ -122,7 +122,7 @@ TEST(PuTestsGroup, Connections_fileparsing_test)
     fnames.puname = "data/pu_test1.dat";
     fnames.connectionname = "data/connections_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
     
     // arbitrary zones map
@@ -163,7 +163,7 @@ TEST(PuTestsGroup, Puvspr_fileparsing_test)
     fnames.specname = "data/species_test1.dat";
     fnames.puname = "data/pu_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
     Species spec(fnames, logger);
 
@@ -172,7 +172,7 @@ TEST(PuTestsGroup, Puvspr_fileparsing_test)
     Pu pu(fnames, c, 0, zoneNames, logger);
 
     //load puvspr file
-    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat", logger);
 
     // Check counts - it should ignore the last 2 rows which contains a puid/spid not in the original set.
     CHECK_EQUAL(6, pu.puvspr.size());
@@ -207,7 +207,7 @@ TEST(PuTestsGroup, Puvspr_RtnAmountSpecAtPu_test)
     fnames.specname = "data/species_test1.dat";
     fnames.puname = "data/pu_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
     Species spec(fnames, logger);
 
@@ -216,7 +216,7 @@ TEST(PuTestsGroup, Puvspr_RtnAmountSpecAtPu_test)
     Pu pu(fnames, c, 0, zoneNames, logger);
 
     //load puvspr file
-    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat", logger);
 
     // Get all the lookup indices
     int ind1 = pu.LookupIndex(2);
@@ -267,7 +267,7 @@ TEST(PuTestsGroup, RtnAmountAllSpecAtPu_test)
     fnames.specname = "data/species_test1.dat";
     fnames.puname = "data/pu_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
     Species spec(fnames, logger);
 
@@ -276,7 +276,7 @@ TEST(PuTestsGroup, RtnAmountAllSpecAtPu_test)
     Pu pu(fnames, c, 0, zoneNames, logger);
 
     //load puvspr file
-    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat", logger);
 
     // Get all the lookup indices
     int ind1 = pu.LookupIndex(2);
@@ -307,7 +307,7 @@ TEST(PuTestsGroup, getPuAmountsSorted_test)
     fnames.specname = "data/species_test1.dat";
     fnames.puname = "data/pu_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
     Species spec(fnames, logger);
 
@@ -316,7 +316,7 @@ TEST(PuTestsGroup, getPuAmountsSorted_test)
     Pu pu(fnames, c, 0, zoneNames, logger);
 
     //load puvspr file
-    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat");
+    pu.LoadSparseMatrix(spec, "data/puvspr_test1.dat", logger);
 
     // each vect in penaltySorted should be in amount/cost ratio.
     vector<vector<lockedPenaltyTerm>> lockedPenalties;
@@ -357,7 +357,7 @@ TEST(PuTestsGroup, RtnValidZoneForPu_test)
     fnames.pulockname = "data/pulock_test1.dat";
     fnames.puzonename = "data/puzone_test1.dat";
     fnames.inputdir = "";
-    LoggerMock logger;
+    Logger logger;
     Costs c(fnames, logger);
 
     // build zones map

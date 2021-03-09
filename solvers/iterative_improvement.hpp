@@ -16,25 +16,25 @@ using namespace std;
 class IterativeImprovement {
     public:
     IterativeImprovement(mt19937& rngEngine, sfname& fnames, int iterativeImprovementMode) 
-    : rngEngine(rngEngine), iterativeImprovementMode(iterativeImprovementMode), optimise(optimise)
+    : rngEngine(rngEngine), iterativeImprovementMode(iterativeImprovementMode)
     {
         savename = fnames.savename;
         saveItimpTrace = fnames.saveitimptrace;
         itimpTraceRows = fnames.itimptracerows;
     }
 
-    void Run(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh) {
+    void Run(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm) {
         // run iterative improvement
-        RunOptimisedItImp(r, spec, pu, zones, tpf1, tpf2, costthresh);
+        RunOptimisedItImp(r, spec, pu, zones, tpf1, tpf2, costthresh, blm);
 
         if (iterativeImprovementMode == 3) // run again if mode = 3
-            RunOptimisedItImp(r, spec, pu, zones, tpf1, tpf2, costthresh);
+            RunOptimisedItImp(r, spec, pu, zones, tpf1, tpf2, costthresh, blm);
     }
 
     vector<double> rare;
 
     private:
-    void RunOptimisedItImp(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh) {
+    void RunOptimisedItImp(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm) {
         int puvalid = 0, ipu = 0, imode, ichoice, iZone, iPreviousR, ichanges = 0;
         struct iimp *iimparray;
         double debugfloat;
@@ -72,7 +72,7 @@ class IterativeImprovement {
                 iZone = pu.RtnValidZoneForPu(ichoice, iPreviousR, randomDist, rngEngine, zones.zoneCount);
 
                 // Check change value
-                r.CheckChangeValue(change, ichoice, iPreviousR, iZone, pu, zones, spec, costthresh, tpf1, tpf2);
+                r.CheckChangeValue(change, ichoice, iPreviousR, iZone, pu, zones, spec, costthresh, blm, tpf1, tpf2);
                 if (change.total < 0) {
                     ichanges++;
                     r.ApplyChange(ichoice, iZone, change, pu, zones, spec);
@@ -87,15 +87,15 @@ class IterativeImprovement {
     }
 
     void InitSaveItImpTrace(ofstream& ttfp, ofstream& zonefp, Pu& pu, Reserve& r, int puvalid) {
-        string tempname;
+        string tempname, paddedRun = intToPaddedString(r.id, 5);
         string d = saveItimpTrace > 1 ? "," : " ";
         if (saveItimpTrace)
         {
-            tempname = savename + "_itimp_objective" + to_string(r.id) + getFileSuffix(saveItimpTrace);
+            tempname = savename + "_itimp_objective" + paddedRun + getFileSuffix(saveItimpTrace);
             ttfp.open(tempname);
             ttfp << "improvement" << d << "total" << d << "cost" << d << "connection" << d << "penalty\n";
 
-            tempname = savename + "_itimp_zones" + to_string(r.id) + getFileSuffix(saveItimpTrace);
+            tempname = savename + "_itimp_zones" + paddedRun + getFileSuffix(saveItimpTrace);
             zonefp.open(tempname);
             zonefp << "configuration";
 
@@ -147,7 +147,6 @@ class IterativeImprovement {
     mt19937 &rngEngine;
     int iterativeImprovementMode;
     int saveItimpTrace;
-    int optimise;
     unsigned rowCounter;
     unsigned itimpTraceRows;
     unsigned rowLimit;

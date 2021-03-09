@@ -107,8 +107,6 @@ namespace marzone {
         int targetocc;
         double target;
         double target2; /* Only some species need this (clumping species) */
-        int sepnum;
-        double sepdistance;
         double prop;
         double spf;
     } typegenspec;
@@ -118,7 +116,6 @@ namespace marzone {
         double amount;
         int occurrence;
         int clumps;
-        int separation;
     } reservespecies;
 
     typedef struct sspecies : sgenspec
@@ -223,6 +220,7 @@ namespace marzone {
         int AnnealingOn;
         int HeuristicOn;
         int ItImpOn;
+        bool PopulationAnnealingOn; // whether population annealing is run intead of simluated annealing.
 
         // Algorithm settings
         int heurotype;
@@ -232,6 +230,7 @@ namespace marzone {
         // Run constants
         double prop;
         long int iseed;
+        double blm; // boundary length modifier
         double misslevel;
         double costthresh;
         double tpf1, tpf2;

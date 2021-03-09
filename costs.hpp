@@ -18,11 +18,10 @@ typedef struct costField
 
 class Costs {
     public:
-    Costs(sfname& fnames, LoggerBase& logger) : costCount(0) {
-        this->logger = logger;
+    Costs(sfname& fnames, Logger& logger) : costCount(0) {
         if (!fnames.costsname.empty())
         {
-            LoadCostNames(fnames.inputdir + fnames.costsname);
+            LoadCostNames(fnames.inputdir + fnames.costsname, logger);
         }
         else
         {
@@ -63,7 +62,7 @@ class Costs {
     unsigned costCount;
 
     private:
-    void LoadCostNames(string filename)
+    void LoadCostNames(string filename, Logger& logger)
     {
         ifstream fp = openFile(filename);
         string sLine;
@@ -110,7 +109,6 @@ class Costs {
 
     map<string, costField> costNames;
     map<int, unsigned> costIds; // cost id to index.
-    LoggerBase logger;
 };
 
 } // namespace marzone

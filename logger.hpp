@@ -11,26 +11,7 @@
 namespace marzone {
     using namespace std;
 
-    // Base abstract class for mocking purposes.
-    class LoggerBase {
-        public:
-        virtual void ShowErrorMessage(string sMess) {}
-        virtual void ShowWarningMessage(string sMess) {}
-        virtual void AppendDebugTraceFile(string sMess) {}
-        virtual int GetVerbosity() { return 1; }
-    };
-
-    // mock class for unit tests.
-    class LoggerMock: public LoggerBase {
-        public:
-        LoggerMock() {}
-        void ShowErrorMessage(string sMess) {}
-        void ShowWarningMessage(string sMess) {}
-        void AppendDebugTraceFile(string sMess) {}
-        int GetVerbosity() { return 1; }
-    };
-
-    class Logger : public LoggerBase {
+    class Logger {
     public:
     Logger() {}
 
@@ -38,16 +19,16 @@ namespace marzone {
     int GetVerbosity() { return verbosity; }
 
     // For perf debugging purposes.
-    void ShowTimePassedMs(const chrono::high_resolution_clock::time_point& startTime) {
-        chrono::high_resolution_clock::time_point currentTime = chrono::high_resolution_clock::now();
-        int mseconds_passed = chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count();
+    void ShowTimePassedMs(const chrono::steady_clock::time_point& startTime) {
+        chrono::steady_clock::time_point currentTime = chrono::steady_clock::now();
+        uint64_t mseconds_passed = chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime).count();
         cout << mseconds_passed << "\n";
     }
 
     /* * * *  ShowTimePassed displays the time passed so far * * * * */
     void ShowTimePassed(const chrono::high_resolution_clock::time_point& startTime) {
         chrono::high_resolution_clock::time_point currentTime = chrono::high_resolution_clock::now();
-        int seconds_passed = chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
+        uint64_t seconds_passed = chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
 
         string plural_h = seconds_passed/3600==1? " ": "s";
         string plural_m = seconds_passed/60==1? " ": "s";
@@ -160,16 +141,15 @@ namespace marzone {
     }
 
     /* ShowErrorMessage displays an error message. No matter what verbosity these are
-    always displayed. The program is terminated following a prompt*/
+    always displayed. The program is terminated.*/
     void ShowErrorMessage(string sMess)
     {
         ShowWarningMessage(sMess);
+        CloseLogFile();
+        CloseDebugFile();
 
-        // Wait for user input
-        cout << "Program terminated due to error. Press any key to continue.\n";
-        char temp;
-        cin >> temp;
-        throw runtime_error(sMess);
+        // exit with error.
+        exit(EXIT_FAILURE);
     }
 
     void CloseLogFile()

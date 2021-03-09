@@ -62,52 +62,6 @@ void Dump_ZoneContrib(int puno,int spno,typesp spec[],int iZoneCount,double _Zon
     }
 }
 
-void DumpZoneSpec(int iMessage,int spno,int iZoneCount,struct zonespecstruct ZoneSpec[],struct sspecies spec[],struct sfname fnames)
-{
-    FILE *fp;
-    char *writename;
-    int i,j;
-    char messagebuffer[1000];
-    char debugbuffer[1000];
-
-    sprintf(messagebuffer,"%i",iMessage);
-
-    writename = (char *) calloc(strlen(fnames.outputdir) + strlen("debugZoneSpec_.csv") + strlen(messagebuffer) + 2, sizeof(char));
-    strcpy(writename,fnames.outputdir);
-    strcat(writename,"debugZoneSpec_");
-    strcat(writename,messagebuffer);
-    strcat(writename,".csv");
-    fp = fopen(writename,"w");
-    if (fp==NULL)
-        ShowErrorMessage("cannot create DumpZoneSpec file %s\n",writename);
-    free(writename);
-
-    // write header row, species identifier is spec.name integer
-    fprintf(fp,"spname,spindex,amount,occurrence,");
-    for (i=0;i<iZoneCount;i++)
-    {
-        fprintf(fp,"amount%i,occurrence%i",(i+1),(i+1));
-        if (i != (iZoneCount-1))
-            fprintf(fp,",");
-    }
-    fprintf(fp,"\n");
-
-    for (j=0;j<spno;j++)
-    {
-        fprintf(fp,"%i,%i,%lf,%i,",spec[j].name,j,spec[j].amount,spec[j].occurrence);
-
-        for (i=0;i<iZoneCount;i++)
-        {
-            fprintf(fp,"%lf,%i",ZoneSpec[(j*iZoneCount)+i].amount,ZoneSpec[(j*iZoneCount)+i].occurrence);
-            if (i != (iZoneCount-1))
-                fprintf(fp,",");
-        }
-        fprintf(fp,"\n");
-    }
-
-    fclose(fp);
-}
-
 */
 
 /*
@@ -167,37 +121,5 @@ void OutputZonationCostDebugTable(int spno,struct sspecies spec[],char savename[
 }
 */
 
-/* * * * ***** Scenario Output File * * * * * * * */
-/*** OutputScenario ****/
-/*
-void DumpAsymmetricConnectionFile(int puno,struct sconnections connections[],struct spustuff pu[],struct sfname fnames)
-{
-    #ifdef ASYMCON
-    int i;
-    FILE *fp;
-    char *writename;
-    struct sneighbour *p;
-
-    writename = (char *) calloc(22 + strlen(fnames.outputdir)+2, sizeof(char));
-    strcpy(writename,fnames.outputdir);
-    strcat(writename,"debug_asymmetric_connection.csv");
-    if ((fp = fopen(writename,"w"))==NULL)
-    {
-        ShowGenProg("Warning: Cannot create file %s",writename);
-        free(writename);
-    }
-    free(writename);
-
-    fprintf(fp,"idA,idB,connectionorigon\n");
-    for (i=0;i<puno;i++)
-    {
-        for (p = connections[i].first;p;p=p->next)
-            fprintf(fp,"%i,%i,%i,%lf\n",pu[i].id,pu[p->nbr].id,p->connectionorigon,p->cost);
-    }
-
-    fclose(fp);
-    #endif
-}
-*/
 
 } // namespace marzone

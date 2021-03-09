@@ -18,10 +18,9 @@ using namespace std;
 
 class SimulatedAnnealing {
     public:
-    SimulatedAnnealing(sfname& fnames, LoggerBase& logger, int annealingOn, sanneal& anneal, mt19937& rngEngine, int annealTrace, int id) 
+    SimulatedAnnealing(sfname& fnames, int annealingOn, sanneal& anneal, mt19937& rngEngine, int annealTrace, int id) 
     : rngEngine(rngEngine), annealTraceType(annealTrace), id(id)
     {
-        logger = logger;
         if (annealingOn)
         {
             settings = anneal; // copy construct
@@ -42,44 +41,48 @@ class SimulatedAnnealing {
         }
     }
 
-    void Initialize(Species& spec, Pu& pu, Zones& zones, int clumptype) {
+    void Initialize(Species& spec, Pu& pu, Zones& zones, int clumptype, double blm) {
         if (settings.type >= 2)
         {
             if (settings.type == 2)
             {
-                ConnollyInit(spec, pu, zones, clumptype);
+                ConnollyInit(spec, pu, zones, clumptype, blm);
             }
             else if (settings.type == 3)
             {
-                AdaptiveInit(spec, pu, zones, clumptype);
+                AdaptiveInit(spec, pu, zones, clumptype, blm);
             }
         }
 
         settings.temp = settings.Tinit;
     }
 
-    void RunAnneal(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, 
-        LoggerBase& logger) {
+    void RunAnneal(Reserve& r, Species& spec, Pu& pu, Zones& zones, double tpf1, double tpf2, double costthresh, double blm,
+    Logger& logger) {
         uniform_int_distribution<int> randomDist(0, numeric_limits<int>::max());
         uniform_int_distribution<int> randomPuDist(0, pu.validPuIndices.size()-1);
         uniform_real_distribution<double> float_range(0.0, 1.0);
         int ipu, iZone, itemp, iPreviousZone, iGoodChange, iRowCounter = 0;
         uint64_t ichanges = 0, snapcount = 0;
-        string tempname;
+        string tempname, paddedRun = intToPaddedString(r.id, 5);
         ofstream zonefp, tracefp;
         ostringstream debugBuffer, annealTraceBuffer; // debug buffer and progress buffer
 
         // Initialize objects and files (if any)
         schange change = r.InitializeChange(spec, zones);
-        if (suppressAnnealZones == 0)
-        {
-            tempname = savename + "_anneal_zones" + to_string(r.id%10000) + getFileSuffix(annealTraceType);
-            zonefp.open(tempname);
-        }
+
         if (annealTraceType)
         {
-            tempname = savename + "_anneal_objective" + to_string(r.id%10000) + getFileSuffix(annealTraceType);
+            tempname = savename + "_anneal_objective" + paddedRun + getFileSuffix(annealTraceType);
             tracefp.open(tempname);
+            WriteAnnealTraceHeader(tracefp, r, costthresh);
+
+            if (suppressAnnealZones == 0)
+            {
+                tempname = savename + "_anneal_zones" + paddedRun + getFileSuffix(annealTraceType);
+                zonefp.open(tempname);
+                WriteZoneTraceHeader(zonefp, r, pu);
+            }
         }
 
         for (int itime = 1; itime <= settings.iterations; itime++)
@@ -95,7 +98,7 @@ class SimulatedAnnealing {
 #ifdef TRACE_ZONE_TARGETS
             debugbuffer << "annealing time " << itime << " of " << settings.iterations << "\n";
 #endif
-            r.CheckChangeValue(change, ipu, iPreviousZone, iZone, pu, zones, spec, costthresh, 
+            r.CheckChangeValue(change, ipu, iPreviousZone, iZone, pu, zones, spec, costthresh, blm, 
             tpf1, tpf2, (double)itime / (double)settings.iterations);
 
 #ifdef TRACE_ZONE_TARGETS
@@ -123,8 +126,8 @@ class SimulatedAnnealing {
 
             if (saveSnapSteps && !(itime % saveSnapFrequency))
             {
-                tempname = savename + "_snap_r" + to_string(r.id) 
-                    + "t" + to_string(++snapcount%10000) + getFileSuffix(saveSnapChanges); 
+                tempname = savename + "_snap_r" + paddedRun
+                    + "t" + intToPaddedString(++snapcount, 5) + getFileSuffix(saveSnapChanges); 
 
                 r.WriteSolution(tempname, pu, zones, saveSnapSteps);
             } /* Save snapshot every savesnapfreq timesteps */
@@ -138,8 +141,8 @@ class SimulatedAnnealing {
 
                 if (saveSnapChanges && !(ichanges % saveSnapFrequency))
                 {
-                    tempname = savename + "_snap_r" + to_string(r.id) + "c" 
-                        + to_string(++snapcount % 10000) + getFileSuffix(saveSnapChanges);
+                    tempname = savename + "_snap_r" + paddedRun + "c" 
+                        + intToPaddedString(++snapcount, 5) + getFileSuffix(saveSnapChanges);
 
                     r.WriteSolution(tempname, pu, zones, saveSnapChanges);
                 } /* Save snapshot every savesnapfreq changes */
@@ -203,13 +206,13 @@ class SimulatedAnnealing {
             }
         } /* Run Through Annealing */
 
-        if (suppressAnnealZones == 0)
-        {
-            zonefp.close();
-        }
         if (annealTraceType)
         {
             tracefp.close();
+            if (suppressAnnealZones == 0)
+            {
+                zonefp.close();
+            }
         }
     }
 
@@ -231,6 +234,29 @@ class SimulatedAnnealing {
     sanneal settings;
 
     private:
+    void WriteAnnealTraceHeader(ofstream& fp, Reserve& r, double costthresh) {
+        string d = annealTraceType > 1 ? "," : " ";
+        fp << "iteration" << d << "threshold"<< d << "dochange" << d << "total" << d << "cost" << d << "connection" 
+           << d << "penalty" << d << "shortfall" << d << "puindex" << d << "anneal.temp" << "\n";
+
+        // write iteration 0
+        fp << 0 << d << costthresh << d << false << d << r.objective.total << d << r.objective.cost << d << r.objective.connection 
+            << d << r.objective.penalty << d << r.objective.shortfall << d << -1 << d << settings.temp << "\n";
+    }   
+
+    void WriteZoneTraceHeader(ofstream& fp, Reserve& r, Pu& pu) {
+        string d = annealTraceType > 1 ? "," : " ";
+        fp << "configuration";
+        for (int i = 0; i < pu.puno; i++) {
+            fp << d << pu.puList[i].id;
+        }
+        fp << "\n0";
+        for (int i = 0; i < pu.puno; i++) {
+            fp << d << r.solution[i];
+        }
+        fp << "\n";
+    }
+
     // * * * * Good Change * * * *
     int GoodChange(schange& change, uniform_real_distribution<double>& float_range)
     {
@@ -259,7 +285,7 @@ class SimulatedAnnealing {
         settings.sum2 = 0;
     }
 
-    void ConnollyInit(Species& spec, Pu& pu, Zones& zones, int clumptype) {
+    void ConnollyInit(Species& spec, Pu& pu, Zones& zones, int clumptype, double blm) {
         double localdelta = numeric_limits<double>::epsilon();
         uniform_int_distribution<int> random_dist(0, numeric_limits<int>::max());
         uniform_int_distribution<int> random_pu_dist(0, pu.validPuIndices.size()-1);
@@ -268,7 +294,7 @@ class SimulatedAnnealing {
         Reserve r(spec, zones.zoneCount, clumptype);
         r.InitializeSolution(pu.puno);
         r.RandomiseSolution(pu, rngEngine, zones.zoneCount);
-        r.EvaluateObjectiveValue(pu, spec, zones);
+        r.EvaluateObjectiveValue(pu, spec, zones, blm);
 
         schange change = r.InitializeChange(spec, zones);
 
@@ -282,8 +308,7 @@ class SimulatedAnnealing {
             chosenZone = next.second;
 
             // Check change in zone on penalty
-            //schange change = r.CheckChangeValue(ipu, r.solution[ipu], chosenZone, pu, zones, spec, 0);
-            r.CheckChangeValue(change, ipu, r.solution[ipu], chosenZone, pu, zones, spec, 0);
+            r.CheckChangeValue(change, ipu, r.solution[ipu], chosenZone, pu, zones, spec, 0, blm);
 
             // apply change
             r.ApplyChange(ipu, chosenZone, change, pu, zones, spec);
@@ -319,7 +344,7 @@ class SimulatedAnnealing {
 
     /* * * * Adaptive Annealing 2 * * * * * * * * *****/
     /**** Initial Trial Runs. Run for some small time to establish sigma. ****/
-    void AdaptiveInit(Species& spec, Pu& pu, Zones& zones, int clumptype) {
+    void AdaptiveInit(Species& spec, Pu& pu, Zones& zones, int clumptype, double blm) {
         int i, isamples = 1000; /* Hardwired number of samples to take */
         double sum = 0, sum2 = 0;
         double sigma;
@@ -331,7 +356,7 @@ class SimulatedAnnealing {
         { /* Generate Random Reserve */
             r.RandomiseSolution(pu, rngEngine, zones.zoneCount);
             /* Score Random reserve */
-            r.EvaluateObjectiveValue(pu, spec, zones);
+            r.EvaluateObjectiveValue(pu, spec, zones, blm);
 
             /* Add Score to Sum */
             sum += r.objective.total;
@@ -354,7 +379,6 @@ class SimulatedAnnealing {
     // anneal trace settings
     int annealTraceType;
     string savename;
-    LoggerBase logger;
 
     private:
     int saveSnapSteps;

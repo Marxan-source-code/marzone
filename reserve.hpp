@@ -45,6 +45,28 @@ namespace marzone
       InitializeObjective();
     }
 
+    // Clone existing reserve.
+    Reserve(const Reserve& r) {
+      solution = r.solution;
+      zoneSpec = r.zoneSpec;
+      speciesAmounts = r.speciesAmounts;
+      speciesClump = r.speciesClump; 
+      objective = r.objective;
+      id = r.id;
+      clumptype = r.clumptype;
+    }
+
+    // Replace existing reserve with given reserve.
+    void Assign(const Reserve& r) {
+      solution = r.solution;
+      zoneSpec = r.zoneSpec;
+      speciesAmounts = r.speciesAmounts;
+      speciesClump = r.speciesClump;
+      objective = r.objective;
+      id = r.id;
+      clumptype = r.clumptype;
+    }
+
     // Initializes a change structure to re-use for change calculations
     schange InitializeChange(Species& spec, Zones& zones) {
       schange change = {}; // init and pre-allocate
@@ -239,11 +261,6 @@ namespace marzone
               }
             }
           }
-
-        if (spec.specList[i].sepdistance && speciesAmounts[i].separation < 3)
-        {
-          specCount++; /* count species if not met separation and not already counted */
-        }
       }
 
       return specCount;
@@ -275,13 +292,6 @@ namespace marzone
 
       /* Check first to see if I've already satisfied targets for this species with the current clump setup*/
       SpeciesAmounts4(isp, target2); // recompute amounts for this species.
-      /* NOTE - reenable later if we have time to migrate the separation code.
-      if (spec.specList[isp].sepnum > 0)
-      {
-        sepCount = CountSeparation2(isp);
-        speciesAmounts[isp].separation = sepCount == -1 ? spec.specList[isp].sepnum : sepCount;
-      }
-      */
 
       if ((speciesAmounts[isp].amount >= target) 
         && (speciesAmounts[isp].occurrence >= targetocc)) {
@@ -546,7 +556,7 @@ namespace marzone
 
     // Computes the change in value of a pu from preZone to postZone
     void CheckChangeValue(schange& change, int puindex, int iPreZone, int iPostZone, Pu& pu, Zones& zones, Species& spec, 
-    double costthresh, double tpf1 = 0, double tpf2 = 0, double timeprop = 1) {
+    double costthresh, double blm, double tpf1 = 0, double tpf2 = 0, double timeprop = 1) {
       int imode = 1;
       double threshpen = 0;
 
@@ -559,8 +569,8 @@ namespace marzone
 
       // Connection cost
       if (pu.connectionsEntered)
-        change.connection = zones.ConnectionCost2(pu, puindex, imode, solution, iPostZone) 
-            - zones.ConnectionCost2(pu, puindex, imode, solution, iPreZone);
+        change.connection = zones.ConnectionCost2(pu, puindex, imode, solution, iPostZone, blm) 
+            - zones.ConnectionCost2(pu, puindex, imode, solution, iPreZone, blm);
 
       change.penalty = ComputeChangePenalty(pu, zones, spec, change, puindex, iPreZone, iPostZone);
 
@@ -780,7 +790,7 @@ namespace marzone
 
     // * * * * ****** Value of a Zonation System * * * *
     // Note! This call is expensive as it does a full recompute of the reserve value, based on the current solution.
-    void EvaluateObjectiveValue(Pu &pu, Species &spec, Zones &zones)
+    void EvaluateObjectiveValue(Pu &pu, Species &spec, Zones &zones, double blm)
     {
       // Evaluate the existing solution and update the scost values
       objective.cost = 0, objective.penalty = 0, objective.connection = 0, objective.shortfall = 0;
@@ -871,7 +881,7 @@ namespace marzone
         objective.cost += zones.AggregateTotalCostByPuAndZone(solution[j], pu.puList[j].costBreakdown);
         if (pu.connectionsEntered)
         {
-          objective.connection += zones.ConnectionCost2Linear(pu, j, 1, solution); // confirm imode 1
+          objective.connection += zones.ConnectionCost2Linear(pu, j, 1, solution, blm); // confirm imode 1
         }
       }
 
@@ -879,7 +889,7 @@ namespace marzone
     }
 
     // Writes amounts related to species amounts in this particular reserve to a file.
-    // not threadsafe?
+    // See zones.WriteZoneTargetHeaders for header structure.
     void WriteSpeciesAmounts(string filename, Species &spec, Zones &zones, int imode, double misslevel)
     {
       ofstream myfile;
@@ -892,7 +902,7 @@ namespace marzone
       {
         rMPM = 1;
 
-        // Write species statis
+        // Write species status
         myfile << spec.specList[isp].name << d << spec.specList[isp].sname << d << spec.specList[isp].target;
 
         if (imode > 1)
@@ -900,19 +910,11 @@ namespace marzone
         else
           myfile << d << speciesAmounts[isp].amount;
 
-        myfile << speciesAmounts[isp].amount << d << spec.specList[isp].targetocc << d << speciesAmounts[isp].occurrence;
+        myfile << d << speciesAmounts[isp].amount << d << spec.specList[isp].targetocc << d << speciesAmounts[isp].occurrence;
 
         temp = ReturnStringIfTargetMet(spec.specList[isp].target, speciesAmounts[isp].amount,
                                        spec.specList[isp].targetocc, speciesAmounts[isp].occurrence, rMPM, misslevel);
 
-        if (imode > 1)
-        {
-          if (spec.specList[isp].sepnum)
-          {
-            if (speciesAmounts[isp].separation / spec.specList[isp].sepnum < misslevel)
-              temp = "no";
-          }
-        }
         myfile << d << temp;
 
         int iZoneArrayIndex;
@@ -1056,16 +1058,6 @@ namespace marzone
     int clumptype;
 
   private:
-    // This is a modified form of count separation where the user can specify any
-    // maximum separation distance rather than just assuming a sep distance of three
-    /* NOTE - separation does not seem to work. If there's time we can implement it later.
-    int CountSeparation2(int isp, int sepdistance) {
-      double targetdist = sepdistance*sepdistance;
-      if (targetdist == 0)
-        return -1; //Shortcut if sep not apply to this species
-    }
-    */
-
     // For a given species with target2 requirements, sum up its clumping pu amounts
     // and set into speciesAmounts.
     void SpeciesAmounts4(int isp, double target2) {
