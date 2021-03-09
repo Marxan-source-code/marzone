@@ -2,7 +2,7 @@
 Marzone 4.0 has been largely refactored from its original state. It now is mostly written in C++ and utilizes the object oriented aspects of the language for better encapsulation of different functionalities. 
 
 ## Latest Release
-### **Marzone 4 is here for you to try**
+### **Marzone 4**
  
 Marzone has been rebuilt in C++ and we are ready for you to test the new version 4.  
  
