@@ -239,7 +239,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     if (fnames.savetotalareas)
     {
         tempname = fnames.savename + "_totalareas" + getFileSuffix(fnames.savetotalareas);
-        CalcTotalAreas(pu, spec, tempname, true);
+        CalcTotalAreas(pu, spec, tempname);
     }
 
     // finalise zone and non-zone targets now that matrix has been loaded
@@ -459,6 +459,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 if (runoptions.verbose > 1)
                 {
                     progbuffer << "  ThermalAnnealing:";
+                    reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
                     PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
                 }
 
@@ -475,6 +476,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 if (runoptions.verbose > 1)
                 {
                     progbuffer << "  PopAnnealing:";
+                    reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
                     PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
                 }
             }
@@ -488,6 +490,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 if (runoptions.verbose > 1 && (runoptions.runopts == 2 || runoptions.runopts == 5))
                 {
                     progbuffer << "\n  Heuristic:";
+                    reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
                     PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
                 }
 
@@ -504,6 +507,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 if (runoptions.verbose > 1)
                 {
                     progbuffer << "  Iterative Improvement:";
+                    reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
                     PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
                 }
             } // Activate Iterative Improvement
@@ -520,6 +524,9 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             }
 
             debugbuffer << "WriteSolution ran " << irun << "\n";
+
+            // re-evaluate entire system in case of any floating point/evaluation errors.
+            reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
 
             if (fnames.savespecies && fnames.saverun)
             {
@@ -540,8 +547,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             // Saving the best from all the runs
             if (fnames.savebest)
             {
-                // re-evaluate entire system in case of any floating point/evaluation errors.
-                reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
                 if (reserveThread.objective.total < bestR.objective.total)
                 {
                     omp_set_lock(&bestR_write_lock);
@@ -1160,7 +1165,7 @@ void ApplySpecProp(Species& spec, Pu& pu)
     spec.SetSpeciesProportionTarget(speciesSums);
 }
 
-void CalcTotalAreas(Pu& pu, Species& spec, string filename /*= "MarZoneTotalAreas.csv"*/, bool save /*= false*/)
+void CalcTotalAreas(Pu& pu, Species& spec, string filename /*= "MarZoneTotalAreas.csv"*/, bool save /*= true*/)
 {
     int ipu, i, ism, isp;
     vector<int> TotalOccurrences, TO_2, TO_3;

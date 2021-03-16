@@ -22,7 +22,7 @@ namespace marzone
     /* Protytpe function Headers */
     void SetRunOptions(srunoptions &runoptions);
     int CalcPenalties(Pu &pu, Species &spec, Zones &zones, Reserve &r, int clumptype);
-    void CalcTotalAreas(Pu& pu, Species& spec, string filename = "MarZoneTotalAreas.csv", bool save = false);
+    void CalcTotalAreas(Pu& pu, Species& spec, string filename = "MarZoneTotalAreas.csv", bool save = true);
     double ReturnPuZoneCost(int ipu,int iZone, Pu& pu, Zones& zones);
 
     void ApplySpecProp(Species& spec, Pu& pu);
