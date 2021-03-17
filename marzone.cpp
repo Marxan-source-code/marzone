@@ -981,14 +981,17 @@ void ShowPauseExit(void)
 
 void WriteSecondarySyncFileRun(int iSyncRun)
 {
-     FILE* fsync;
-     char sSyncFileName[80];
+    FILE *fsync;
+    char sSyncFileName[80];
 
-     sprintf(sSyncFileName,"sync%i",iSyncRun);
+    if (iSyncRun)
+        sprintf(sSyncFileName, "sync%i", iSyncRun);
+    else
+        sprintf(sSyncFileName, "sync");
 
-     fsync = fopen(sSyncFileName,"w");
-     fprintf(fsync,"%s",sSyncFileName);
-     fclose(fsync);
+    fsync = fopen(sSyncFileName, "w");
+    fprintf(fsync, "%s", sSyncFileName);
+    fclose(fsync);
 }
 
 /* SecondaryExit does not deliver a message prior to exiting, but creates a file so C-Plan knows marxan has exited */
@@ -1352,14 +1355,15 @@ int main(int argc,char *argv[])
                 marzone::SecondaryExit();
             return 1;
         } // Abnormal Exit
-        if (marxanIsSecondary == 1)
-            marzone::SecondaryExit();
     } 
     catch (const std::exception& e)
     {
         marzone::logger.ShowErrorMessage("Error occurred in execution: " + std::string(e.what()));
         exit(EXIT_FAILURE);
     }
+
+    if (marxanIsSecondary == 1)
+        marzone::SecondaryExit();
 
     return 0;
 }
