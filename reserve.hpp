@@ -927,7 +927,7 @@ namespace marzone
             rOccurrenceTarget = zones.zoneTarget[isp][i].occurrence;
             rOccurrencesHeld = zoneSpec[iZoneArrayIndex].occurrence;
 
-            myfile << d << rTarget << d << rAmountHeld << d << zones.zoneContribValues[iZoneArrayIndex] << d << rOccurrenceTarget << d << rOccurrencesHeld;
+            myfile << d << rTarget << d << rAmountHeld << d << zones.zoneContribValues[iZoneArrayIndex]*rAmountHeld << d << rOccurrenceTarget << d << rOccurrencesHeld;
 
             temp = ReturnStringIfTargetMet(rTarget, rAmountHeld, rOccurrenceTarget, rOccurrencesHeld, rMPM, misslevel);
             myfile << d << temp;
@@ -1157,6 +1157,10 @@ namespace marzone
         if (rTestMPM < rMPM)
           rMPM = rTestMPM;
       }
+
+      if (!targetArea && !targetOcc) 
+        temp = "";
+
       return temp;
     }
 
