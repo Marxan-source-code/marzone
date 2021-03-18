@@ -135,6 +135,14 @@ namespace marzone
         // Clear map clumps for this species
         if (spec.specList[isp].target2)
           ClearClumps(isp); // for target2 species, clear existing pu.
+
+        // Reset zone species if specified
+        int zoneBase = isp * zones.zoneCount;
+        for (int i = 0; i < zones.zoneCount; i++) {
+          iZoneSpecIndex = zoneBase + i;
+          zoneSpec[iZoneSpecIndex].amount = 0;
+          zoneSpec[iZoneSpecIndex].occurrence = 0;
+        }
       }
 
       for (int ipu = 0; ipu < solution.size(); ipu++)
