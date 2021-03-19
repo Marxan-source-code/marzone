@@ -382,6 +382,10 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     omp_lock_t bestR_write_lock;
     omp_init_lock(&bestR_write_lock);
 
+    // lock for solutions matrix
+    omp_lock_t matrix_write_lock;
+    omp_init_lock(&matrix_write_lock);
+
     //create seeds for local rng engines
     vector<unsigned int> seeds(runoptions.repeats);
     for (int run_id = 1; run_id <= runoptions.repeats; run_id++)
@@ -569,6 +573,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
             if (fnames.savesolutionsmatrix)
             {
+                omp_set_lock(&matrix_write_lock);
                 string solutionsMatrixName = fnames.savename + "_solutionsmatrix" + getFileSuffix(fnames.savesolutionsmatrix);
                 reserveThread.AppendSolutionsMatrix(solutionsMatrixName, zones.zoneCount, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
 
@@ -578,6 +583,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                     // append solutions matrix for each zone separately
                     reserveThread.AppendSolutionsMatrixZone(solutionsMatrixZoneName, i, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
                 }
+                omp_unset_lock(&matrix_write_lock);
             }
 
             if (fnames.savezoneconnectivitysum)
