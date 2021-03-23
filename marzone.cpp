@@ -239,7 +239,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     if (fnames.savetotalareas)
     {
         tempname = fnames.savename + "_totalareas" + getFileSuffix(fnames.savetotalareas);
-        CalcTotalAreas(pu, spec, tempname, true);
+        CalcTotalAreas(pu, spec, tempname);
     }
 
     // finalise zone and non-zone targets now that matrix has been loaded
@@ -382,6 +382,10 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
     omp_lock_t bestR_write_lock;
     omp_init_lock(&bestR_write_lock);
 
+    // lock for solutions matrix
+    omp_lock_t matrix_write_lock;
+    omp_init_lock(&matrix_write_lock);
+
     //create seeds for local rng engines
     vector<unsigned int> seeds(runoptions.repeats);
     for (int run_id = 1; run_id <= runoptions.repeats; run_id++)
@@ -459,6 +463,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 if (runoptions.verbose > 1)
                 {
                     progbuffer << "  ThermalAnnealing:";
+                    reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
                     PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
                 }
 
@@ -475,6 +480,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 if (runoptions.verbose > 1)
                 {
                     progbuffer << "  PopAnnealing:";
+                    reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
                     PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
                 }
             }
@@ -488,6 +494,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 if (runoptions.verbose > 1 && (runoptions.runopts == 2 || runoptions.runopts == 5))
                 {
                     progbuffer << "\n  Heuristic:";
+                    reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
                     PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
                 }
 
@@ -504,6 +511,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                 if (runoptions.verbose > 1)
                 {
                     progbuffer << "  Iterative Improvement:";
+                    reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
                     PrintResVal(reserveThread, spec, zones, runoptions.misslevel, progbuffer);
                 }
             } // Activate Iterative Improvement
@@ -520,6 +528,9 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             }
 
             debugbuffer << "WriteSolution ran " << irun << "\n";
+
+            // re-evaluate entire system in case of any floating point/evaluation errors.
+            reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
 
             if (fnames.savespecies && fnames.saverun)
             {
@@ -540,8 +551,6 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
             // Saving the best from all the runs
             if (fnames.savebest)
             {
-                // re-evaluate entire system in case of any floating point/evaluation errors.
-                reserveThread.EvaluateObjectiveValue(pu, spec, zones, runoptions.blm);
                 if (reserveThread.objective.total < bestR.objective.total)
                 {
                     omp_set_lock(&bestR_write_lock);
@@ -564,6 +573,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
 
             if (fnames.savesolutionsmatrix)
             {
+                omp_set_lock(&matrix_write_lock);
                 string solutionsMatrixName = fnames.savename + "_solutionsmatrix" + getFileSuffix(fnames.savesolutionsmatrix);
                 reserveThread.AppendSolutionsMatrix(solutionsMatrixName, zones.zoneCount, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
 
@@ -573,6 +583,7 @@ int MarZone(string sInputFileName, int marxanIsSecondary)
                     // append solutions matrix for each zone separately
                     reserveThread.AppendSolutionsMatrixZone(solutionsMatrixZoneName, i, fnames.savesolutionsmatrix, fnames.solutionsmatrixheaders);
                 }
+                omp_unset_lock(&matrix_write_lock);
             }
 
             if (fnames.savezoneconnectivitysum)
@@ -976,14 +987,17 @@ void ShowPauseExit(void)
 
 void WriteSecondarySyncFileRun(int iSyncRun)
 {
-     FILE* fsync;
-     char sSyncFileName[80];
+    FILE *fsync;
+    char sSyncFileName[80];
 
-     sprintf(sSyncFileName,"sync%i",iSyncRun);
+    if (iSyncRun)
+        sprintf(sSyncFileName, "sync%i", iSyncRun);
+    else
+        sprintf(sSyncFileName, "sync");
 
-     fsync = fopen(sSyncFileName,"w");
-     fprintf(fsync,"%s",sSyncFileName);
-     fclose(fsync);
+    fsync = fopen(sSyncFileName, "w");
+    fprintf(fsync, "%s", sSyncFileName);
+    fclose(fsync);
 }
 
 /* SecondaryExit does not deliver a message prior to exiting, but creates a file so C-Plan knows marxan has exited */
@@ -1160,7 +1174,7 @@ void ApplySpecProp(Species& spec, Pu& pu)
     spec.SetSpeciesProportionTarget(speciesSums);
 }
 
-void CalcTotalAreas(Pu& pu, Species& spec, string filename /*= "MarZoneTotalAreas.csv"*/, bool save /*= false*/)
+void CalcTotalAreas(Pu& pu, Species& spec, string filename /*= "MarZoneTotalAreas.csv"*/, bool save /*= true*/)
 {
     int ipu, i, ism, isp;
     vector<int> TotalOccurrences, TO_2, TO_3;
@@ -1347,14 +1361,15 @@ int main(int argc,char *argv[])
                 marzone::SecondaryExit();
             return 1;
         } // Abnormal Exit
-        if (marxanIsSecondary == 1)
-            marzone::SecondaryExit();
     } 
     catch (const std::exception& e)
     {
         marzone::logger.ShowErrorMessage("Error occurred in execution: " + std::string(e.what()));
         exit(EXIT_FAILURE);
     }
+
+    if (marxanIsSecondary == 1)
+        marzone::SecondaryExit();
 
     return 0;
 }
