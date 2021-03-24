@@ -135,6 +135,14 @@ namespace marzone
         // Clear map clumps for this species
         if (spec.specList[isp].target2)
           ClearClumps(isp); // for target2 species, clear existing pu.
+
+        // Reset zone species if specified
+        int zoneBase = isp * zones.zoneCount;
+        for (int i = 0; i < zones.zoneCount; i++) {
+          iZoneSpecIndex = zoneBase + i;
+          zoneSpec[iZoneSpecIndex].amount = 0;
+          zoneSpec[iZoneSpecIndex].occurrence = 0;
+        }
       }
 
       for (int ipu = 0; ipu < solution.size(); ipu++)
@@ -927,7 +935,7 @@ namespace marzone
             rOccurrenceTarget = zones.zoneTarget[isp][i].occurrence;
             rOccurrencesHeld = zoneSpec[iZoneArrayIndex].occurrence;
 
-            myfile << d << rTarget << d << rAmountHeld << d << zones.zoneContribValues[iZoneArrayIndex] << d << rOccurrenceTarget << d << rOccurrencesHeld;
+            myfile << d << rTarget << d << rAmountHeld << d << zones.zoneContribValues[iZoneArrayIndex]*rAmountHeld << d << rOccurrenceTarget << d << rOccurrencesHeld;
 
             temp = ReturnStringIfTargetMet(rTarget, rAmountHeld, rOccurrenceTarget, rOccurrencesHeld, rMPM, misslevel);
             myfile << d << temp;
@@ -1157,6 +1165,10 @@ namespace marzone
         if (rTestMPM < rMPM)
           rMPM = rTestMPM;
       }
+
+      if (!targetArea && !targetOcc) 
+        temp = "";
+
       return temp;
     }
 

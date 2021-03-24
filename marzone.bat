@@ -1,3 +1,3 @@
 @echo off
-marzone.exe
+MarZone_x64.exe
 pause 

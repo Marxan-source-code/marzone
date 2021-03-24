@@ -43,7 +43,8 @@ class Analysis {
       myfile << "\n";
     }
 
-    for (int i = 0; i < pu.puno; i++)
+    // Pu must be printed in reverse order for compatibility with zonae cogito
+    for (int i = pu.puno-1; i >= 0; i--)
     {
       if (imode > 1)
       {

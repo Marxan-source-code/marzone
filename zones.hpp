@@ -657,7 +657,9 @@ class Zones {
             {
                 if (i == 0) // the "available" zone.
                 {
-                    zoneContribValues[(j*zoneCount)+i] = 0;
+                    // zoneContribValues[(j*zoneCount)+i] = 0;
+                    // It is unclear what the original code was doing with the "availableZoneInput", so we will keep consistent w/ manual and default all to 1.
+                    zoneContribValues[(j*zoneCount)+i] = 1;
                 } else {
                     zoneContribValues[(j*zoneCount)+i] = 1;
                 }
