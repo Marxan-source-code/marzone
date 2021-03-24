@@ -32,6 +32,7 @@ Please feel free to use our [Google Group](https://groups.google.com/g/marxan). 
 For fast execution:
 - set verbosity to 1
 - set all annealing trace, savefiles settings to 0 unless you need the specific output
+- (If windows) use the .bat file if you want the command window to stay open after execution
 
 ## Overview of Code Structure
 If you want to start contributing to the codebase, we encourage you to familiarise yourself with the type of problems that Marzone is intended to solve, and be familiar with the input files and their roles within the program. 
@@ -64,7 +65,7 @@ All solvers depend on **reserve, pu, zones and species** components. To add a ne
 
 ## Build command (windows and linux)
 ```
-g++ -O3 -std=c++17 -static -fopenmp marzone.cpp -o bin/marzone
+g++ -O3 -std=c++17 -static -fopenmp marzone.cpp -o bin/MarZone_x64
 ```
 
 
